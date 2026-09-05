@@ -8,7 +8,7 @@ final class TitleScene: SKScene {
         buildMoose()
         buildTitle()
         buildPrompt()
-        buildLeaderboardButton()
+        buildMenuButtons()
     }
 
     private func buildWash() {
@@ -91,10 +91,10 @@ final class TitleScene: SKScene {
 
     private func buildPrompt() {
         let prompt = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        prompt.text = "TAP TO CONTINUE"
+        prompt.text = "TAP FOR ARCADE"
         prompt.fontSize = 22
         prompt.fontColor = SKColor(white: 0.95, alpha: 1)
-        prompt.position = CGPoint(x: size.width / 2, y: 56)
+        prompt.position = CGPoint(x: size.width / 2, y: 148)
         prompt.zPosition = 12
         addChild(prompt)
 
@@ -105,20 +105,26 @@ final class TitleScene: SKScene {
         prompt.run(.repeatForever(blink))
     }
 
-    private func buildLeaderboardButton() {
+    private func buildMenuButtons() {
+        addMenuButton(title: "ARCADE", name: "arcade", at: CGPoint(x: size.width * 0.32, y: 92))
+        addMenuButton(title: "FREE PLAY", name: "free-play", at: CGPoint(x: size.width * 0.50, y: 92))
+        addMenuButton(title: "TOP 10", name: "leaderboard", at: CGPoint(x: size.width * 0.68, y: 92))
+    }
+
+    private func addMenuButton(title: String, name: String, at point: CGPoint) {
         let bg = SKShapeNode(rectOf: CGSize(width: 168, height: 44), cornerRadius: 10)
         bg.fillColor = SKColor(white: 0.12, alpha: 0.9)
         bg.strokeColor = SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
         bg.lineWidth = 2
-        bg.position = CGPoint(x: size.width - 110, y: size.height - 44)
-        bg.name = "leaderboard"
+        bg.position = point
+        bg.name = name
         bg.zPosition = 20
         let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        label.text = "TOP 10"
+        label.text = title
         label.fontSize = 16
         label.fontColor = .white
         label.verticalAlignmentMode = .center
-        label.name = "leaderboard"
+        label.name = name
         bg.addChild(label)
         addChild(bg)
     }
@@ -130,6 +136,10 @@ final class TitleScene: SKScene {
             SceneRouter.present(SceneRouter.leaderboard(size: size), from: self)
             return
         }
-        SceneRouter.present(SceneRouter.select(size: size), from: self)
+        if hit.contains(where: { $0.name == "free-play" }) {
+            SceneRouter.present(SceneRouter.select(size: size, mode: .freePlay), from: self)
+            return
+        }
+        SceneRouter.present(SceneRouter.select(size: size, mode: .arcade), from: self)
     }
 }

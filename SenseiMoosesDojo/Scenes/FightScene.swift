@@ -1,9 +1,10 @@
 import SpriteKit
 
 final class FightScene: SKScene {
-    private let playerID: FighterID
-    private let cpuID: FighterID
+    private let playerFighter: PlayableFighter
+    private let opponentFighter: PlayableFighter
     private let stage: StageConfig
+    private let arcade: ArcadeProgress?
 
     private var player: FighterActor!
     private var cpu: FighterActor!
@@ -24,12 +25,18 @@ final class FightScene: SKScene {
     private var master: SKSpriteNode?
     private var near: SKSpriteNode?
 
-    init(size: CGSize, playerID: FighterID, cpuID: FighterID, stageID: StageID = .lionsBridge) {
-        self.playerID = playerID
-        self.cpuID = cpuID
+    init(
+        size: CGSize,
+        player: PlayableFighter,
+        opponent: PlayableFighter,
+        stageID: StageID = .lionsBridge,
+        arcade: ArcadeProgress? = nil
+    ) {
+        self.playerFighter = player
+        self.opponentFighter = opponent
         let resolved = StageConfig.config(for: stageID)
-        // v0 only implements Lions Bridge; reserved stages fall back so the loop stays playable.
         self.stage = resolved.wired ? resolved : .lionsBridge
+        self.arcade = arcade
         super.init(size: size)
         scaleMode = .aspectFill
     }
@@ -55,7 +62,6 @@ final class FightScene: SKScene {
     }
 
     private func buildStage() {
-        // Layered parallax when present; `stage1_master` is the readable plate for Stage 1.
         let layers = [stage.skyName, stage.farName, stage.midName, stage.nearName]
         let hasParallax = layers.contains(where: Art.hasTexture)
         if hasParallax {
@@ -101,8 +107,8 @@ final class FightScene: SKScene {
 
     private func buildFighters() {
         let height: CGFloat = 210
-        player = FighterActor(id: playerID, isPlayer: true, height: height)
-        cpu = FighterActor(id: cpuID, isPlayer: false, height: height)
+        player = FighterActor(fighter: playerFighter, isPlayer: true, height: height)
+        cpu = FighterActor(fighter: opponentFighter, isPlayer: false, height: height)
         player.resetRound(at: CGPoint(x: size.width * 0.28, y: groundY), facingRight: true)
         cpu.resetRound(at: CGPoint(x: size.width * 0.72, y: groundY), facingRight: false)
         player.zPosition = 10
@@ -112,12 +118,15 @@ final class FightScene: SKScene {
     }
 
     private func buildHUD() {
-        playerBar = HealthBar(title: playerID.displayName, id: playerID, width: 420, alignLeft: true)
+        playerBar = HealthBar(title: playerFighter.displayName, fighter: playerFighter, width: 420, alignLeft: true)
         playerBar.position = CGPoint(x: 36, y: size.height - 78)
         playerBar.zPosition = 50
         addChild(playerBar)
 
-        cpuBar = HealthBar(title: "CPU · \(cpuID.displayName)", id: cpuID, width: 420, alignLeft: false)
+        let cpuTitle = arcade != nil && arcade?.currentBoss != nil
+            ? opponentFighter.displayName
+            : "CPU · \(opponentFighter.displayName)"
+        cpuBar = HealthBar(title: cpuTitle, fighter: opponentFighter, width: 420, alignLeft: false)
         cpuBar.position = CGPoint(x: size.width - 36 - 420, y: size.height - 78)
         cpuBar.zPosition = 50
         addChild(cpuBar)
@@ -204,6 +213,10 @@ final class FightScene: SKScene {
         playerBar.set(hp: player.hp, maxHP: player.maxHP)
         cpuBar.set(hp: cpu.hp, maxHP: cpu.maxHP)
 
+        if playerWon, let boss = arcade?.currentBoss {
+            UnlockStore.unlock(boss)
+        }
+
         let panel = SKNode()
         panel.name = "round-overlay"
         panel.zPosition = 100
@@ -214,24 +227,58 @@ final class FightScene: SKScene {
 
         let result = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         result.text = playerWon ? "YOU WIN" : "YOU LOSE"
-        result.fontSize = 56
+        result.fontSize = 52
         result.fontColor = playerWon
             ? SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
             : SKColor(red: 1, green: 0.35, blue: 0.28, alpha: 1)
-        result.position = CGPoint(x: size.width / 2, y: size.height * (playerWon ? 0.68 : 0.58))
+        result.position = CGPoint(x: size.width / 2, y: size.height * 0.70)
         panel.addChild(result)
 
-        if playerWon {
+        if playerWon, let boss = arcade?.currentBoss {
+            let unlocked = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            unlocked.text = "UNLOCKED  \(boss.displayName.uppercased())"
+            unlocked.fontSize = 18
+            unlocked.fontColor = SKColor(red: 0.7, green: 1, blue: 0.7, alpha: 1)
+            unlocked.position = CGPoint(x: size.width / 2, y: size.height * 0.62)
+            panel.addChild(unlocked)
+        }
+
+        if playerWon, arcade != nil, let next = arcade?.next {
+            let nextLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            nextLabel.text = "NEXT:  \(next.opponent.displayName.uppercased())"
+            nextLabel.fontSize = 22
+            nextLabel.fontColor = .white
+            nextLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.54)
+            nextLabel.name = "next-fight"
+            panel.addChild(nextLabel)
+            addButton(to: panel, title: "NEXT FIGHT", name: "next-fight", y: size.height * 0.42)
+            addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.30)
+            addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.18)
+            run(.sequence([
+                .wait(forDuration: 1.35),
+                .run { [weak self] in self?.advanceArcade() }
+            ]), withKey: "arcade-next")
+        } else if playerWon, arcade != nil, arcade?.next == nil {
+            let done = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            done.text = "ARCADE COMPLETE"
+            done.fontSize = 22
+            done.fontColor = SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
+            done.position = CGPoint(x: size.width / 2, y: size.height * 0.54)
+            panel.addChild(done)
+            addButton(to: panel, title: "SUBMIT SCORE", name: "submit-score", y: size.height * 0.42)
+            addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.30)
+            addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.18)
+        } else if playerWon {
             let score = fightScore()
             let scoreLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
             scoreLabel.text = "SCORE  \(score)"
             scoreLabel.fontSize = 22
             scoreLabel.fontColor = .white
-            scoreLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.58)
+            scoreLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.56)
             panel.addChild(scoreLabel)
-            addButton(to: panel, title: "SUBMIT SCORE", name: "submit-score", y: size.height * 0.46)
-            addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.34)
-            addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.22)
+            addButton(to: panel, title: "SUBMIT SCORE", name: "submit-score", y: size.height * 0.44)
+            addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.32)
+            addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.20)
         } else {
             addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.40)
             addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.28)
@@ -240,13 +287,12 @@ final class FightScene: SKScene {
         overlay = panel
     }
 
-    /// Remaining HP × 10. Win path only; does not change fight rules.
     private func fightScore() -> Int {
         Int(player.hp.rounded(.down)) * 10
     }
 
     private func addButton(to parent: SKNode, title: String, name: String, y: CGFloat) {
-        let bg = SKShapeNode(rectOf: CGSize(width: 360, height: 56), cornerRadius: 12)
+        let bg = SKShapeNode(rectOf: CGSize(width: 360, height: 52), cornerRadius: 12)
         bg.fillColor = SKColor(white: 0.12, alpha: 0.95)
         bg.strokeColor = SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
         bg.lineWidth = 2
@@ -262,20 +308,43 @@ final class FightScene: SKScene {
         parent.addChild(bg)
     }
 
+    private func rematch() {
+        if let arcade {
+            SceneRouter.present(SceneRouter.fight(size: size, arcade: arcade), from: self)
+        } else {
+            SceneRouter.present(
+                SceneRouter.fight(size: size, player: playerFighter, opponent: opponentFighter, stage: stage.id),
+                from: self
+            )
+        }
+    }
+
+    private func advanceArcade() {
+        removeAction(forKey: "arcade-next")
+        guard let next = arcade?.next else { return }
+        SceneRouter.present(SceneRouter.fight(size: size, arcade: next), from: self)
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if roundOver {
             guard let touch = touches.first else { return }
             let nodes = nodes(at: touch.location(in: self))
+            if nodes.contains(where: { $0.name == "next-fight" }) {
+                advanceArcade()
+                return
+            }
             if nodes.contains(where: { $0.name == "submit-score" }) {
                 presentScoreSubmit()
                 return
             }
             if nodes.contains(where: { $0.name == "rematch" }) {
-                SceneRouter.present(SceneRouter.fight(size: size, player: playerID, cpu: cpuID), from: self)
+                rematch()
                 return
             }
             if nodes.contains(where: { $0.name == "select" }) {
-                SceneRouter.present(SceneRouter.select(size: size), from: self)
+                removeAction(forKey: "arcade-next")
+                let mode: SelectMode = arcade != nil ? .arcade : .freePlay
+                SceneRouter.present(SceneRouter.select(size: size, mode: mode), from: self)
                 return
             }
             return
@@ -312,11 +381,11 @@ final class HealthBar: SKNode {
     private let width: CGFloat
     private let alignLeft: Bool
 
-    init(title: String, id: FighterID, width: CGFloat, alignLeft: Bool) {
+    init(title: String, fighter: PlayableFighter, width: CGFloat, alignLeft: Bool) {
         self.width = width
         self.alignLeft = alignLeft
         let height: CGFloat = 22
-        fill = SKSpriteNode(color: id.accent, size: CGSize(width: width, height: height))
+        fill = SKSpriteNode(color: fighter.accent, size: CGSize(width: width, height: height))
         super.init()
 
         let back = SKSpriteNode(color: SKColor(white: 0.08, alpha: 0.75), size: CGSize(width: width + 6, height: height + 6))
@@ -328,7 +397,7 @@ final class HealthBar: SKNode {
         fill.position = CGPoint(x: alignLeft ? 3 : width - 3, y: 0)
         addChild(fill)
 
-        let portrait = Art.fighterPortrait(id, height: 36)
+        let portrait = Art.portrait(fighter, height: 36)
         portrait.position = CGPoint(x: alignLeft ? -28 : width + 28, y: 0)
         addChild(portrait)
 

@@ -1,26 +1,42 @@
 import SpriteKit
 
+enum SelectMode {
+    case arcade
+    case freePlay
+}
+
 enum SceneRouter {
     static func title(size: CGSize) -> SKScene {
         TitleScene(size: size)
     }
 
-    static func select(size: CGSize) -> SKScene {
-        CharacterSelectScene(size: size)
+    static func select(size: CGSize, mode: SelectMode = .arcade) -> SKScene {
+        CharacterSelectScene(size: size, mode: mode)
     }
 
     static func leaderboard(size: CGSize) -> SKScene {
         LeaderboardScene(size: size)
     }
 
+    static func fight(size: CGSize, arcade: ArcadeProgress) -> SKScene {
+        FightScene(size: size, player: arcade.player, opponent: arcade.opponent, stageID: arcade.stageID, arcade: arcade)
+    }
+
     static func fight(
         size: CGSize,
-        player: FighterID,
-        cpu: FighterID? = nil,
+        player: PlayableFighter,
+        opponent: PlayableFighter? = nil,
         stage: StageID = .lionsBridge
     ) -> SKScene {
-        let opponent = cpu ?? FighterID.allCases.first { $0 != player } ?? .jb
-        return FightScene(size: size, playerID: player, cpuID: opponent, stageID: stage)
+        let cpu: PlayableFighter
+        if let opponent {
+            cpu = opponent
+        } else if case .starter(let id) = player {
+            cpu = .starter(FighterID.allCases.first { $0 != id } ?? .jb)
+        } else {
+            cpu = .starter(.jb)
+        }
+        return FightScene(size: size, player: player, opponent: cpu, stageID: stage, arcade: nil)
     }
 
     static func present(_ next: SKScene, from current: SKScene) {

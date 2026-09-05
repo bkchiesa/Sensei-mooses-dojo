@@ -13,6 +13,7 @@ SWIFT_FILES = [
     ("Roster.swift", "Game/Roster.swift"),
     ("BossRoster.swift", "Game/BossRoster.swift"),
     ("UnlockStore.swift", "Game/UnlockStore.swift"),
+    ("ArcadeLadder.swift", "Game/ArcadeLadder.swift"),
     ("Stage.swift", "Game/Stage.swift"),
     ("Art.swift", "Game/Art.swift"),
     ("SceneRouter.swift", "Game/SceneRouter.swift"),

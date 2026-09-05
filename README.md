@@ -2,7 +2,7 @@
 
 iPhone street-fighter prototype. Native **Swift + SpriteKit** — no Unity, no Godot, no paid dependencies.
 
-Playable v0 loop: **Title → Character Select → Fight → rematch or back to select**.
+Playable loop: **Title → Arcade or Free Play select → Fight**. Arcade auto-advances the boss ladder after each win.
 
 ## Open in Xcode
 
@@ -18,9 +18,9 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 
 | Scene | What happens |
 | --- | --- |
-| **TitleScene** | Animated title *Sensei Moose’s Dojo*, Sensei Moose closed-gi jump (pose B) with a bob. Tap to play, or **TOP 10** for the leaderboard. |
-| **CharacterSelectScene** | Five slots: **Matt, Simon, Rich, Amanda, JB** (`matt` / `simon` / `rich` / `amanda` / `jb`). Tap a fighter to start. |
-| **FightScene** | Stage 1 **Lions Bridge** mood B. You vs a CPU dummy (another roster fighter). Health bars. On-screen **◀ ▶**, **JUMP**, **PUNCH**, **KICK**. Round ends at 0 HP → **Rematch** or **Character Select**. A win also offers **Submit Score**. |
+| **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. Tap elsewhere starts Arcade. |
+| **CharacterSelectScene** | Arcade: starters only (Matt / Simon / Rich / Amanda / JB). Free Play: starters plus any unlocked bosses. |
+| **FightScene** | Health bars, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK**. Arcade: starter dummy on Lions Bridge, then the boss ladder with auto-advance. Rematch stays. A boss win calls `UnlockStore.unlock`. |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster
@@ -46,7 +46,21 @@ Clearing a boss unlocks them as a **playable** character on Character Select.
 | Art | Unlocked bosses reuse `boss_<id>_portrait` / `boss_<id>_idle_00` |
 | Finals | Austin / Sensei Moose use the same unlock-on-clear rule unless Brandon changes it |
 
-v0 fight loop still uses **Stage 1 + starter roster** only. `BossID` + `UnlockStore` are the hooks for ladder wiring; Select currently shows starters (`UnlockStore.starters`).
+Arcade order (after the Stage 1 starter dummy fight):
+
+**Misty → Lucas → Chris → Christiano → Dakota → John K. (`johnk`) → Finley → Hudson → Michael → Kasey → Jaylen → Amiyr → Shaun → Ryan → Austin → Sensei Moose (`senseiMoose`)**
+
+A win unlocks that boss on Free Play Select (`UserDefaults` via `UnlockStore`). `boss_senseiMoose_*` is not in-tree yet; Fight/Select fall back to `moose_title_idle` for Sensei Moose.
+
+### Stage mapping
+
+| Stage | Mood | Who fights here |
+| --- | --- | --- |
+| Stage 1 Lions Bridge (`stage1_*`) | B | Intro starter dummy + batch 1 (Misty–Dakota) |
+| Stage 2 Hilton Elementary (`stage2_*`) | B waterfront + building | Batch 2 (John K.–Kasey) |
+| Stage 3 Axsom Martial Arts Dojo (`stage3_*`) | B exterior dusk | Batch 3 (Jaylen–Austin) + Sensei Moose |
+
+Pixel finals for Stage 1 / title / starter roster / Hilton / Dojo / boss batches 1–3 are in `SenseiMoosesDojo/Assets.xcassets/`.
 
 ### Boss batch 1 (art parked)
 
@@ -98,15 +112,15 @@ Catalog root: **`SenseiMoosesDojo/Assets.xcassets/`**
 
 FightScene loads `stage1_master` plus any of `stage1_sky` / `far` / `mid` / `near` that exist, and shifts them for a light parallax. Title prefers `moose_title_idle`; if that is missing it composes `moose_title_body` + `moose_title_head`.
 
-### Later stages (hooks only)
+### Stages
 
-`Game/Stage.swift` has a `StageID` / `StageConfig` table. **Only Stage 1 is playable.**
+`Game/Stage.swift` — all three are `wired: true` for arcade.
 
-| Stage | id | Status | Reserved art prefix |
+| Stage | id | Status | Art prefix |
 | --- | --- | --- | --- |
-| Lions Bridge (mood B) | `lionsBridge` | Wired in FightScene | `stage1_*` |
-| Hilton Elementary School | `hiltonElementary` | TODO stub | `stage2_*` |
-| Axsom Martial Arts Dojo | `axsomDojo` | TODO stub | `stage3_*` |
+| Lions Bridge (mood B) | `lionsBridge` | Wired | `stage1_*` |
+| Hilton Elementary (mood B waterfront) | `hiltonElementary` | Wired for batch 2 | `stage2_*` |
+| Axsom Martial Arts Dojo (mood B dusk) | `axsomDojo` | Wired for batch 3 + Sensei | `stage3_*` |
 
 ## Top 10 leaderboard
 
@@ -135,7 +149,7 @@ SenseiMoosesDojo/
   AppDelegate.swift
   SceneDelegate.swift
   GameViewController.swift      SKView, landscape, TitleScene
-  Game/                         roster, stages, art, fighters, pad, routing, leaderboard
+  Game/                         roster, bosses, arcade ladder, unlocks, art, fight, leaderboard
   Scenes/                       Title, Select, Fight, Leaderboard
   Assets.xcassets/              named drop-in imagesets
 scripts/                        placeholder + project generators, structural check

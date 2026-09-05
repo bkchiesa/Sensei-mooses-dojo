@@ -105,4 +105,16 @@ enum Art {
         scaleToHeight(node, height)
         return node
     }
+
+    static func portrait(_ fighter: PlayableFighter, height: CGFloat) -> SKSpriteNode {
+        let node = sprite(named: fighter.portraitName, fallbackColor: fighter.accent, fallbackSize: CGSize(width: height, height: height))
+        scaleToHeight(node, height)
+        return node
+    }
+
+    static func idle(_ fighter: PlayableFighter, height: CGFloat) -> SKSpriteNode {
+        let node = sprite(named: fighter.idleName, fallbackColor: fighter.accent, fallbackSize: CGSize(width: height * 0.65, height: height))
+        scaleToHeight(node, height)
+        return node
+    }
 }

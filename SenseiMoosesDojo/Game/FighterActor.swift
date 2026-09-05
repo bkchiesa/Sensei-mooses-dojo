@@ -12,7 +12,7 @@ enum AttackKind {
 }
 
 final class FighterActor: SKNode {
-    let id: FighterID
+    let fighter: PlayableFighter
     let isPlayer: Bool
     let maxHP: CGFloat = 100
 
@@ -36,10 +36,10 @@ final class FighterActor: SKNode {
     private let jumpVelocity: CGFloat = 920
     private let gravity: CGFloat = -2600
 
-    init(id: FighterID, isPlayer: Bool, height: CGFloat) {
-        self.id = id
+    init(fighter: PlayableFighter, isPlayer: Bool, height: CGFloat) {
+        self.fighter = fighter
         self.isPlayer = isPlayer
-        self.body = Art.fighterIdle(id, height: height)
+        self.body = Art.idle(fighter, height: height)
         self.strike = SKSpriteNode(color: .white, size: CGSize(width: 28, height: 18))
         super.init()
         name = isPlayer ? "player" : "cpu"

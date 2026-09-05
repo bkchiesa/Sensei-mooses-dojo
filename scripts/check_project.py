@@ -18,6 +18,7 @@ REQUIRED_SWIFT = [
     "Game/Roster.swift",
     "Game/BossRoster.swift",
     "Game/UnlockStore.swift",
+    "Game/ArcadeLadder.swift",
     "Game/Stage.swift",
     "Game/Art.swift",
     "Game/SceneRouter.swift",
@@ -39,18 +40,21 @@ REQUIRED_ASSETS = [
     "stage1_far",
     "stage1_mid",
     "stage1_near",
+    "stage2_master",
+    "stage3_master",
 ]
 for _id in ("matt", "simon", "rich", "amanda", "jb"):
     REQUIRED_ASSETS.append(f"fighter_{_id}_portrait")
     REQUIRED_ASSETS.append(f"fighter_{_id}_idle_00")
 
 SCENE_TOKENS = {
-    "Scenes/TitleScene.swift": ["Sensei Moose's Dojo", "TAP TO CONTINUE", "mooseTitle", "leaderboard"],
-    "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "UnlockStore.starters"],
+    "Scenes/TitleScene.swift": ["Sensei Moose's Dojo", "TAP FOR ARCADE", "mooseTitle", "leaderboard", "free-play"],
+    "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "UnlockStore.starters", "freePlay"],
     "Game/UnlockStore.swift": ["UnlockStore", "UserDefaults", "unlock"],
-    "Game/BossRoster.swift": ["case misty", "case johnk", "case jaylen", "boss_", "batch1", "batch2", "batch3"],
-    "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb"],
-    "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score"],
+    "Game/ArcadeLadder.swift": ["BossID.ladder", "lionsBridge"],
+    "Game/BossRoster.swift": ["case misty", "case johnk", "case jaylen", "case senseiMoose", "boss_", "batch1", "batch2", "batch3", "ladder"],
+    "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb", "PlayableFighter"],
+    "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score", "UnlockStore.unlock", "NEXT:"],
     "Scenes/LeaderboardScene.swift": ["TOP 10", "LeaderboardService"],
     "Game/LeaderboardService.swift": ["com.sensiemoose.dojo.top10", "GKLocalPlayer", "UserDefaults"],
     "Game/Art.swift": ["moose_title_idle", "moose_title_body", "moose_title_head"],

@@ -13,6 +13,7 @@
 		6AF61A32E77CFFBD4AF64BB2 /* Roster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22DB6EFB1E2017974FA81A16 /* Roster.swift */; };
 		747D04B69D57597ABD032CED /* BossRoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001A3191B634440D72BEB96C /* BossRoster.swift */; };
 		8F24B4922E2E222186343B28 /* UnlockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B5A9E3335D1222E34D2D17 /* UnlockStore.swift */; };
+		168D19DA0B34147E51D87EAB /* ArcadeLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F65B381E9F9C65D244B8B4F /* ArcadeLadder.swift */; };
 		42557ADC9D84D8C3A5D4C5AC /* Stage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D501FE0FDF8F5D55235F3A8 /* Stage.swift */; };
 		BB0898A4240FCF22F10A4045 /* Art.swift in Sources */ = {isa = PBXBuildFile; fileRef = 329AE47124B14212CB7EEB6C /* Art.swift */; };
 		6BCEFCBDB8C5CF558D476A29 /* SceneRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D972500B6D492A2112B8B15 /* SceneRouter.swift */; };
@@ -34,6 +35,7 @@
 		22DB6EFB1E2017974FA81A16 /* Roster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Roster.swift; sourceTree = "<group>"; };
 		001A3191B634440D72BEB96C /* BossRoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BossRoster.swift; sourceTree = "<group>"; };
 		34B5A9E3335D1222E34D2D17 /* UnlockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockStore.swift; sourceTree = "<group>"; };
+		0F65B381E9F9C65D244B8B4F /* ArcadeLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArcadeLadder.swift; sourceTree = "<group>"; };
 		4D501FE0FDF8F5D55235F3A8 /* Stage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stage.swift; sourceTree = "<group>"; };
 		329AE47124B14212CB7EEB6C /* Art.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Art.swift; sourceTree = "<group>"; };
 		5D972500B6D492A2112B8B15 /* SceneRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneRouter.swift; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 				22DB6EFB1E2017974FA81A16 /* Roster.swift */,
 				001A3191B634440D72BEB96C /* BossRoster.swift */,
 				34B5A9E3335D1222E34D2D17 /* UnlockStore.swift */,
+				0F65B381E9F9C65D244B8B4F /* ArcadeLadder.swift */,
 				4D501FE0FDF8F5D55235F3A8 /* Stage.swift */,
 				329AE47124B14212CB7EEB6C /* Art.swift */,
 				5D972500B6D492A2112B8B15 /* SceneRouter.swift */,
@@ -203,6 +206,7 @@
 				6AF61A32E77CFFBD4AF64BB2 /* Roster.swift in Sources */,
 				747D04B69D57597ABD032CED /* BossRoster.swift in Sources */,
 				8F24B4922E2E222186343B28 /* UnlockStore.swift in Sources */,
+				168D19DA0B34147E51D87EAB /* ArcadeLadder.swift in Sources */,
 				42557ADC9D84D8C3A5D4C5AC /* Stage.swift in Sources */,
 				BB0898A4240FCF22F10A4045 /* Art.swift in Sources */,
 				6BCEFCBDB8C5CF558D476A29 /* SceneRouter.swift in Sources */,

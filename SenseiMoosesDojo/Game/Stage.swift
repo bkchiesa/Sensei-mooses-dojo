@@ -1,6 +1,6 @@
 import Foundation
 
-/// Playable and reserved stages. Only Stage 1 is wired into FightScene for v0.
+/// Arcade stages. Hilton and Axsom art is parked and wired for boss batches.
 enum StageID: String, CaseIterable {
     case lionsBridge
     case hiltonElementary
@@ -52,11 +52,11 @@ struct StageConfig {
 
     static let lionsBridge = StageConfig(id: .lionsBridge, mood: "B", wired: true)
 
-    /// TODO: Hilton Elementary School — not playable in v0.
-    static let hiltonElementary = StageConfig(id: .hiltonElementary, mood: nil, wired: false)
+    /// Hilton Elementary — mood B waterfront + building. Used for batch 2.
+    static let hiltonElementary = StageConfig(id: .hiltonElementary, mood: "B", wired: true)
 
-    /// TODO: Axsom Martial Arts Dojo — not playable in v0.
-    static let axsomDojo = StageConfig(id: .axsomDojo, mood: nil, wired: false)
+    /// Axsom Martial Arts Dojo — mood B exterior dusk. Used for batch 3 + Sensei Moose.
+    static let axsomDojo = StageConfig(id: .axsomDojo, mood: "B", wired: true)
 
     static func config(for id: StageID) -> StageConfig {
         switch id {

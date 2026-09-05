@@ -1,9 +1,19 @@
 import SpriteKit
 
 final class CharacterSelectScene: SKScene {
-    private var selected: FighterID?
-    private var slots: [FighterID: SKNode] = [:]
+    private let mode: SelectMode
+    private var selected: PlayableFighter?
+    private var slots: [String: SKNode] = [:]
     private var fightButton: SKLabelNode?
+
+    init(size: CGSize, mode: SelectMode) {
+        self.mode = mode
+        super.init(size: size)
+        scaleMode = .aspectFill
+    }
+
+    @available(*, unavailable)
+    required init?(coder aDecoder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func didMove(to view: SKView) {
         removeAllChildren()
@@ -14,20 +24,29 @@ final class CharacterSelectScene: SKScene {
         buildFightButton()
     }
 
+    private func roster() -> [PlayableFighter] {
+        let starters = UnlockStore.starters.map { PlayableFighter.starter($0) }
+        guard mode == .freePlay else { return starters }
+        let bosses = UnlockStore.selectRoster().unlockedBosses.map { PlayableFighter.boss($0) }
+        return starters + bosses
+    }
+
     private func buildHeader() {
         let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        title.text = "CHOOSE YOUR FIGHTER"
-        title.fontSize = 34
+        title.text = mode == .arcade ? "ARCADE  ·  CHOOSE YOUR FIGHTER" : "FREE PLAY  ·  CHOOSE YOUR FIGHTER"
+        title.fontSize = 28
         title.fontColor = SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
-        title.position = CGPoint(x: size.width / 2, y: size.height - 72)
+        title.position = CGPoint(x: size.width / 2, y: size.height - 58)
         title.zPosition = 5
         addChild(title)
 
         let hint = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        hint.text = "Matt  ·  Simon  ·  Rich  ·  Amanda  ·  JB"
-        hint.fontSize = 16
+        hint.text = mode == .arcade
+            ? "Starters always available  ·  Beat the dummy, then the boss ladder"
+            : "Starters + unlocked bosses"
+        hint.fontSize = 14
         hint.fontColor = SKColor(white: 0.75, alpha: 1)
-        hint.position = CGPoint(x: size.width / 2, y: size.height - 108)
+        hint.position = CGPoint(x: size.width / 2, y: size.height - 88)
         addChild(hint)
 
         let back = SKLabelNode(fontNamed: "AvenirNext-Bold")
@@ -35,56 +54,94 @@ final class CharacterSelectScene: SKScene {
         back.fontSize = 16
         back.fontColor = SKColor(white: 0.85, alpha: 1)
         back.horizontalAlignmentMode = .left
-        back.position = CGPoint(x: 36, y: size.height - 48)
+        back.position = CGPoint(x: 36, y: size.height - 40)
         back.name = "title"
         addChild(back)
-    }
 
-    private func buildSlots() {
-        let roster = UnlockStore.starters // + UnlockStore.selectRoster().unlockedBosses when ladder is wired
-        let slotW: CGFloat = 200
-        let gap: CGFloat = 18
-        let total = CGFloat(roster.count) * slotW + CGFloat(roster.count - 1) * gap
-        var x = (size.width - total) / 2 + slotW / 2
-        let y = size.height * 0.48
-
-        for id in roster {
-            let card = makeCard(id: id, width: slotW)
-            card.position = CGPoint(x: x, y: y)
-            card.name = "slot-\(id.rawValue)"
-            addChild(card)
-            slots[id] = card
-            x += slotW + gap
+        if mode == .arcade {
+            let free = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            free.text = "FREE PLAY →"
+            free.fontSize = 16
+            free.fontColor = SKColor(white: 0.85, alpha: 1)
+            free.horizontalAlignmentMode = .right
+            free.position = CGPoint(x: size.width - 36, y: size.height - 40)
+            free.name = "free-play"
+            addChild(free)
+        } else {
+            let arcade = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            arcade.text = "← ARCADE"
+            arcade.fontSize = 16
+            arcade.fontColor = SKColor(white: 0.85, alpha: 1)
+            arcade.horizontalAlignmentMode = .right
+            arcade.position = CGPoint(x: size.width - 36, y: size.height - 40)
+            arcade.name = "arcade"
+            addChild(arcade)
         }
     }
 
-    private func makeCard(id: FighterID, width: CGFloat) -> SKNode {
-        let root = SKNode()
-        root.name = "slot-\(id.rawValue)"
+    private func buildSlots() {
+        let fighters = roster()
+        let columns = min(7, max(fighters.count, 1))
+        let slotW: CGFloat = fighters.count > 5 ? 150 : 200
+        let slotH: CGFloat = fighters.count > 5 ? 240 : 300
+        let gap: CGFloat = 12
+        let rows = Int(ceil(Double(fighters.count) / Double(columns)))
+        let gridW = CGFloat(min(columns, fighters.count)) * slotW + CGFloat(max(min(columns, fighters.count) - 1, 0)) * gap
+        let startX = (size.width - gridW) / 2 + slotW / 2
+        let startY = size.height * (fighters.count > 5 ? 0.58 : 0.46)
 
-        let panel = SKShapeNode(rectOf: CGSize(width: width, height: 320), cornerRadius: 16)
+        for (index, fighter) in fighters.enumerated() {
+            let col = index % columns
+            let row = index / columns
+            let card = makeCard(fighter: fighter, width: slotW, height: slotH)
+            card.position = CGPoint(
+                x: startX + CGFloat(col) * (slotW + gap),
+                y: startY - CGFloat(row) * (slotH + 16)
+            )
+            card.name = fighter.slotName
+            addChild(card)
+            slots[fighter.slotName] = card
+        }
+
+        if mode == .freePlay, UnlockStore.selectRoster().unlockedBosses.isEmpty {
+            let empty = SKLabelNode(fontNamed: "AvenirNext-Medium")
+            empty.text = "Win arcade fights to unlock bosses here."
+            empty.fontSize = 14
+            empty.fontColor = SKColor(white: 0.6, alpha: 1)
+            empty.position = CGPoint(x: size.width / 2, y: 110)
+            addChild(empty)
+        }
+        _ = rows
+    }
+
+    private func makeCard(fighter: PlayableFighter, width: CGFloat, height: CGFloat) -> SKNode {
+        let root = SKNode()
+        root.name = fighter.slotName
+
+        let panel = SKShapeNode(rectOf: CGSize(width: width, height: height), cornerRadius: 14)
         panel.fillColor = SKColor(white: 0.12, alpha: 0.92)
-        panel.strokeColor = id.accent
+        panel.strokeColor = fighter.accent
         panel.lineWidth = 3
-        panel.name = "slot-\(id.rawValue)"
+        panel.name = fighter.slotName
         root.addChild(panel)
 
-        let portrait = Art.fighterPortrait(id, height: 148)
-        portrait.position = CGPoint(x: 0, y: 48)
-        portrait.name = "slot-\(id.rawValue)"
+        let portraitH = height > 260 ? 148 : 100
+        let portrait = Art.portrait(fighter, height: portraitH)
+        portrait.position = CGPoint(x: 0, y: height * 0.12)
+        portrait.name = fighter.slotName
         root.addChild(portrait)
 
-        let idle = Art.fighterIdle(id, height: 88)
-        idle.position = CGPoint(x: 0, y: -86)
-        idle.name = "slot-\(id.rawValue)"
+        let idle = Art.idle(fighter, height: height > 260 ? 80 : 56)
+        idle.position = CGPoint(x: 0, y: -height * 0.28)
+        idle.name = fighter.slotName
         root.addChild(idle)
 
         let name = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        name.text = id.displayName
-        name.fontSize = 22
+        name.text = fighter.displayName
+        name.fontSize = width > 180 ? 20 : 13
         name.fontColor = .white
-        name.position = CGPoint(x: 0, y: -148)
-        name.name = "slot-\(id.rawValue)"
+        name.position = CGPoint(x: 0, y: -height * 0.44)
+        name.name = fighter.slotName
         root.addChild(name)
         return root
     }
@@ -92,33 +149,41 @@ final class CharacterSelectScene: SKScene {
     private func buildFightButton() {
         let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         label.text = "SELECT A FIGHTER"
-        label.fontSize = 24
+        label.fontSize = 22
         label.fontColor = SKColor(white: 0.55, alpha: 1)
-        label.position = CGPoint(x: size.width / 2, y: 48)
+        label.position = CGPoint(x: size.width / 2, y: 40)
         label.name = "fight"
         label.zPosition = 6
         addChild(label)
         fightButton = label
     }
 
-    private func select(_ id: FighterID) {
-        selected = id
-        for (fid, node) in slots {
-            let highlight = fid == id
+    private func select(_ fighter: PlayableFighter) {
+        selected = fighter
+        for (key, node) in slots {
+            let highlight = key == fighter.slotName
             node.setScale(highlight ? 1.06 : 1.0)
             node.alpha = highlight ? 1 : 0.72
         }
-        fightButton?.text = "FIGHT  —  \(id.displayName.uppercased())"
+        let verb = mode == .arcade ? "ARCADE" : "FIGHT"
+        fightButton?.text = "\(verb)  —  \(fighter.displayName.uppercased())"
         fightButton?.fontColor = SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
 
-        // Playable v0: select immediately starts the bout after a short beat.
         run(.sequence([
             .wait(forDuration: 0.22),
             .run { [weak self] in
                 guard let self else { return }
-                SceneRouter.present(SceneRouter.fight(size: self.size, player: id), from: self)
+                self.startFight(fighter)
             }
         ]), withKey: "go-fight")
+    }
+
+    private func startFight(_ fighter: PlayableFighter) {
+        if mode == .arcade {
+            SceneRouter.present(SceneRouter.fight(size: size, arcade: .start(player: fighter)), from: self)
+        } else {
+            SceneRouter.present(SceneRouter.fight(size: size, player: fighter), from: self)
+        }
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -130,18 +195,25 @@ final class CharacterSelectScene: SKScene {
             SceneRouter.present(SceneRouter.title(size: size), from: self)
             return
         }
+        if nodes.contains(where: { $0.name == "free-play" }) {
+            removeAction(forKey: "go-fight")
+            SceneRouter.present(SceneRouter.select(size: size, mode: .freePlay), from: self)
+            return
+        }
+        if nodes.contains(where: { $0.name == "arcade" }) {
+            removeAction(forKey: "go-fight")
+            SceneRouter.present(SceneRouter.select(size: size, mode: .arcade), from: self)
+            return
+        }
         if nodes.contains(where: { $0.name == "fight" }), let selected {
             removeAction(forKey: "go-fight")
-            SceneRouter.present(SceneRouter.fight(size: size, player: selected), from: self)
+            startFight(selected)
             return
         }
         for node in nodes {
-            guard let name = node.name, name.hasPrefix("slot-") else { continue }
-            let raw = String(name.dropFirst("slot-".count))
-            if let id = FighterID(rawValue: raw) {
-                select(id)
-                return
-            }
+            guard let name = node.name, let fighter = PlayableFighter.parseSlot(name) else { continue }
+            select(fighter)
+            return
         }
     }
 }
