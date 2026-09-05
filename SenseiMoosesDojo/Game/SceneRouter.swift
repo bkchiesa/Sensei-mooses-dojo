@@ -9,6 +9,10 @@ enum SceneRouter {
         CharacterSelectScene(size: size)
     }
 
+    static func leaderboard(size: CGSize) -> SKScene {
+        LeaderboardScene(size: size)
+    }
+
     static func fight(
         size: CGSize,
         player: FighterID,

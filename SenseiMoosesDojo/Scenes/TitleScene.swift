@@ -8,6 +8,7 @@ final class TitleScene: SKScene {
         buildMoose()
         buildTitle()
         buildPrompt()
+        buildLeaderboardButton()
     }
 
     private func buildWash() {
@@ -104,7 +105,31 @@ final class TitleScene: SKScene {
         prompt.run(.repeatForever(blink))
     }
 
+    private func buildLeaderboardButton() {
+        let bg = SKShapeNode(rectOf: CGSize(width: 168, height: 44), cornerRadius: 10)
+        bg.fillColor = SKColor(white: 0.12, alpha: 0.9)
+        bg.strokeColor = SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
+        bg.lineWidth = 2
+        bg.position = CGPoint(x: size.width - 110, y: size.height - 44)
+        bg.name = "leaderboard"
+        bg.zPosition = 20
+        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        label.text = "TOP 10"
+        label.fontSize = 16
+        label.fontColor = .white
+        label.verticalAlignmentMode = .center
+        label.name = "leaderboard"
+        bg.addChild(label)
+        addChild(bg)
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let hit = nodes(at: touch.location(in: self))
+        if hit.contains(where: { $0.name == "leaderboard" }) {
+            SceneRouter.present(SceneRouter.leaderboard(size: size), from: self)
+            return
+        }
         SceneRouter.present(SceneRouter.select(size: size), from: self)
     }
 }

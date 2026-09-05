@@ -18,9 +18,10 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 
 | Scene | What happens |
 | --- | --- |
-| **TitleScene** | Animated title *Sensei Moose’s Dojo*, Sensei Moose closed-gi jump (pose B) with a bob. Tap anywhere. |
+| **TitleScene** | Animated title *Sensei Moose’s Dojo*, Sensei Moose closed-gi jump (pose B) with a bob. Tap to play, or **TOP 10** for the leaderboard. |
 | **CharacterSelectScene** | Five slots: **Matt, Simon, Rich, Amanda, JB** (`matt` / `simon` / `rich` / `amanda` / `jb`). Tap a fighter to start. |
-| **FightScene** | Stage 1 **Lions Bridge** mood B. You vs a CPU dummy (another roster fighter). Health bars. On-screen **◀ ▶**, **JUMP**, **PUNCH**, **KICK**. Round ends at 0 HP → **Rematch** or **Character Select**. |
+| **FightScene** | Stage 1 **Lions Bridge** mood B. You vs a CPU dummy (another roster fighter). Health bars. On-screen **◀ ▶**, **JUMP**, **PUNCH**, **KICK**. Round ends at 0 HP → **Rematch** or **Character Select**. A win also offers **Submit Score**. |
+| **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster
 
@@ -62,6 +63,19 @@ FightScene loads `stage1_master` plus any of `stage1_sky` / `far` / `mid` / `nea
 | Hilton Elementary School | `hiltonElementary` | TODO stub | `stage2_*` |
 | Axsom Martial Arts Dojo | `axsomDojo` | TODO stub | `stage3_*` |
 
+## Top 10 leaderboard
+
+`Game/LeaderboardService.swift` + `Scenes/LeaderboardScene.swift`. Does not block Title → Select → Fight.
+
+| Path | Behavior |
+| --- | --- |
+| **Primary** | Apple Game Center (`GameKit`). `GKLocalPlayer` auth, submit score, load global top 10. |
+| **Leaderboard ID** | `com.sensiemoose.dojo.top10` (`LeaderboardConfig.gameCenterID`) — placeholder until App Store Connect. |
+| **Fallback** | Device-only `UserDefaults` JSON (`name`, `score`, `date`). Used when Game Center is unavailable or not signed in so the prototype always demos. |
+| **Score** | Remaining HP × 10 on a win. Prompt asks for a display name, then submits and opens Top 10. |
+
+Optionally add the **Game Center** capability in Xcode Signing & Capabilities and create that leaderboard ID in App Store Connect. No custom backend. Do **not** App Store submit this prototype. Until GC is configured, local Top 10 still works on simulator and device.
+
 To regenerate **placeholders only** (overwrites PNGs):
 
 ```bash
@@ -76,8 +90,8 @@ SenseiMoosesDojo/
   AppDelegate.swift
   SceneDelegate.swift
   GameViewController.swift      SKView, landscape, TitleScene
-  Game/                         roster, art loader, fighters, pad, routing
-  Scenes/                       TitleScene, CharacterSelectScene, FightScene
+  Game/                         roster, stages, art, fighters, pad, routing, leaderboard
+  Scenes/                       Title, Select, Fight, Leaderboard
   Assets.xcassets/              named drop-in imagesets
 scripts/                        placeholder + project generators, structural check
 ```

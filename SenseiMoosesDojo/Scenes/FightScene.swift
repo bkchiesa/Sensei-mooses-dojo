@@ -218,13 +218,31 @@ final class FightScene: SKScene {
         result.fontColor = playerWon
             ? SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
             : SKColor(red: 1, green: 0.35, blue: 0.28, alpha: 1)
-        result.position = CGPoint(x: size.width / 2, y: size.height * 0.58)
+        result.position = CGPoint(x: size.width / 2, y: size.height * (playerWon ? 0.68 : 0.58))
         panel.addChild(result)
 
-        addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.40)
-        addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.28)
+        if playerWon {
+            let score = fightScore()
+            let scoreLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            scoreLabel.text = "SCORE  \(score)"
+            scoreLabel.fontSize = 22
+            scoreLabel.fontColor = .white
+            scoreLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.58)
+            panel.addChild(scoreLabel)
+            addButton(to: panel, title: "SUBMIT SCORE", name: "submit-score", y: size.height * 0.46)
+            addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.34)
+            addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.22)
+        } else {
+            addButton(to: panel, title: "REMATCH", name: "rematch", y: size.height * 0.40)
+            addButton(to: panel, title: "CHARACTER SELECT", name: "select", y: size.height * 0.28)
+        }
         addChild(panel)
         overlay = panel
+    }
+
+    /// Remaining HP × 10. Win path only; does not change fight rules.
+    private func fightScore() -> Int {
+        Int(player.hp.rounded(.down)) * 10
     }
 
     private func addButton(to parent: SKNode, title: String, name: String, y: CGFloat) {
@@ -248,6 +266,10 @@ final class FightScene: SKScene {
         if roundOver {
             guard let touch = touches.first else { return }
             let nodes = nodes(at: touch.location(in: self))
+            if nodes.contains(where: { $0.name == "submit-score" }) {
+                presentScoreSubmit()
+                return
+            }
             if nodes.contains(where: { $0.name == "rematch" }) {
                 SceneRouter.present(SceneRouter.fight(size: size, player: playerID, cpu: cpuID), from: self)
                 return
@@ -259,6 +281,16 @@ final class FightScene: SKScene {
             return
         }
         pad.handleTouchesBegan(touches, in: self)
+    }
+
+    private func presentScoreSubmit() {
+        let score = fightScore()
+        NamePrompt.present(from: self, score: score) { [weak self] name in
+            LeaderboardService.shared.submit(name: name, score: score) { _ in
+                guard let self else { return }
+                SceneRouter.present(SceneRouter.leaderboard(size: self.size), from: self)
+            }
+        }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {

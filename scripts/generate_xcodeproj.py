@@ -16,9 +16,11 @@ SWIFT_FILES = [
     ("SceneRouter.swift", "Game/SceneRouter.swift"),
     ("FighterActor.swift", "Game/FighterActor.swift"),
     ("VirtualControls.swift", "Game/VirtualControls.swift"),
+    ("LeaderboardService.swift", "Game/LeaderboardService.swift"),
     ("TitleScene.swift", "Scenes/TitleScene.swift"),
     ("CharacterSelectScene.swift", "Scenes/CharacterSelectScene.swift"),
     ("FightScene.swift", "Scenes/FightScene.swift"),
+    ("LeaderboardScene.swift", "Scenes/LeaderboardScene.swift"),
 ]
 
 
@@ -50,6 +52,9 @@ def main() -> None:
         "target_release": hid("target_release"),
         "assets_ref": hid("assets_ref"),
         "assets_build": hid("assets_build"),
+        "gamekit_ref": hid("gamekit_ref"),
+        "gamekit_build": hid("gamekit_build"),
+        "fw_group": hid("fw_group"),
     }
 
     file_entries = []
@@ -78,6 +83,9 @@ def main() -> None:
     build_files.append(
         f"\t\t{ids['assets_build']} /* Assets.xcassets in Resources */ = {{isa = PBXBuildFile; fileRef = {ids['assets_ref']} /* Assets.xcassets */; }};"
     )
+    build_files.append(
+        f"\t\t{ids['gamekit_build']} /* GameKit.framework in Frameworks */ = {{isa = PBXBuildFile; fileRef = {ids['gamekit_ref']} /* GameKit.framework */; }};"
+    )
     file_refs.append(
         f"\t\t{ids['assets_ref']} /* Assets.xcassets */ = {{isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = \"<group>\"; }};"
     )
@@ -86,6 +94,9 @@ def main() -> None:
     )
     file_refs.append(
         f"\t\t{ids['product']} /* SenseiMoosesDojo.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SenseiMoosesDojo.app; sourceTree = BUILT_PRODUCTS_DIR; }};"
+    )
+    file_refs.append(
+        f"\t\t{ids['gamekit_ref']} /* GameKit.framework */ = {{isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameKit.framework; path = System/Library/Frameworks/GameKit.framework; sourceTree = SDKROOT; }};"
     )
 
     root_swift = [f for f in file_entries if "/" not in f["rel"]]
@@ -186,6 +197,7 @@ def main() -> None:
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				{ids['gamekit_build']} /* GameKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		}};
@@ -197,7 +209,16 @@ def main() -> None:
 			children = (
 				{ids['src_group']} /* SenseiMoosesDojo */,
 				{ids['products']} /* Products */,
+				{ids['fw_group']} /* Frameworks */,
 			);
+			sourceTree = "<group>";
+		}};
+		{ids['fw_group']} /* Frameworks */ = {{
+			isa = PBXGroup;
+			children = (
+				{ids['gamekit_ref']} /* GameKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		}};
 		{ids['products']} /* Products */ = {{

@@ -21,9 +21,11 @@ REQUIRED_SWIFT = [
     "Game/SceneRouter.swift",
     "Game/FighterActor.swift",
     "Game/VirtualControls.swift",
+    "Game/LeaderboardService.swift",
     "Scenes/TitleScene.swift",
     "Scenes/CharacterSelectScene.swift",
     "Scenes/FightScene.swift",
+    "Scenes/LeaderboardScene.swift",
 ]
 
 REQUIRED_ASSETS = [
@@ -41,10 +43,12 @@ for _id in ("matt", "simon", "rich", "amanda", "jb"):
     REQUIRED_ASSETS.append(f"fighter_{_id}_idle_00")
 
 SCENE_TOKENS = {
-    "Scenes/TitleScene.swift": ["Sensei Moose's Dojo", "TAP TO CONTINUE", "mooseTitle"],
+    "Scenes/TitleScene.swift": ["Sensei Moose's Dojo", "TAP TO CONTINUE", "mooseTitle", "leaderboard"],
     "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "FighterID.allCases"],
     "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb"],
-    "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls"],
+    "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score"],
+    "Scenes/LeaderboardScene.swift": ["TOP 10", "LeaderboardService"],
+    "Game/LeaderboardService.swift": ["com.sensiemoose.dojo.top10", "GKLocalPlayer", "UserDefaults"],
     "Game/Art.swift": ["moose_title_idle", "moose_title_body", "moose_title_head"],
     "Game/Stage.swift": ["lionsBridge", "hiltonElementary", "axsomDojo", "stage1"],
     "Game/VirtualControls.swift": ["PUNCH", "KICK", "JUMP"],
@@ -81,6 +85,8 @@ def main() -> None:
         fail("missing Info.plist")
     if "INFOPLIST_FILE = SenseiMoosesDojo/Info.plist" not in pbx:
         fail("target does not point at Info.plist")
+    if "GameKit.framework in Frameworks" not in pbx:
+        fail("GameKit.framework is not linked")
 
     for token_file, tokens in SCENE_TOKENS.items():
         text = (SRC / token_file).read_text()

@@ -21,6 +21,11 @@ final class GameViewController: UIViewController {
         skView.presentScene(scene)
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        LeaderboardService.shared.authenticate(from: self)
+    }
+
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }

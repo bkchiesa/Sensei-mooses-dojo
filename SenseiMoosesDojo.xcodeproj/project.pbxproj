@@ -16,10 +16,13 @@
 		6BCEFCBDB8C5CF558D476A29 /* SceneRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D972500B6D492A2112B8B15 /* SceneRouter.swift */; };
 		C1041DBA533758A6814D6E75 /* FighterActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FBC079851695EF764B3209B /* FighterActor.swift */; };
 		F646A80E7087AA26A9969846 /* VirtualControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1925A7987C6698A29832CB88 /* VirtualControls.swift */; };
+		67EC62E4B2B000A59C233486 /* LeaderboardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2DF8604697EA439246C86DB /* LeaderboardService.swift */; };
 		EECD4364C2742452A0A5F5BC /* TitleScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFDCE30F7BBB09AF8C9D4586 /* TitleScene.swift */; };
 		6E39B9D25EF678BB051C2F14 /* CharacterSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FE4BAE9FE619AD9FA76BEDA /* CharacterSelectScene.swift */; };
 		059BC531F1DC1D9F6FCC309D /* FightScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8774358108C61853AD8F7E8F /* FightScene.swift */; };
+		5D3BF838F8B7D09148EE3068 /* LeaderboardScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9562B84D077F011B0B01F7EF /* LeaderboardScene.swift */; };
 		7F541BB7BBCE1C0E2C548264 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B40A3F1CAC9ADB66B78DD5C /* Assets.xcassets */; };
+		D0219634858C91298F1FEAF4 /* GameKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65B3A218E653552EDFEEE8CA /* GameKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,12 +35,15 @@
 		5D972500B6D492A2112B8B15 /* SceneRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneRouter.swift; sourceTree = "<group>"; };
 		2FBC079851695EF764B3209B /* FighterActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FighterActor.swift; sourceTree = "<group>"; };
 		1925A7987C6698A29832CB88 /* VirtualControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualControls.swift; sourceTree = "<group>"; };
+		C2DF8604697EA439246C86DB /* LeaderboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardService.swift; sourceTree = "<group>"; };
 		FFDCE30F7BBB09AF8C9D4586 /* TitleScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleScene.swift; sourceTree = "<group>"; };
 		5FE4BAE9FE619AD9FA76BEDA /* CharacterSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSelectScene.swift; sourceTree = "<group>"; };
 		8774358108C61853AD8F7E8F /* FightScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FightScene.swift; sourceTree = "<group>"; };
+		9562B84D077F011B0B01F7EF /* LeaderboardScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardScene.swift; sourceTree = "<group>"; };
 		8B40A3F1CAC9ADB66B78DD5C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		EF61687EE07F521749F45DFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		38A007151ABE87CC01A5B6E9 /* SenseiMoosesDojo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SenseiMoosesDojo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		65B3A218E653552EDFEEE8CA /* GameKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameKit.framework; path = System/Library/Frameworks/GameKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,6 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0219634858C91298F1FEAF4 /* GameKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,7 +63,16 @@
 			children = (
 				11ECAFA879DDC6BF3438A697 /* SenseiMoosesDojo */,
 				FBDC4F23F93125BBEEAE800C /* Products */,
+				5255FCFB214A89C2FF4773EA /* Frameworks */,
 			);
+			sourceTree = "<group>";
+		};
+		5255FCFB214A89C2FF4773EA /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				65B3A218E653552EDFEEE8CA /* GameKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		FBDC4F23F93125BBEEAE800C /* Products */ = {
@@ -90,6 +106,7 @@
 				5D972500B6D492A2112B8B15 /* SceneRouter.swift */,
 				2FBC079851695EF764B3209B /* FighterActor.swift */,
 				1925A7987C6698A29832CB88 /* VirtualControls.swift */,
+				C2DF8604697EA439246C86DB /* LeaderboardService.swift */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -100,6 +117,7 @@
 				FFDCE30F7BBB09AF8C9D4586 /* TitleScene.swift */,
 				5FE4BAE9FE619AD9FA76BEDA /* CharacterSelectScene.swift */,
 				8774358108C61853AD8F7E8F /* FightScene.swift */,
+				9562B84D077F011B0B01F7EF /* LeaderboardScene.swift */,
 			);
 			path = Scenes;
 			sourceTree = "<group>";
@@ -182,9 +200,11 @@
 				6BCEFCBDB8C5CF558D476A29 /* SceneRouter.swift in Sources */,
 				C1041DBA533758A6814D6E75 /* FighterActor.swift in Sources */,
 				F646A80E7087AA26A9969846 /* VirtualControls.swift in Sources */,
+				67EC62E4B2B000A59C233486 /* LeaderboardService.swift in Sources */,
 				EECD4364C2742452A0A5F5BC /* TitleScene.swift in Sources */,
 				6E39B9D25EF678BB051C2F14 /* CharacterSelectScene.swift in Sources */,
 				059BC531F1DC1D9F6FCC309D /* FightScene.swift in Sources */,
+				5D3BF838F8B7D09148EE3068 /* LeaderboardScene.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
