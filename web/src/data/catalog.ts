@@ -135,7 +135,23 @@ export const STAGES: StageDef[] = [
   { id: "lionsBridge", displayName: "Lions Bridge", assetPrefix: "stage1", number: 1, mood: "B", wired: true },
   { id: "hiltonElementary", displayName: "Hilton Elementary School", assetPrefix: "stage2", number: 2, mood: "B", wired: true },
   { id: "axsomDojo", displayName: "Axsom Martial Arts Dojo", assetPrefix: "stage3", number: 3, mood: "B", wired: true },
+  // Extra NN landmarks — Free Play stage pick. Not on the arcade ladder.
+  { id: "oysterpoint", displayName: "Oyster Point", assetPrefix: "stage_oysterpoint", number: 4, mood: null, wired: true },
+  { id: "phmall", displayName: "Patrick Henry Mall", assetPrefix: "stage_phmall", number: 5, mood: null, wired: true },
+  { id: "shipyard", displayName: "Newport News Shipyard", assetPrefix: "stage_shipyard", number: 6, mood: null, wired: true },
+  { id: "hiltonvillage", displayName: "Hilton Village", assetPrefix: "stage_hiltonvillage", number: 7, mood: null, wired: true },
+  { id: "mariners", displayName: "Mariners' Museum", assetPrefix: "stage_mariners", number: 8, mood: "B", wired: true },
+  { id: "subwaywarwick", displayName: "Warwick Blvd", assetPrefix: "stage_subwaywarwick", number: 9, mood: "B", wired: true },
+  { id: "nnpark", displayName: "Newport News Park", assetPrefix: "stage_nnpark", number: 10, mood: "B", wired: true },
+  { id: "jrbridge", displayName: "James River Bridge", assetPrefix: "stage_jrbridge", number: 11, mood: "B", wired: true },
+  { id: "colonial", displayName: "Colonial Capitol", assetPrefix: "stage_colonial", number: 12, mood: "B", wired: true },
+  { id: "stadium", displayName: "Local Stadium", assetPrefix: "stage_stadium", number: 13, mood: "B", wired: true },
+  { id: "busch", displayName: "Busch Gardens", assetPrefix: "stage_busch", number: 14, mood: "B", wired: true },
+  { id: "hampton", displayName: "Hampton Waterfront", assetPrefix: "stage_hampton", number: 15, mood: "B", wired: true },
+  { id: "poquoson", displayName: "Poquoson Waterfront", assetPrefix: "stage_poquoson", number: 16, mood: "B", wired: true },
 ];
+
+export const ARCADE_STAGE_IDS = ["lionsBridge", "hiltonElementary", "axsomDojo"];
 
 const FIGHTERS_BY_ID = new Map([...STARTERS, ...BOSSES].map((f) => [f.id, f]));
 const STAGES_BY_ID = new Map(STAGES.map((s) => [s.id, s]));

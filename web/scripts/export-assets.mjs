@@ -3,7 +3,8 @@
  * Copy playable PNGs from the native asset catalog into web/public/assets.
  *
  * Source of truth: SenseiMoosesDojo/Assets.xcassets/<name>.imageset/<name>.png
- * Extra NN landmark stages (Batch A–C) stay native-only for now — arcade uses stage1–3.
+ * Arcade stages (stage1–3) copy full parallax. Extra landmarks copy the master plate
+ * so Free Play can use them without bloating the first download.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -14,17 +15,13 @@ const catalog = path.join(root, "SenseiMoosesDojo/Assets.xcassets");
 const out = path.join(root, "web/public/assets");
 
 function keep(filename) {
-  return (
-    filename.startsWith("moose_") ||
-    filename.startsWith("fighter_") ||
-    filename.startsWith("boss_") ||
-    filename.startsWith("stage1_") ||
-    filename.startsWith("stage2_") ||
-    filename.startsWith("stage3_") ||
-    /^ult_.+_00\.png$/.test(filename) ||
-    filename.startsWith("ult_austin_") ||
-    filename.startsWith("ult_senseiMoose_")
-  );
+  if (filename.startsWith("moose_") || filename.startsWith("fighter_") || filename.startsWith("boss_")) return true;
+  if (filename.startsWith("stage1_") || filename.startsWith("stage2_") || filename.startsWith("stage3_")) return true;
+  if (filename.startsWith("stage_") && filename.includes("_master")) return true;
+  if (/^ult_.+_00\.png$/.test(filename) || filename.startsWith("ult_austin_") || filename.startsWith("ult_senseiMoose_")) {
+    return true;
+  }
+  return false;
 }
 
 if (!fs.existsSync(catalog)) {
