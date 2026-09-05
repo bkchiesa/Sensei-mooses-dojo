@@ -41,7 +41,7 @@ final class CharacterSelectScene: SKScene {
     }
 
     private func buildSlots() {
-        let roster = FighterID.allCases
+        let roster = UnlockStore.starters // + UnlockStore.selectRoster().unlockedBosses when ladder is wired
         let slotW: CGFloat = 200
         let gap: CGFloat = 18
         let total = CGFloat(roster.count) * slotW + CGFloat(roster.count - 1) * gap

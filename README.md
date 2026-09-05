@@ -33,6 +33,31 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | Amanda | `amanda` | `fighter_amanda_portrait` | `fighter_amanda_idle_00` |
 | JB | `jb` | `fighter_jb_portrait` | `fighter_jb_idle_00` |
 
+
+## Unlock on defeat (design)
+
+Clearing a boss unlocks them as a **playable** character on Character Select.
+
+| Rule | Detail |
+| --- | --- |
+| Starters | Matt / Simon / Rich / Amanda / JB — always available |
+| Unlock | Defeat boss → unlock that boss on Select |
+| Persistence | Local `UserDefaults` via `Game/UnlockStore.swift` (Game Center sync optional later) |
+| Art | Unlocked bosses reuse `boss_<id>_portrait` / `boss_<id>_idle_00` |
+| Finals | Austin / Sensei Moose use the same unlock-on-clear rule unless Brandon changes it |
+
+v0 fight loop still uses **Stage 1 + starter roster** only. `BossID` + `UnlockStore` are the hooks for ladder wiring; Select currently shows starters (`UnlockStore.starters`).
+
+### Boss batch 1 (art parked)
+
+| Display | id | Portrait | Idle |
+| --- | --- | --- | --- |
+| Misty | `misty` | `boss_misty_portrait` | `boss_misty_idle_00` |
+| Lucas | `lucas` | `boss_lucas_portrait` | `boss_lucas_idle_00` |
+| Chris | `chris` | `boss_chris_portrait` | `boss_chris_idle_00` |
+| Christiano | `christiano` | `boss_christiano_portrait` | `boss_christiano_idle_00` |
+| Dakota | `dakota` | `boss_dakota_portrait` | `boss_dakota_idle_00` |
+
 ## Drop-in art (no code changes)
 
 Pixel finals can replace the colored placeholders. Keep the **imageset folder name** and the **PNG filename** the same.

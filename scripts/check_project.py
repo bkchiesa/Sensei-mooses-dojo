@@ -16,6 +16,8 @@ REQUIRED_SWIFT = [
     "SceneDelegate.swift",
     "GameViewController.swift",
     "Game/Roster.swift",
+    "Game/BossRoster.swift",
+    "Game/UnlockStore.swift",
     "Game/Stage.swift",
     "Game/Art.swift",
     "Game/SceneRouter.swift",
@@ -44,7 +46,9 @@ for _id in ("matt", "simon", "rich", "amanda", "jb"):
 
 SCENE_TOKENS = {
     "Scenes/TitleScene.swift": ["Sensei Moose's Dojo", "TAP TO CONTINUE", "mooseTitle", "leaderboard"],
-    "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "FighterID.allCases"],
+    "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "UnlockStore.starters"],
+    "Game/UnlockStore.swift": ["UnlockStore", "UserDefaults", "unlock"],
+    "Game/BossRoster.swift": ["case misty", "boss_", "batch1"],
     "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb"],
     "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score"],
     "Scenes/LeaderboardScene.swift": ["TOP 10", "LeaderboardService"],
