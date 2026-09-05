@@ -60,7 +60,16 @@ export class SelectScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x2c2a58);
     playFightLoop(this);
     const hadMap = this.textureWide("ui-select-map");
-    this.buildLayout();
+    try {
+      this.buildLayout();
+    } catch (err) {
+      console.error("Select layout failed", err);
+      this.add
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "SELECT FAILED — tap Title", textStyle(22, GOLD))
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerup", () => this.scene.start("Title"));
+    }
     if (!hadMap) this.loadMapPlateThenReload();
   }
 
@@ -81,13 +90,10 @@ export class SelectScene extends Phaser.Scene {
         if (file.endsWith(".svg")) this.load.svg("ui-select-map", url, PIXEL_PLATE_PX);
         else this.load.image("ui-select-map", url);
         this.load.once("complete", () => {
-          if (!this.sys.isActive() || !this.textureWide("ui-select-map")) return;
-          go(this, "Select", {
-            mode: this.mode,
-            phase: this.phase,
-            player: this.playerPick ?? undefined,
-            opponent: this.opponentPick ?? undefined,
-          });
+          if (!this.sys.isActive() || !this.textureWide("ui-select-map") || !this.built) return;
+          this.map?.destroy();
+          this.buildMap();
+          this.syncMapHighlight();
         });
         this.load.start();
       });
@@ -104,7 +110,7 @@ export class SelectScene extends Phaser.Scene {
   }
 
   private buildLayout(): void {
-    if (!this.sys.isActive() || this.built) return;
+    if (this.built) return;
     this.built = true;
     this.buildWash();
     this.buildNav();

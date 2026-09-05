@@ -85,20 +85,19 @@ export class VirtualControls {
     this.stickY = H - 118;
     const actionY = H - 92;
 
-    this.base = scene.add.circle(this.stickX, this.stickY, STICK_RADIUS, 0x141414, 0.5);
-    this.base.setStrokeStyle(3, 0xffffff, 0.28);
+    this.base = scene.add.circle(this.stickX, this.stickY, STICK_RADIUS, 0x101018, 0.72);
+    this.base.setStrokeStyle(4, GOLD_NUM, 0.85);
     this.base.setDepth(80).setScrollFactor(0);
-    this.ring = scene.add.circle(this.stickX, this.stickY, STICK_RADIUS * DEADZONE, 0x000000, 0);
-    this.ring.setStrokeStyle(1, 0xffffff, 0.16);
+    this.ring = scene.add.circle(this.stickX, this.stickY, 8, 0xffffff, 0.12);
     this.ring.setDepth(80).setScrollFactor(0);
-    this.knob = scene.add.circle(this.stickX, this.stickY, KNOB_RADIUS, 0x3a3a3a, 0.92);
-    this.knob.setStrokeStyle(3, 0xf2f2f2, 0.7);
+    this.knob = scene.add.circle(this.stickX, this.stickY, KNOB_RADIUS, 0xd8d8e0, 0.95);
+    this.knob.setStrokeStyle(3, 0xffffff, 0.95);
     this.knob.setDepth(82).setScrollFactor(0);
     this.hint = scene.add
-      .text(this.stickX, this.stickY - STICK_RADIUS - 16, "↑ JUMP", {
+      .text(this.stickX, this.stickY - STICK_RADIUS - 18, "↑ JUMP", {
         fontFamily: FONT,
-        fontSize: "12px",
-        color: "#ffffffaa",
+        fontSize: "13px",
+        color: "#fff6d8",
         fontStyle: "bold",
       })
       .setOrigin(0.5)

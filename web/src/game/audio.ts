@@ -9,13 +9,18 @@ export const FIGHT_LOOP_URLS = [
 ] as const;
 
 export function hasFightLoop(scene: Phaser.Scene): boolean {
-  return scene.cache.audio.exists(FIGHT_LOOP_KEY);
+  try {
+    return scene.cache.audio.exists(FIGHT_LOOP_KEY);
+  } catch {
+    return false;
+  }
 }
 
 /** Play (or keep) the arcade loop on Select and Fight. No-op if unwired. */
 export function playFightLoop(scene: Phaser.Scene, volume = 0.32): void {
-  if (!hasFightLoop(scene) || !scene.sound || scene.sound.locked === undefined) return;
+  if (!hasFightLoop(scene) || !scene.sound) return;
   try {
+    if (scene.sound.locked) return;
     const existing = scene.sound.get(FIGHT_LOOP_KEY);
     if (existing) {
       if ("setVolume" in existing && typeof existing.setVolume === "function") existing.setVolume(volume);
@@ -24,7 +29,7 @@ export function playFightLoop(scene: Phaser.Scene, volume = 0.32): void {
     }
     scene.sound.play(FIGHT_LOOP_KEY, { loop: true, volume });
   } catch {
-    /* audio optional */
+    /* audio optional — never block a scene */
   }
 }
 

@@ -1,6 +1,5 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
-import { go } from "../game/nav";
 import { unlockAllBosses } from "../game/storage";
 import { drawTitleInterior, drawTitleLogo, textureReady, TITLE_ART } from "../game/titleArt";
 import { textStyle } from "../game/ui";
@@ -28,7 +27,6 @@ export class TitleScene extends Phaser.Scene {
   shutdown(): void {
     this.menuConsumed = true;
     this.input.enabled = false;
-    this.input.removeAllListeners();
   }
 
   private has(key: string): boolean {
@@ -139,7 +137,7 @@ export class TitleScene extends Phaser.Scene {
       .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 148, "TAP FOR ARCADE", textStyle(22, "#f2f2f2"))
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    prompt.on("pointerdown", () => this.open("arcade"));
+    prompt.on("pointerdown", () => this.scene.start("Select", { mode: "arcade" }));
     this.tweens.add({
       targets: prompt,
       alpha: 0.25,
@@ -159,8 +157,7 @@ export class TitleScene extends Phaser.Scene {
     if (this.menuConsumed) return;
     this.menuConsumed = true;
     this.input.enabled = false;
-    if (which === "board") go(this, "Leaderboard");
-    else go(this, "Select", { mode: which });
+    this.scene.start(which === "board" ? "Leaderboard" : "Select", which === "board" ? undefined : { mode: which });
   }
 
   private menuButton(label: string, x: number, y: number, onClick: () => void): void {

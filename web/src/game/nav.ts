@@ -5,43 +5,29 @@ import { applyQueryUnlocks } from "./storage";
 const FLOW = ["Title", "Select", "Fight", "Leaderboard"] as const;
 
 /**
- * Start a flow scene after fully stopping the others.
+ * Scene change used by Title / Select / Fight / overlay buttons.
  *
- * iPad Safari + Phaser: calling `scene.restart()` from a pointer callback
- * (Next Fight) often dies mid-dispatch — the overlay GameObject is destroyed
- * while the event is still walking the display list. Title can also stay
- * sleeping with live hit targets that steal the tap.
- *
- * Defer onto `window.setTimeout` so the pointer event finishes, kill Title
- * input, then `stop` + `start` with fresh data (never in-place restart).
+ * Defer off the pointer callback (iPad Safari + Phaser will abort a
+ * synchronous restart mid-dispatch). Use `scene.start` — it already stops
+ * the current scene — instead of stop-all-then-start, which can leave zero
+ * active scenes so Boot relaunches and dumps the player on Title.
  */
 export function go(from: Phaser.Scene, key: (typeof FLOW)[number], data?: object): void {
-  const game = from.game;
   applyQueryUnlocks();
   hideMatchOverlay();
   from.input.enabled = false;
-  silenceTitle(game);
+  try {
+    const title = from.game.scene.getScene("Title");
+    if (title) title.input.enabled = false;
+  } catch {
+    /* Title may already be gone */
+  }
 
+  const payload = data;
   window.setTimeout(() => {
-    if (!game.isRunning) return;
+    if (!from.game.isRunning) return;
     applyQueryUnlocks();
-    silenceTitle(game);
-    for (const name of FLOW) {
-      if (name === key) continue;
-      if (game.scene.isActive(name) || game.scene.isSleeping(name)) {
-        game.scene.stop(name);
-      }
-    }
-    if (game.scene.isActive(key) || game.scene.isSleeping(key)) {
-      game.scene.stop(key);
-    }
-    game.scene.start(key, data);
-  }, 0);
-}
-
-function silenceTitle(game: Phaser.Game): void {
-  const title = game.scene.getScene("Title");
-  if (!title) return;
-  title.input.enabled = false;
-  title.input.removeAllListeners();
+    hideMatchOverlay();
+    from.scene.start(key, payload);
+  }, 16);
 }
