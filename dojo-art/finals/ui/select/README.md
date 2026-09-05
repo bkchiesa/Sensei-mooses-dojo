@@ -11,5 +11,5 @@ Brandon lock via Guido: 2026-09-05 (map plate C + screen C)
 ## Notes
 - No Capcom/SF logos
 - Stage dots: geo lat/lon (Todd Stadium = local stadium)
-- Portraits on screen are stand-ins — swap to locked roster portraits when wiring web
+- **Web select UI uses map plate C + live unlocked portraits.** Do not show `select-screen-C.png` / `select_screen.png` as the picker — those plates have stand-in heads baked in.
 - Concepts remain under `/workspace/dojo-art/concepts/ui/select/`

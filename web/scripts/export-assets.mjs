@@ -18,6 +18,10 @@ const fighterSheets = path.join(root, "web/fighter-sheets");
 const uiSelectSrc = path.join(root, "dojo-art/finals/ui/select");
 const uiSelectConcepts = path.join(root, "dojo-art/concepts/ui/select");
 const uiSelectOut = path.join(out, "ui/select");
+const uiTitleSrc = path.join(root, "dojo-art/finals/ui/title");
+const uiTitleOut = path.join(out, "ui/title");
+const audioSrc = path.join(root, "dojo-art/finals/audio");
+const audioOut = path.join(out, "audio");
 const dojoFightersSrc = path.join(root, "dojo-art/finals/fighters");
 const mooseSheetIdle = path.join(fighterSheets, "senseiMoose", "idle_00.png");
 
@@ -197,27 +201,64 @@ function copySelectDir(src) {
 }
 copySelectDir(uiSelectConcepts);
 copySelectDir(uiSelectSrc);
-const plateCandidates = ["hampton-roads-map.png", "select_map_plate.png", "select-map-plate.png", "hampton-roads-map.svg"];
-const screenCandidates = ["select_screen.png", "select-screen.png"];
+const plateCandidates = [
+  "select-map-plate-C.png",
+  "select_map_plate.png",
+  "select-map-plate.png",
+  "hampton-roads-map.png",
+  "hampton-roads-map.svg",
+];
+const screenCandidates = ["select-screen-C.png", "select_screen.png", "select-screen.png"];
 const plateFile = plateCandidates.find((name) => fs.existsSync(path.join(uiSelectOut, name))) ?? null;
 const screenFile = screenCandidates.find((name) => fs.existsSync(path.join(uiSelectOut, name))) ?? null;
+const framedPlate = Boolean(
+  plateFile && /select-map-plate-C|select_map_plate|select-map-plate/i.test(plateFile) && plateFile.endsWith(".png"),
+);
+if (fs.existsSync(path.join(uiSelectSrc, "select-map-plate-C.png")) && plateFile === "hampton-roads-map.svg") {
+  console.error("Locked select-map-plate-C.png exists but export chose the SVG placeholder.");
+  process.exit(1);
+}
 fs.writeFileSync(
   path.join(uiSelectOut, "plate.json"),
   JSON.stringify(
     {
       file: plateFile,
       screen: screenFile,
+      variant: plateFile === "select-map-plate-C.png" || screenFile === "select-screen-C.png" ? "C" : null,
+      framed: framedPlate,
+      selection: "interactive-portraits",
       bounds: { lonMin: -76.76, lonMax: -76.28, latMin: 36.955, latMax: 37.3 },
       projection: "equirectangular",
       standardParallelDeg: 37.1275,
-      platePx: { width: 1111, height: 1000 },
+      platePx: framedPlate ? { width: 1920, height: 1080 } : { width: 1111, height: 1000 },
+      mapRectPx: framedPlate ? { x: 476.65, y: 152.15, w: 976.62, h: 864.18 } : null,
       uv: "u=(lon-lonMin)/(lonMax-lonMin) west→east; v=1-(lat-latMin)/(latMax-latMin) north→south",
-      note: "Finals in dojo-art/finals/ui/select overwrite concepts. Code draws landmark dots. PNG plate replaces the SVG placeholder without moving dots.",
+      note: "Map plate C is the peninsula. Select UI is live unlocked portraits — not select-screen-C. Code draws geo dots.",
     },
     null,
     2,
   ),
 );
+console.log(`Select UI → plate=${plateFile ?? "none"} (portraits are live slots; screen C is not the select UI)`);
+
+fs.rmSync(uiTitleOut, { recursive: true, force: true });
+if (fs.existsSync(uiTitleSrc)) {
+  fs.mkdirSync(uiTitleOut, { recursive: true });
+  for (const file of fs.readdirSync(uiTitleSrc)) {
+    if (file === "README.md") continue;
+    fs.copyFileSync(path.join(uiTitleSrc, file), path.join(uiTitleOut, file));
+  }
+}
+
+fs.rmSync(audioOut, { recursive: true, force: true });
+if (fs.existsSync(audioSrc)) {
+  fs.mkdirSync(audioOut, { recursive: true });
+  for (const file of fs.readdirSync(audioSrc)) {
+    if (/\.(ogg|mp3|wav|m4a)$/i.test(file)) {
+      fs.copyFileSync(path.join(audioSrc, file), path.join(audioOut, file));
+    }
+  }
+}
 
 copied.sort();
 fs.writeFileSync(

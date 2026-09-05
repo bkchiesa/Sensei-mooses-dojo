@@ -50,9 +50,9 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 
 | | Touch | Keyboard |
 | --- | --- | --- |
-| Move | **◀ ▶** | A/D or arrows |
-| Jump | **JUMP** | W / ↑ / Space |
-| Punch / Kick | **PUNCH** / **KICK** | J/Z · K/X |
+| Move / crouch | Circular **thumbstick** (down = crouch) | A/D or arrows · S / ↓ crouch |
+| Jump | **Stick up** | W / ↑ / Space |
+| Punch / Kick | **PUNCH** / **KICK** (stick down + kick = sweep) | J/Z · K/X |
 | Ultimate | **★ ULT** (lights up when meter is full) | U / Enter |
 
 Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and **Next Fight** quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage).
@@ -85,8 +85,8 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | Scene | What happens |
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
-| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): 1P/2P busts, Hampton Roads peninsula map with landmark dots, bottom headshot grid. Arcade: starters. Free Play: unlocked bosses, then tap a map dot for the stage. |
-| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK** / **★ ULT**. Arcade does **not** auto-advance — tap **Next Fight**. Landed hits fill the ultimate meter (~6 hits). |
+| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): live **unlocked portraits only** (tap a slot to pick). 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade: starters. Free Play: unlocked bosses, then tap a map dot for the stage. Not the locked select-screen composite. |
+| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** / **★ ULT**. Arcade does **not** auto-advance — tap **Next Fight**. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster
@@ -237,7 +237,7 @@ Web fight systems live in `web/src/` (Phaser). Native `Game/Stage.swift` is defe
 
 - Each fight is **first to 2 round wins**. Round pips sit on each health plate; the center HUD shows `ROUND N · P – C · BEST OF 3`.
 - **3 → 2 → 1 → FIGHT!** locks the pad until the last beat. The same countdown plays before every round.
-- Arcade **does not** auto-advance after a win. Tap **Next Fight** to climb the ladder.
+- Arcade **does not** auto-advance after a win. Tap **Next Fight** to climb the ladder (dummy → Misty → …). Overlay taps start the next fight on a fresh scene; Title input is silenced so it cannot steal the tap.
 
 ### Character scale
 
@@ -260,13 +260,13 @@ Curves lerp monotonically on `t = index / 15`. Dummy is a fixed easy profile bel
 
 Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
 
-- Large **1P / 2P** busts left and right
-- Center **Virginia Lower Peninsula / Hampton Roads** map (SF2 oval chrome; plate is a swap-in)
-- Dots on real landmark lon/lat (`web/src/data/peninsula.ts`) — no stretch/inset. Close pairs (Lions Bridge / Mariners, Hilton) stay where they are.
+- Large **1P / 2P** busts left and right (live roster portraits)
+- Center **map plate C** (`select-map-plate-C.png`) with landmark dots
+- Dots on real landmark lon/lat (`web/src/data/peninsula.ts`)
 - **PLAYER SELECT** label
-- Bottom fighter headshot grid
+- Bottom **interactive unlocked portraits only** — tap a slot to select. Locked bosses are omitted, not greyed-out plate art.
 
-Pixel map plate: drop locked `select_map_plate.png` (or `hampton-roads-map.png`) in `dojo-art/finals/ui/select/` using the lon/lat box in that README. Optional `select_screen.png` is a wash behind the live chrome. Concepts may sit in `dojo-art/concepts/ui/select/` until finals copy. Placeholder SVG matches the same UV so the plate can replace it without moving dots. Free Play stage pick is a map-dot tap.
+Do **not** use `select-screen-C.png` as the select UI (baked-in stand-in heads). Map plate C stays as the peninsula. Title splash (`dojo-interior` + animated logo) is a later drop-in via `web/src/game/titleArt.ts`. Select/Fight BGM uses `fight_a_loop` when `dojo-art/finals/audio/fight_a_loop.*` is present.
 
 ### Fighter anim sheets (Pixel)
 

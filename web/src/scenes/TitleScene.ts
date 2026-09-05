@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
+import { go } from "../game/nav";
 import { unlockAllBosses } from "../game/storage";
+import { drawTitleInterior, drawTitleLogo, textureReady, TITLE_ART } from "../game/titleArt";
 import { textStyle } from "../game/ui";
 
 export class TitleScene extends Phaser.Scene {
@@ -13,6 +15,8 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     this.titleTaps = 0;
+    this.menuConsumed = false;
+    this.input.enabled = true;
     this.cameras.main.setBackgroundColor(0x140d1f);
     this.buildWash();
     this.buildMoose();
@@ -21,11 +25,27 @@ export class TitleScene extends Phaser.Scene {
     this.buildMenuButtons();
   }
 
-  private has(key: string): boolean {
-    return this.textures.exists(key) && this.textures.get(key).getSourceImage().width > 1;
+  shutdown(): void {
+    this.menuConsumed = true;
+    this.input.enabled = false;
+    this.input.removeAllListeners();
   }
 
+  private has(key: string): boolean {
+    return textureReady(this, key);
+  }
+
+  /**
+   * Backdrop hook: locked `title-dojo-interior` when present, else the
+   * current stage wash. Pixel can drop the interior later without touching
+   * Arcade / Free Play / Fight.
+   */
   private buildWash(): void {
+    if (drawTitleInterior(this)) {
+      this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x0f081a, 0.28);
+      this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 45, DESIGN_WIDTH, 90, 0x2e1a12);
+      return;
+    }
     const wash = this.has("stage1_sky") ? "stage1_sky" : this.has("stage1_master") ? "stage1_master" : null;
     if (wash) {
       this.add.image(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, wash).setDisplaySize(DESIGN_WIDTH, DESIGN_HEIGHT).setAlpha(0.35);
@@ -35,7 +55,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private buildMoose(): void {
-    const key = this.has("moose_title_idle") ? "moose_title_idle" : null;
+    if (this.has(TITLE_ART.logo)) return;
+    const key = this.has(TITLE_ART.moose) ? TITLE_ART.moose : null;
     const h = DESIGN_HEIGHT * 0.4;
     const y = DESIGN_HEIGHT * 0.54;
     if (key) {
@@ -58,29 +79,45 @@ export class TitleScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Wordmark hook: `title-logo` (static now; Boot can load a spritesheet
+   * later and play it here). Falls back to the live text title.
+   */
   private buildTitle(): void {
     const y = DESIGN_HEIGHT * 0.18;
-    this.add
-      .text(DESIGN_WIDTH / 2 + 3, y + 3, "Sensei Moose's Dojo", textStyle(52, "#3f150a"))
-      .setOrigin(0.5);
-    const title = this.add.text(DESIGN_WIDTH / 2, y, "Sensei Moose's Dojo", textStyle(52, GOLD)).setOrigin(0.5);
-    title.setInteractive({ useHandCursor: true });
-    title.setData("menu", true);
-    title.on("pointerup", () => {
-      this.titleTaps += 1;
-      if (this.titleTaps >= 8) {
-        unlockAllBosses();
-        this.add.text(DESIGN_WIDTH / 2, y + 96, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
-      }
-    });
-    this.tweens.add({
-      targets: title,
-      scale: 1.045,
-      duration: 900,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+    const logo = drawTitleLogo(this, DESIGN_WIDTH / 2, y);
+    if (logo) {
+      this.tweens.add({
+        targets: logo,
+        scale: logo.scale * 1.04,
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    } else {
+      this.add
+        .text(DESIGN_WIDTH / 2 + 3, y + 3, "Sensei Moose's Dojo", textStyle(52, "#3f150a"))
+        .setOrigin(0.5);
+      const title = this.add.text(DESIGN_WIDTH / 2, y, "Sensei Moose's Dojo", textStyle(52, GOLD)).setOrigin(0.5);
+      title.setInteractive({ useHandCursor: true });
+      title.on("pointerup", () => {
+        if (this.menuConsumed) return;
+        this.titleTaps += 1;
+        if (this.titleTaps >= 8) {
+          unlockAllBosses();
+          this.add.text(DESIGN_WIDTH / 2, y + 96, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
+        }
+      });
+      this.tweens.add({
+        targets: title,
+        scale: 1.045,
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
     this.add
       .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 48, "Street-fight  ·  best of 3  ·  play in the browser", {
         fontFamily: FONT,
@@ -89,7 +126,7 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 72, "Keyboard  ·  arrows move  ·  J punch  ·  K kick  ·  U ult", {
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 72, "Stick / WASD move  ·  stick↑ or W jump  ·  J punch  ·  K kick  ·  U ult", {
         fontFamily: FONT,
         fontSize: "14px",
         color: "#9a90a8",
@@ -102,8 +139,7 @@ export class TitleScene extends Phaser.Scene {
       .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 148, "TAP FOR ARCADE", textStyle(22, "#f2f2f2"))
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    prompt.setData("menu", true);
-    prompt.on("pointerdown", () => this.scene.start("Select", { mode: "arcade" }));
+    prompt.on("pointerdown", () => this.open("arcade"));
     this.tweens.add({
       targets: prompt,
       alpha: 0.25,
@@ -114,31 +150,29 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private buildMenuButtons(): void {
-    this.menuButton("ARCADE", DESIGN_WIDTH * 0.32, DESIGN_HEIGHT - 92, () => {
-      this.scene.start("Select", { mode: "arcade" });
-    });
-    this.menuButton("FREE PLAY", DESIGN_WIDTH * 0.5, DESIGN_HEIGHT - 92, () => {
-      this.scene.start("Select", { mode: "freePlay" });
-    });
-    this.menuButton("TOP 10", DESIGN_WIDTH * 0.68, DESIGN_HEIGHT - 92, () => {
-      this.scene.start("Leaderboard");
-    });
+    this.menuButton("ARCADE", DESIGN_WIDTH * 0.32, DESIGN_HEIGHT - 92, () => this.open("arcade"));
+    this.menuButton("FREE PLAY", DESIGN_WIDTH * 0.5, DESIGN_HEIGHT - 92, () => this.open("freePlay"));
+    this.menuButton("TOP 10", DESIGN_WIDTH * 0.68, DESIGN_HEIGHT - 92, () => this.open("board"));
+  }
 
+  private open(which: "arcade" | "freePlay" | "board"): void {
+    if (this.menuConsumed) return;
+    this.menuConsumed = true;
+    this.input.enabled = false;
+    if (which === "board") go(this, "Leaderboard");
+    else go(this, "Select", { mode: which });
   }
 
   private menuButton(label: string, x: number, y: number, onClick: () => void): void {
     const bg = this.add.rectangle(x, y, 200, 52, 0x1f1f1f, 0.9).setStrokeStyle(2, 0xffd651);
-    bg.setData("menu", true);
     const text = this.add.text(x, y, label, textStyle(16, GOLD)).setOrigin(0.5);
-    text.setData("menu", true);
     bg.setInteractive({ useHandCursor: true });
     text.setInteractive({ useHandCursor: true });
-    const go = (e: Phaser.Input.Pointer) => {
-      this.menuConsumed = true;
+    const goTap = (e: Phaser.Input.Pointer) => {
       e.event?.stopPropagation?.();
       onClick();
     };
-    bg.on("pointerdown", go);
-    text.on("pointerdown", go);
+    bg.on("pointerdown", goTap);
+    text.on("pointerdown", goTap);
   }
 }

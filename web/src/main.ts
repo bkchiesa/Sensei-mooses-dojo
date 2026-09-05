@@ -25,7 +25,9 @@ new Phaser.Game({
   input: {
     activePointers: 4,
   },
-  audio: { noAudio: true },
+  audio: {
+    disableWebAudio: false,
+  },
   render: {
     antialias: true,
     pixelArt: false,

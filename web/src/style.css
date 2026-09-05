@@ -17,6 +17,50 @@ body {
   height: 100%;
 }
 
+#match-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: min(12vh, 88px);
+  pointer-events: none;
+}
+
+#match-overlay[hidden] {
+  display: none;
+}
+
+#match-overlay .match-overlay-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+#match-overlay button {
+  min-width: 280px;
+  padding: 14px 28px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgba(20, 16, 28, 0.92);
+  border: 2px solid #ffd651;
+  border-radius: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#match-overlay button.primary {
+  min-width: 320px;
+  padding: 16px 32px;
+  font-size: 22px;
+  background: rgba(40, 28, 12, 0.95);
+}
+
 #game canvas {
   display: block;
   touch-action: none;

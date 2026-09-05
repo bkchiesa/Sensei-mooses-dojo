@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
+import { go } from "../game/nav";
 import { loadTop10 } from "../game/storage";
 import { textStyle } from "../game/ui";
 
@@ -12,7 +13,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x120d1c);
     this.add.text(DESIGN_WIDTH / 2, 48, "TOP 10", textStyle(36, GOLD)).setOrigin(0.5);
     const back = this.add.text(36, 36, "← TITLE", textStyle(16, "#d9d9d9")).setInteractive({ useHandCursor: true });
-    back.on("pointerup", () => this.scene.start("Title"));
+    back.on("pointerup", () => go(this, "Title"));
 
     this.add
       .text(DESIGN_WIDTH / 2, 88, "This browser  ·  Game Center is native-only", {
