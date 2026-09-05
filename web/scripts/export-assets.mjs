@@ -140,10 +140,33 @@ fs.rmSync(uiSelectOut, { recursive: true, force: true });
 fs.mkdirSync(uiSelectOut, { recursive: true });
 if (fs.existsSync(uiSelectSrc)) {
   for (const file of fs.readdirSync(uiSelectSrc)) {
-    if (file === "README.md") continue;
+    if (file === "README.md" || file === "plate.json") continue;
     fs.copyFileSync(path.join(uiSelectSrc, file), path.join(uiSelectOut, file));
   }
 }
+const platePng = "hampton-roads-map.png";
+const plateSvg = "hampton-roads-map.svg";
+const plateFile = fs.existsSync(path.join(uiSelectOut, platePng))
+  ? platePng
+  : fs.existsSync(path.join(uiSelectOut, plateSvg))
+    ? plateSvg
+    : null;
+fs.writeFileSync(
+  path.join(uiSelectOut, "plate.json"),
+  JSON.stringify(
+    {
+      file: plateFile,
+      bounds: { lonMin: -76.76, lonMax: -76.28, latMin: 36.955, latMax: 37.3 },
+      projection: "equirectangular",
+      standardParallelDeg: 37.1275,
+      platePx: { width: 1111, height: 1000 },
+      uv: "u=(lon-lonMin)/(lonMax-lonMin) west→east; v=1-(lat-latMin)/(latMax-latMin) north→south",
+      note: "Full image = full bounds, no padding. Code draws landmark dots. PNG replaces the SVG placeholder without moving dots. Keep in sync with web/src/data/peninsula.ts.",
+    },
+    null,
+    2,
+  ),
+);
 
 copied.sort();
 fs.writeFileSync(

@@ -1,6 +1,13 @@
 import Phaser from "phaser";
 import { FONT, GOLD, GOLD_NUM } from "../config";
-import { PENINSULA_LAND, STAGE_GEO, geoToUv, type StageGeo } from "../data/peninsula";
+import {
+  PENINSULA_SHORE,
+  PENINSULA_WATER_LABELS,
+  STAGE_GEO,
+  fitGeoPlot,
+  geoToUv,
+  type StageGeo,
+} from "../data/peninsula";
 
 export interface MapRect {
   x: number;
@@ -11,10 +18,12 @@ export interface MapRect {
 
 export class PeninsulaMap {
   readonly root: Phaser.GameObjects.Container;
+  private readonly plot: { w: number; h: number };
   private readonly dots = new Map<string, Phaser.GameObjects.Arc>();
   private readonly labels = new Map<string, Phaser.GameObjects.Text>();
   private selectedId: string | null = null;
   private pulse?: Phaser.Tweens.Tween;
+  private plateMask?: Phaser.GameObjects.Graphics;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -22,6 +31,7 @@ export class PeninsulaMap {
     onPick: (id: string) => void,
     interactive: boolean,
   ) {
+    this.plot = fitGeoPlot(rect.w, rect.h);
     this.root = scene.add.container(rect.x, rect.y);
     this.drawPlate();
     this.drawLand();
@@ -73,12 +83,14 @@ export class PeninsulaMap {
 
   destroy(): void {
     this.pulse?.stop();
+    this.plateMask?.destroy();
     this.root.destroy(true);
   }
 
-  private project(geo: StageGeo): { px: number; py: number } {
+  /** Raw 0–1 UV over the geo plot. No inset — Pixel plate pixels must match. */
+  private project(geo: Pick<StageGeo, "lon" | "lat">): { px: number; py: number } {
     const { u, v } = geoToUv(geo.lon, geo.lat);
-    return { px: (u - 0.5) * this.rect.w * 0.92, py: (v - 0.5) * this.rect.h * 0.86 };
+    return { px: (u - 0.5) * this.plot.w, py: (v - 0.5) * this.plot.h };
   }
 
   private drawPlate(): void {
@@ -92,38 +104,38 @@ export class PeninsulaMap {
     g.strokeEllipse(0, 0, w - 12, h - 12);
     this.root.add(g);
 
-    if (this.scene.textures.exists("ui-select-map")) {
-      const art = this.scene.add.image(0, 0, "ui-select-map");
-      art.setDisplaySize(w - 18, h - 18);
-      this.root.add(art);
-    }
+    if (!this.scene.textures.exists("ui-select-map")) return;
+    const src = this.scene.textures.get("ui-select-map").getSourceImage() as { width?: number };
+    if (!src?.width || src.width < 8) return;
+
+    const art = this.scene.add.image(0, 0, "ui-select-map");
+    art.setDisplaySize(this.plot.w, this.plot.h);
+    this.clipToChrome(art);
+    this.root.add(art);
   }
 
   private drawLand(): void {
-    if (this.scene.textures.exists("ui-select-map")) return;
-    const { w, h } = this.rect;
+    if (this.hasPlateArt()) return;
     const g = this.scene.add.graphics();
     g.fillStyle(0xc9b48a, 1);
     g.lineStyle(2, 0x8a7048, 0.9);
-    const pts = PENINSULA_LAND.map(([u, v]) => ({
-      x: (u - 0.5) * w * 0.92,
-      y: (v - 0.5) * h * 0.86,
-    }));
+    const pts = PENINSULA_SHORE.map((pt) => this.project(pt));
     g.beginPath();
-    g.moveTo(pts[0].x, pts[0].y);
-    for (const p of pts.slice(1)) g.lineTo(p.x, p.y);
+    g.moveTo(pts[0].px, pts[0].py);
+    for (const p of pts.slice(1)) g.lineTo(p.px, p.py);
     g.closePath();
     g.fillPath();
     g.strokePath();
+    this.clipToChrome(g);
     this.root.add(g);
   }
 
   private drawWaterLabels(): void {
-    if (this.scene.textures.exists("ui-select-map")) return;
     const style = { fontFamily: FONT, fontSize: "11px", color: "#8ec4e8", fontStyle: "bold" as const };
-    this.root.add(this.scene.add.text(-this.rect.w * 0.28, this.rect.h * 0.28, "JAMES RIVER", style).setOrigin(0.5));
-    this.root.add(this.scene.add.text(this.rect.w * 0.18, -this.rect.h * 0.36, "YORK RIVER", style).setOrigin(0.5));
-    this.root.add(this.scene.add.text(this.rect.w * 0.28, 0.02, "CHESAPEAKE BAY", style).setOrigin(0.5));
+    for (const label of PENINSULA_WATER_LABELS) {
+      const { px, py } = this.project(label);
+      this.root.add(this.scene.add.text(px, py, label.text, style).setOrigin(0.5));
+    }
     this.root.add(
       this.scene.add
         .text(0, -this.rect.h * 0.42, "HAMPTON ROADS", {
@@ -134,5 +146,20 @@ export class PeninsulaMap {
         })
         .setOrigin(0.5),
     );
+  }
+
+  private hasPlateArt(): boolean {
+    if (!this.scene.textures.exists("ui-select-map")) return false;
+    const src = this.scene.textures.get("ui-select-map").getSourceImage() as { width?: number };
+    return Boolean(src?.width && src.width >= 8);
+  }
+
+  private clipToChrome(target: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics): void {
+    const mask = this.scene.add.graphics();
+    mask.fillStyle(0xffffff);
+    mask.fillEllipse(this.rect.x, this.rect.y, this.rect.w - 16, this.rect.h - 16);
+    mask.setVisible(false);
+    this.plateMask = mask;
+    target.setMask(mask.createGeometryMask());
   }
 }

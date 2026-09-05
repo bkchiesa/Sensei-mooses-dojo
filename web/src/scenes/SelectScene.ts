@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD, GOLD_NUM } from "../config";
 import { dummyOpponent, slotName, STARTERS, STAGES, stageById, type FighterDef, type StageDef } from "../data/catalog";
+import { PIXEL_PLATE_PX, SELECT_MAP_CHROME } from "../data/peninsula";
 import { arcadeStart } from "../game/arcade";
 import { PeninsulaMap } from "../game/peninsulaMap";
 import { applyQueryUnlocks, selectRoster } from "../game/storage";
@@ -57,13 +58,30 @@ export class SelectScene extends Phaser.Scene {
       then();
       return;
     }
-    this.load.svg("ui-select-map", "assets/ui/select/hampton-roads-map.svg", { width: 720, height: 400 });
-    this.load.once("complete", () => then());
-    this.load.once("loaderror", () => then());
-    this.load.start();
-    this.time.delayedCall(500, () => {
+    const fallback = () => {
       if (this.sys.isActive() && !this.fightLabel) then();
-    });
+    };
+    void fetch("assets/ui/select/plate.json")
+      .then((res) => (res.ok ? res.json() : { file: "hampton-roads-map.svg" }))
+      .catch(() => ({ file: "hampton-roads-map.svg" }))
+      .then((meta: { file?: string | null }) => {
+        if (!this.sys.isActive() || this.fightLabel) return;
+        const file = meta.file;
+        if (!file) {
+          then();
+          return;
+        }
+        const url = `assets/ui/select/${file}`;
+        if (file.endsWith(".svg")) {
+          this.load.svg("ui-select-map", url, PIXEL_PLATE_PX);
+        } else {
+          this.load.image("ui-select-map", url);
+        }
+        this.load.once("complete", () => then());
+        this.load.once("loaderror", () => then());
+        this.load.start();
+      });
+    this.time.delayedCall(800, fallback);
   }
 
   private buildLayout(): void {
@@ -207,12 +225,17 @@ export class SelectScene extends Phaser.Scene {
 
   private buildMap(): void {
     const interactive = this.phase === "stage";
-    this.map = new PeninsulaMap(this, { x: DESIGN_WIDTH / 2, y: 210, w: 520, h: 300 }, (id) => this.onMapDot(id), interactive);
+    this.map = new PeninsulaMap(
+      this,
+      { x: DESIGN_WIDTH / 2, y: 205, w: SELECT_MAP_CHROME.w, h: SELECT_MAP_CHROME.h },
+      (id) => this.onMapDot(id),
+      interactive,
+    );
   }
 
   private buildPlayerSelectLabel(): void {
     this.add
-      .text(DESIGN_WIDTH / 2, 382, "PLAYER SELECT", {
+      .text(DESIGN_WIDTH / 2, 400, "PLAYER SELECT", {
         fontFamily: FONT,
         fontSize: "28px",
         color: GOLD,
@@ -229,15 +252,15 @@ export class SelectScene extends Phaser.Scene {
           : this.mode === "arcade"
             ? "CHOOSE YOUR FIGHTER"
             : "CHOOSE YOUR FIGHTER";
-    this.add.text(DESIGN_WIDTH / 2, 408, sub, textStyle(13, "#c8c0d4")).setOrigin(0.5);
+    this.add.text(DESIGN_WIDTH / 2, 426, sub, textStyle(13, "#c8c0d4")).setOrigin(0.5);
   }
 
   private buildStageHint(): void {
     this.add
-      .text(DESIGN_WIDTH / 2, 455, `${this.playerPick?.displayName ?? "You"}  vs  ${this.opponentPick?.displayName ?? "CPU"}`, textStyle(16))
+      .text(DESIGN_WIDTH / 2, 468, `${this.playerPick?.displayName ?? "You"}  vs  ${this.opponentPick?.displayName ?? "CPU"}`, textStyle(16))
       .setOrigin(0.5);
     this.add
-      .text(DESIGN_WIDTH / 2, 480, "Every gold dot is a wired landmark. Pixel map art drops in dojo-art/finals/ui/select/.", {
+      .text(DESIGN_WIDTH / 2, 494, "Tap a landmark. Map plate is a swap-in — dots stay on real lon/lat.", {
         fontFamily: FONT,
         fontSize: "12px",
         color: "#9aa0c8",
@@ -259,7 +282,7 @@ export class SelectScene extends Phaser.Scene {
     const rows = Math.ceil(fighters.length / columns);
     const gridW = Math.min(columns, fighters.length) * slot + Math.max(Math.min(columns, fighters.length) - 1, 0) * gap;
     const startX = (DESIGN_WIDTH - gridW) / 2 + slot / 2;
-    const startY = 478;
+    const startY = 490;
 
     fighters.forEach((fighter, index) => {
       const col = index % columns;

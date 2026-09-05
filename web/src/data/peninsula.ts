@@ -1,8 +1,25 @@
 import { STAGES, type StageDef } from "./catalog";
 
 /**
- * Real-ish WGS84 points for the locked landmark set.
- * Used only to place PLAYER SELECT dots on the Lower Peninsula map.
+ * PLAYER SELECT map contract (Pixel + code).
+ *
+ * Plate is a north-up rectangle of the Lower Peninsula. Landmark dots are
+ * overlaid in code from WGS84 — never paint pips on the plate.
+ *
+ *   lon −76.76 … −76.28
+ *   lat  36.955 … 37.30
+ *
+ * UV (full plate, no padding, no letterbox baked into the file):
+ *   u = (lon − lonMin) / (lonMax − lonMin)     // 0 = west
+ *   v = 1 − (lat − latMin) / (latMax − latMin) // 0 = north
+ *
+ * Plot aspect uses a 37.13°N standard parallel so 1° of longitude is not
+ * stretched to the same pixel length as 1° of latitude. Recommended plate
+ * size: 1111 × 1000 (or any size with width/height ≈ 1.111).
+ *
+ * Drop `dojo-art/finals/ui/select/hampton-roads-map.png` over the SVG
+ * placeholder. `export-assets` writes `plate.json` so the game swaps the
+ * under-image without touching dot positions.
  */
 export interface StageGeo {
   id: string;
@@ -19,8 +36,13 @@ export const PENINSULA_BOUNDS = {
   lonMin: -76.76,
   lonMax: -76.28,
   latMin: 36.955,
-  latMax: 37.30,
-};
+  latMax: 37.3,
+} as const;
+
+/** SF2 oval chrome. The geo plot letterboxes inside this so dots stay faithful. */
+export const SELECT_MAP_CHROME = { w: 500, h: 360 } as const;
+
+export const PIXEL_PLATE_PX = { width: 1111, height: 1000 } as const;
 
 export const STAGE_GEO: StageGeo[] = [
   { id: "colonial", short: "Williamsburg", lon: -76.7, lat: 37.271, labelDy: -10 },
@@ -41,31 +63,80 @@ export const STAGE_GEO: StageGeo[] = [
   { id: "jrbridge", short: "JR Bridge", lon: -76.478, lat: 36.993, labelDx: -16 },
 ];
 
-/** Stylized Lower Peninsula shoreline in the same 0–1 UV as `geoToUv`. */
-export const PENINSULA_LAND: Array<[number, number]> = [
-  [0.1, 0.12],
-  [0.2, 0.05],
-  [0.3, 0.14],
-  [0.38, 0.24],
-  [0.5, 0.3],
-  [0.64, 0.36],
-  [0.84, 0.41],
-  [0.96, 0.44],
-  [0.91, 0.54],
-  [0.86, 0.62],
-  [0.95, 0.7],
-  [0.88, 0.8],
-  [0.76, 0.85],
-  [0.68, 0.95],
-  [0.56, 0.92],
-  [0.5, 0.8],
-  [0.54, 0.72],
-  [0.48, 0.62],
-  [0.42, 0.5],
-  [0.36, 0.4],
-  [0.28, 0.28],
-  [0.16, 0.2],
+/**
+ * Lower Peninsula shoreline in WGS84 (same projection as the dots).
+ * Clockwise from the James River west crop: James → Hampton Roads →
+ * Chesapeake → York → west close. Placeholder only — Pixel plate replaces it.
+ */
+export const PENINSULA_SHORE: ReadonlyArray<{ lon: number; lat: number }> = [
+  { lon: -76.758, lat: 37.208 },
+  { lon: -76.7, lat: 37.21 },
+  { lon: -76.648, lat: 37.205 },
+  { lon: -76.6, lat: 37.175 },
+  { lon: -76.586, lat: 37.16 },
+  { lon: -76.575, lat: 37.132 },
+  { lon: -76.562, lat: 37.105 },
+  { lon: -76.548, lat: 37.088 },
+  { lon: -76.52, lat: 37.062 },
+  { lon: -76.49, lat: 37.038 },
+  { lon: -76.468, lat: 37.022 },
+  { lon: -76.488, lat: 37.002 },
+  { lon: -76.478, lat: 36.988 },
+  { lon: -76.45, lat: 36.972 },
+  { lon: -76.428, lat: 36.96 },
+  { lon: -76.405, lat: 36.968 },
+  { lon: -76.378, lat: 36.982 },
+  { lon: -76.355, lat: 36.996 },
+  { lon: -76.345, lat: 37.006 },
+  { lon: -76.33, lat: 37.002 },
+  { lon: -76.308, lat: 36.999 },
+  { lon: -76.298, lat: 37.012 },
+  { lon: -76.292, lat: 37.038 },
+  { lon: -76.282, lat: 37.062 },
+  { lon: -76.28, lat: 37.085 },
+  { lon: -76.288, lat: 37.108 },
+  { lon: -76.308, lat: 37.122 },
+  { lon: -76.322, lat: 37.138 },
+  { lon: -76.348, lat: 37.152 },
+  { lon: -76.372, lat: 37.168 },
+  { lon: -76.398, lat: 37.192 },
+  { lon: -76.42, lat: 37.215 },
+  { lon: -76.455, lat: 37.228 },
+  { lon: -76.508, lat: 37.238 },
+  { lon: -76.545, lat: 37.25 },
+  { lon: -76.585, lat: 37.258 },
+  { lon: -76.63, lat: 37.268 },
+  { lon: -76.68, lat: 37.282 },
+  { lon: -76.705, lat: 37.292 },
+  { lon: -76.735, lat: 37.285 },
+  { lon: -76.755, lat: 37.26 },
+  { lon: -76.758, lat: 37.232 },
 ];
+
+export const PENINSULA_WATER_LABELS: ReadonlyArray<{ lon: number; lat: number; text: string }> = [
+  { lon: -76.6, lat: 36.978, text: "JAMES RIVER" },
+  { lon: -76.54, lat: 37.288, text: "YORK RIVER" },
+  { lon: -76.3, lat: 37.175, text: "CHESAPEAKE BAY" },
+];
+
+export function geoMeanLat(): number {
+  return (PENINSULA_BOUNDS.latMin + PENINSULA_BOUNDS.latMax) / 2;
+}
+
+/** Width / height of the plot rectangle (equirectangular + mid-lat cosine). */
+export function geoPlotAspect(): number {
+  const lonSpan = PENINSULA_BOUNDS.lonMax - PENINSULA_BOUNDS.lonMin;
+  const latSpan = PENINSULA_BOUNDS.latMax - PENINSULA_BOUNDS.latMin;
+  return (lonSpan * Math.cos((geoMeanLat() * Math.PI) / 180)) / latSpan;
+}
+
+/** Largest geo-aspect rectangle that fits inside the SF2 chrome. */
+export function fitGeoPlot(chromeW: number, chromeH: number): { w: number; h: number } {
+  const aspect = geoPlotAspect();
+  const chromeAspect = chromeW / chromeH;
+  if (chromeAspect > aspect) return { w: chromeH * aspect, h: chromeH };
+  return { w: chromeW, h: chromeW / aspect };
+}
 
 export function geoToUv(lon: number, lat: number): { u: number; v: number } {
   const { lonMin, lonMax, latMin, latMax } = PENINSULA_BOUNDS;

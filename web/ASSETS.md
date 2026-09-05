@@ -41,6 +41,8 @@ Number extra frames `_01`, `_02`, … The Phaser anim system (`web/src/game/anim
 
 ## PLAYER SELECT map
 
-`dojo-art/finals/ui/select/hampton-roads-map.svg` (and later Pixel PNG) copies to `web/public/assets/ui/select/`.
+`dojo-art/finals/ui/select/hampton-roads-map.svg` is a geo-faithful placeholder (same lon/lat UV as the dots). Pixel’s `hampton-roads-map.png` replaces it. Export copies the plate to `web/public/assets/ui/select/` and writes `plate.json` so the game swaps the under-image without moving dots.
+
+Contract: north-up, lon −76.76…−76.28, lat 36.955…37.30, **1111×1000** (aspect ≈ 1.111), UV 0,0 = NW. Full image = full bounds — no padding. See `dojo-art/finals/ui/select/README.md`.
 
 A `manifest.json` listing copied filenames is written next to the PNGs (gitignored).

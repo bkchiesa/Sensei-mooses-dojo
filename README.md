@@ -261,12 +261,12 @@ Curves lerp monotonically on `t = index / 15`. Dummy is a fixed easy profile bel
 Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
 
 - Large **1P / 2P** busts left and right
-- Center **Virginia Lower Peninsula / Hampton Roads** map (placeholder until Pixel)
-- Dots on real landmark geography (`web/src/data/peninsula.ts`)
+- Center **Virginia Lower Peninsula / Hampton Roads** map (SF2 oval chrome; plate is a swap-in)
+- Dots on real landmark lon/lat (`web/src/data/peninsula.ts`) — no stretch/inset. Close pairs (Lions Bridge / Mariners, Hilton) stay where they are.
 - **PLAYER SELECT** label
 - Bottom fighter headshot grid
 
-Pixel map/UI finals: `dojo-art/finals/ui/select/` (see README there). Free Play stage pick is a map-dot tap.
+Pixel map plate: drop `hampton-roads-map.png` in `dojo-art/finals/ui/select/` using the lon/lat box in that README. Placeholder SVG matches the same UV so the B-faithful plate can replace it without moving dots. Free Play stage pick is a map-dot tap.
 
 ### Fighter anim sheets (Pixel)
 
