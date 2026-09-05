@@ -11,7 +11,7 @@ import {
 } from "../game/anims";
 import { FIGHT_LOOP_KEY } from "../game/audio";
 import { applyQueryUnlocks } from "../game/storage";
-import { TITLE_ART } from "../game/titleArt";
+import { optionalTitleKeys, TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL, titleQueueFromManifest } from "../game/titleArt";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -56,6 +56,7 @@ export class BootScene extends Phaser.Scene {
     ]);
     this.load.json("ui-select-plate", "assets/ui/select/plate.json");
     this.load.image("ui-select-map", "assets/ui/select/select-map-plate-C.png");
+    this.load.json(TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL);
     for (const f of [...STARTERS, ...BOSSES]) {
       keys.add(f.portrait);
       keys.add(f.idle);
@@ -68,8 +69,7 @@ export class BootScene extends Phaser.Scene {
     this.load.json("fighter-anims", "assets/fighters/index.json");
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
       const optional = new Set([
-        TITLE_ART.interior,
-        TITLE_ART.logo,
+        ...optionalTitleKeys(),
         FIGHT_LOOP_KEY,
         "ui-select-map",
         "ui-select-plate",
@@ -136,6 +136,8 @@ export class BootScene extends Phaser.Scene {
       this.pruneMissingAnimFrames();
       this.startAfterBoot();
     };
+    const titleQueue = titleQueueFromManifest(this.cache.json.get(TITLE_MANIFEST_KEY));
+    pending.push(...titleQueue);
     const missing = pending.filter((p) => !this.textures.exists(p.key));
     if (!missing.length) {
       finish();

@@ -266,7 +266,7 @@ Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
 - **PLAYER SELECT** label
 - Bottom **interactive unlocked portraits only** — tap a slot to select. Locked bosses are omitted, not greyed-out plate art.
 
-Do **not** use `select-screen-C.png` as the select UI (baked-in stand-in heads). Map plate C stays as the peninsula. Title splash (`dojo-interior` + animated logo) is a later drop-in via `web/src/game/titleArt.ts`. Select/Fight BGM uses `fight_a_loop` when `dojo-art/finals/audio/fight_a_loop.*` is present.
+Do **not** use `select-screen-C.png` as the select UI (baked-in stand-in heads). Map plate C stays as the peninsula. Title splash uses locked `title_bg_dojo` plus the `title_logo_00`–`07` glow loop (`web/src/game/titleArt.ts`). Select/Fight BGM uses `fight_a_loop` when `dojo-art/finals/audio/fight_a_loop.*` is present.
 
 ### Fighter anim sheets (Pixel)
 
