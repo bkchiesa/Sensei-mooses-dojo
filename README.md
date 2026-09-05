@@ -114,7 +114,7 @@ FightScene loads `stage1_master` plus any of `stage1_sky` / `far` / `mid` / `nea
 
 ### Stages
 
-`Game/Stage.swift` — all three are `wired: true` for arcade.
+`Game/Stage.swift` is a **catalog table** (`StageConfig.catalog`). Add later NN landmarks / generics as a new row (`assetPrefix` `stage4+`); do not assume only three stages. Current arcade rows:
 
 | Stage | id | Status | Art prefix |
 | --- | --- | --- | --- |

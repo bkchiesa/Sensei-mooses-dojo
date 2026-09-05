@@ -1,68 +1,58 @@
 import Foundation
 
-/// Arcade stages. Hilton and Axsom art is parked and wired for boss batches.
-enum StageID: String, CaseIterable {
-    case lionsBridge
-    case hiltonElementary
-    case axsomDojo
+/// Stage identity. Known arcade stages are statics; later NN landmarks / generics
+/// can be `StageID(rawValue:)` plus a `StageConfig.catalog` row — no exhaustive switch.
+struct StageID: Hashable {
+    let rawValue: String
 
-    var displayName: String {
-        switch self {
-        case .lionsBridge: return "Lions Bridge"
-        case .hiltonElementary: return "Hilton Elementary School"
-        case .axsomDojo: return "Axsom Martial Arts Dojo"
-        }
-    }
-
-    /// Locked art prefix. Stage 1 uses `stage1_*`. Later stages reserve `stage2_*` / `stage3_*`.
-    var assetPrefix: String {
-        switch self {
-        case .lionsBridge: return "stage1"
-        case .hiltonElementary: return "stage2"
-        case .axsomDojo: return "stage3"
-        }
-    }
+    static let lionsBridge = StageID(rawValue: "lionsBridge")
+    static let hiltonElementary = StageID(rawValue: "hiltonElementary")
+    static let axsomDojo = StageID(rawValue: "axsomDojo")
 }
 
+/// Table-driven stage row. Asset names are `\(assetPrefix)_master` / `_sky` / `_far` / `_mid` / `_near`.
 struct StageConfig {
     let id: StageID
+    let displayName: String
+    let assetPrefix: String
+    let number: Int
     let mood: String?
     let wired: Bool
 
-    var masterName: String { "\(id.assetPrefix)_master" }
-    var skyName: String { "\(id.assetPrefix)_sky" }
-    var farName: String { "\(id.assetPrefix)_far" }
-    var midName: String { "\(id.assetPrefix)_mid" }
-    var nearName: String { "\(id.assetPrefix)_near" }
+    var masterName: String { "\(assetPrefix)_master" }
+    var skyName: String { "\(assetPrefix)_sky" }
+    var farName: String { "\(assetPrefix)_far" }
+    var midName: String { "\(assetPrefix)_mid" }
+    var nearName: String { "\(assetPrefix)_near" }
 
     var hudCaption: String {
         if let mood {
-            return "STAGE \(stageNumber)  ·  \(id.displayName.uppercased())  ·  MOOD \(mood)"
+            return "STAGE \(number)  ·  \(displayName.uppercased())  ·  MOOD \(mood)"
         }
-        return "STAGE \(stageNumber)  ·  \(id.displayName.uppercased())"
+        return "STAGE \(number)  ·  \(displayName.uppercased())"
     }
 
-    private var stageNumber: Int {
-        switch id {
-        case .lionsBridge: return 1
-        case .hiltonElementary: return 2
-        case .axsomDojo: return 3
-        }
-    }
-
-    static let lionsBridge = StageConfig(id: .lionsBridge, mood: "B", wired: true)
-
-    /// Hilton Elementary — mood B waterfront + building. Used for batch 2.
-    static let hiltonElementary = StageConfig(id: .hiltonElementary, mood: "B", wired: true)
-
-    /// Axsom Martial Arts Dojo — mood B exterior dusk. Used for batch 3 + Sensei Moose.
-    static let axsomDojo = StageConfig(id: .axsomDojo, mood: "B", wired: true)
+    /// Append a row for the next landmark. Do not assume only three stages.
+    static let catalog: [StageConfig] = [
+        StageConfig(id: .lionsBridge, displayName: "Lions Bridge", assetPrefix: "stage1", number: 1, mood: "B", wired: true),
+        StageConfig(id: .hiltonElementary, displayName: "Hilton Elementary School", assetPrefix: "stage2", number: 2, mood: "B", wired: true),
+        StageConfig(id: .axsomDojo, displayName: "Axsom Martial Arts Dojo", assetPrefix: "stage3", number: 3, mood: "B", wired: true),
+        // Later: NN landmarks + generics — add a row (stage4+, new StageID static optional).
+    ]
 
     static func config(for id: StageID) -> StageConfig {
-        switch id {
-        case .lionsBridge: return .lionsBridge
-        case .hiltonElementary: return .hiltonElementary
-        case .axsomDojo: return .axsomDojo
-        }
+        if let row = catalog.first(where: { $0.id == id }) { return row }
+        return StageConfig(
+            id: id,
+            displayName: id.rawValue,
+            assetPrefix: "stage_\(id.rawValue)",
+            number: catalog.count + 1,
+            mood: nil,
+            wired: false
+        )
     }
+
+    static let lionsBridge = config(for: .lionsBridge)
+    static let hiltonElementary = config(for: .hiltonElementary)
+    static let axsomDojo = config(for: .axsomDojo)
 }

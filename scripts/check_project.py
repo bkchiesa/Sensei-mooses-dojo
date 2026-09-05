@@ -58,7 +58,7 @@ SCENE_TOKENS = {
     "Scenes/LeaderboardScene.swift": ["TOP 10", "LeaderboardService"],
     "Game/LeaderboardService.swift": ["com.sensiemoose.dojo.top10", "GKLocalPlayer", "UserDefaults"],
     "Game/Art.swift": ["moose_title_idle", "moose_title_body", "moose_title_head"],
-    "Game/Stage.swift": ["lionsBridge", "hiltonElementary", "axsomDojo", "stage1"],
+    "Game/Stage.swift": ["lionsBridge", "hiltonElementary", "axsomDojo", "stage1", "catalog"],
     "Game/VirtualControls.swift": ["PUNCH", "KICK", "JUMP"],
 }
 
