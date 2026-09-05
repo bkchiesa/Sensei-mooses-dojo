@@ -39,14 +39,16 @@ function listPixelFrames(dir, id) {
 }
 
 function ingestPixelFrames(id, destDir) {
-  const layers = [
-    path.join(dojoFightersSrc, id),
-    path.join(dojoFightersSrc, id, "frames"),
-    path.join(fighterSheets, id),
-  ];
+  const aliases = id === "senseiMoose" ? ["moose", "senseiMoose"] : [id];
   const latest = new Map();
-  for (const dir of layers) {
-    for (const frame of listPixelFrames(dir, id)) latest.set(frame.destName, frame.from);
+  for (const alias of aliases) {
+    for (const dir of [
+      path.join(dojoFightersSrc, alias),
+      path.join(dojoFightersSrc, alias, "frames"),
+      path.join(fighterSheets, alias),
+    ]) {
+      for (const frame of listPixelFrames(dir, alias)) latest.set(frame.destName, frame.from);
+    }
   }
   for (const [destName, from] of latest) {
     fs.copyFileSync(from, path.join(destDir, destName));

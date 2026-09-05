@@ -26,4 +26,5 @@ Optional overlay that wins on re-export: `web/fighter-sheets/<id>/<anim>_NN.png`
 | Id | Status |
 | --- | --- |
 | matt, simon, rich, amanda, jb | 24 action frames |
-| bosses / Sensei Moose | incoming — catalog idle fallback until their folders land |
+| senseiMoose / moose | incoming — ~666px, display 1.3× (`MOOSE_HEIGHT_SCALE`). Ultimates unchanged. |
+| other bosses | incoming — catalog idle fallback until their folders land |
