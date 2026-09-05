@@ -15,7 +15,7 @@ import { VirtualControls } from "../game/controls";
 import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
 import { hideMatchOverlay, showMatchOverlay } from "../game/matchOverlay";
-import { go } from "../game/nav";
+import { deferSceneChange, go } from "../game/nav";
 import { applyQueryUnlocks, debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
 import { promptName, textStyle } from "../game/ui";
 
@@ -54,6 +54,7 @@ export class FightScene extends Phaser.Scene {
   private layers: Partial<Record<"sky" | "far" | "mid" | "master" | "near", Phaser.GameObjects.Image>> = {};
   private built = false;
   private overlayBusy = false;
+  private arcadeAdvanceTimer?: Phaser.Time.TimerEvent;
 
   constructor() {
     super("Fight");
@@ -87,6 +88,8 @@ export class FightScene extends Phaser.Scene {
     this.overlay = undefined;
     this.countdownLabel = undefined;
     this.overlayBusy = false;
+    this.arcadeAdvanceTimer?.remove(false);
+    this.arcadeAdvanceTimer = undefined;
   }
 
   create(): void {
@@ -543,6 +546,10 @@ export class FightScene extends Phaser.Scene {
     );
 
     const next = this.arcade ? arcadeNext(this.arcade) : null;
+    const canAdvance = Boolean(playerWon && this.arcade && next);
+    if (canAdvance) {
+      dimmer.on("pointerup", () => this.advanceArcade());
+    }
     if (playerWon && boss) {
       panel.add(
         this.add
@@ -558,6 +565,7 @@ export class FightScene extends Phaser.Scene {
           .setOrigin(0.5),
       );
       this.showEndActions(
+        panel,
         [
           { label: "NEXT FIGHT", onClick: () => this.advanceArcade(), primary: true },
           { label: "REMATCH", onClick: () => this.rematch() },
@@ -565,22 +573,26 @@ export class FightScene extends Phaser.Scene {
         ],
         () => this.advanceArcade(),
       );
+      // Native SpriteKit auto-continues after 1.35s. That timer runs on the
+      // game clock — not inside a touch/click — so iPad Safari cannot drop it.
+      this.arcadeAdvanceTimer?.remove(false);
+      this.arcadeAdvanceTimer = this.time.delayedCall(1350, () => this.advanceArcade());
     } else if (playerWon && this.arcade && !next) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.48, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
-      this.showEndActions([
+      this.showEndActions(panel, [
         { label: "SUBMIT SCORE", onClick: () => void this.submit(), primary: true },
         { label: "REMATCH", onClick: () => this.rematch() },
         { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
       ]);
     } else if (playerWon) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.46, `SCORE  ${this.fightScore()}`, textStyle(22)).setOrigin(0.5));
-      this.showEndActions([
+      this.showEndActions(panel, [
         { label: "SUBMIT SCORE", onClick: () => void this.submit(), primary: true },
         { label: "REMATCH", onClick: () => this.rematch() },
         { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
       ]);
     } else {
-      this.showEndActions([
+      this.showEndActions(panel, [
         { label: "REMATCH", onClick: () => this.rematch(), primary: true },
         { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
       ]);
@@ -596,16 +608,46 @@ export class FightScene extends Phaser.Scene {
   }
 
   private showEndActions(
+    panel: Phaser.GameObjects.Container,
     actions: { label: string; onClick: () => void; primary?: boolean }[],
     onConfirm?: () => void,
   ): void {
-    showMatchOverlay(actions);
+    const shown = showMatchOverlay(actions, {
+      canvas: this.game.canvas,
+      onBackdrop: onConfirm,
+    });
+    if (!shown) {
+      const startY = onConfirm ? 0.62 : 0.52;
+      actions.forEach((action, i) => {
+        this.addOverlayButton(panel, action.label, DESIGN_HEIGHT * (startY + i * 0.11), action.onClick, Boolean(action.primary));
+      });
+    }
     if (onConfirm) this.bindOverlayConfirm(onConfirm);
+  }
+
+  private addOverlayButton(
+    panel: Phaser.GameObjects.Container,
+    title: string,
+    y: number,
+    onClick: () => void,
+    primary = false,
+  ): void {
+    const bg = this.add
+      .rectangle(DESIGN_WIDTH / 2, y, primary ? 420 : 360, primary ? 64 : 52, 0x1f1f1f, 0.95)
+      .setStrokeStyle(primary ? 3 : 2, GOLD_NUM);
+    const label = this.add.text(DESIGN_WIDTH / 2, y, title, textStyle(primary ? 24 : 20)).setOrigin(0.5);
+    bg.setInteractive({ useHandCursor: true });
+    label.setInteractive({ useHandCursor: true });
+    bg.on("pointerup", onClick);
+    label.on("pointerup", onClick);
+    panel.add([bg, label]);
   }
 
   private onceOverlay(fn: () => void): void {
     if (this.overlayBusy) return;
     this.overlayBusy = true;
+    this.arcadeAdvanceTimer?.remove(false);
+    this.arcadeAdvanceTimer = undefined;
     this.input.enabled = false;
     hideMatchOverlay();
     fn();
@@ -635,7 +677,15 @@ export class FightScene extends Phaser.Scene {
   }
 
   private restartFight(data: FightData): void {
-    go(this, "Fight", data);
+    applyQueryUnlocks();
+    hideMatchOverlay();
+    this.input.enabled = false;
+    const payload = data;
+    deferSceneChange(this, () => {
+      if (!this.sys.game?.isRunning) return;
+      applyQueryUnlocks();
+      this.scene.restart(payload);
+    });
   }
 
   private toSelect(): void {
@@ -651,6 +701,8 @@ export class FightScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    this.arcadeAdvanceTimer?.remove(false);
+    this.arcadeAdvanceTimer = undefined;
     hideMatchOverlay();
     this.pad?.detach();
     this.overlay?.destroy(true);

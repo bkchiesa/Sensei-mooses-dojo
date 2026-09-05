@@ -2,7 +2,7 @@
 
 Browser street-fighter. **The playable product is the web game** — open it on iPad/iPhone Safari (landscape) or any desktop browser. No Mac, Xcode, or App Store required.
 
-Playable loop: **Title → Arcade or Free Play select → Fight**. Fights are **best of 3** (first to 2 rounds) with a **3 → 2 → 1 → FIGHT!** countdown. Arcade shows **Next Fight** after a match win — it does not auto-advance. Health bars, round pips, ULT meters (landed hits), and a **★ ULT** button.
+Playable loop: **Title → Arcade or Free Play select → Fight**. Fights are **best of 3** (first to 2 rounds) with a **3 → 2 → 1 → FIGHT!** countdown. Arcade shows **Next Fight** after a match win and continues into the next boss after a short beat. Health bars, round pips, ULT meters (landed hits), and a **★ ULT** button.
 
 Native **Swift + SpriteKit** stays in the repo as a deferred prototype. Do **not** App Store submit it.
 
@@ -55,7 +55,7 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Punch / Kick | **PUNCH** / **KICK** (stick down + kick = sweep) | J/Z · K/X |
 | Ultimate | **★ ULT** (lights up when meter is full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and **Next Fight** quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage).
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and the dummy → Misty continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage).
 
 ### Ported vs still stubbed
 
@@ -63,7 +63,7 @@ Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug)
 | --- | --- |
 | Title, Arcade, Free Play (you → opponent → stage), Fight | Game Center (web uses this-browser Top 10) |
 | Starters Matt/Simon/Rich/Amanda/JB | Alley / rooftop stages (not locked yet) |
-| Best of 3, countdown, Next Fight (no auto-advance) | Native SpriteKit project (kept, not the play path) |
+| Best of 3, countdown, Next Fight (auto-continues after a short beat) | Native SpriteKit project (kept, not the play path) |
 | Unique arcade stage per boss (all locked landmarks) | `boss_senseiMoose_*` art (falls back to title moose) |
 | Progressive arcade difficulty + 2× roster / Moose +30% | App Store / signing |
 | Unique ultimates, 30% HP, meter from landed hits (~6) | Pixel **full anim sheets** (punch/kick/jump/block/crouch/sweep) |
@@ -86,7 +86,7 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
 | **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): live **unlocked portraits only** (tap a slot to pick). 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade: starters. Free Play: unlocked bosses, then tap a map dot for the stage. Not the locked select-screen composite. |
-| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** / **★ ULT**. Arcade does **not** auto-advance — tap **Next Fight**. Landed hits fill the ultimate meter (~6 hits). |
+| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** / **★ ULT**. Arcade continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster
@@ -237,7 +237,7 @@ Web fight systems live in `web/src/` (Phaser). Native `Game/Stage.swift` is defe
 
 - Each fight is **first to 2 round wins**. Round pips sit on each health plate; the center HUD shows `ROUND N · P – C · BEST OF 3`.
 - **3 → 2 → 1 → FIGHT!** locks the pad until the last beat. The same countdown plays before every round.
-- Arcade **does not** auto-advance after a win. Tap **Next Fight** to climb the ladder (dummy → Misty → …). Overlay taps start the next fight on a fresh scene; Title input is silenced so it cannot steal the tap.
+- Arcade continues to the next boss after a short beat (same as native). Tap **Next Fight** (or the win panel) to skip. Overlay buttons sit on the canvas; continue uses a Phaser-clock restart so iPad Safari cannot drop the transition.
 
 ### Character scale
 
