@@ -175,6 +175,11 @@ Locked signatures: **Austin — Tornado Kick** (spinning kick barrage homage). *
 
 Names are stylized homages — no licensed move names, logos, or VFX.
 
+### Ultimate art (placeholders parked)
+
+Catalog: `ult_<id>_00` (+ extra frames where provided). Austin sheet `ult_austin_00`…`14`; Sensei Moose `ult_senseiMoose_00`/`01` (from Pixel `moose/`). Other roster ids have pose or idle stand-in placeholders — not final likeness. Brandon still votes Austin/Moose pose concepts before polish swap.
+
+
 ## Top 10 leaderboard
 
 `Game/LeaderboardService.swift` + `Scenes/LeaderboardScene.swift`. Does not block Title → Select → Fight.

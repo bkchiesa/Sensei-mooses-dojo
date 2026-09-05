@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "ult_amanda_01.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
