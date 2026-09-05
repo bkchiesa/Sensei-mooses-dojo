@@ -52,6 +52,16 @@ Catalog root: **`SenseiMoosesDojo/Assets.xcassets/`**
 
 FightScene loads `stage1_master` plus any of `stage1_sky` / `far` / `mid` / `near` that exist, and shifts them for a light parallax. Title prefers `moose_title_idle`; if that is missing it composes `moose_title_body` + `moose_title_head`.
 
+### Later stages (hooks only)
+
+`Game/Stage.swift` has a `StageID` / `StageConfig` table. **Only Stage 1 is playable.**
+
+| Stage | id | Status | Reserved art prefix |
+| --- | --- | --- | --- |
+| Lions Bridge (mood B) | `lionsBridge` | Wired in FightScene | `stage1_*` |
+| Hilton Elementary School | `hiltonElementary` | TODO stub | `stage2_*` |
+| Axsom Martial Arts Dojo | `axsomDojo` | TODO stub | `stage3_*` |
+
 To regenerate **placeholders only** (overwrites PNGs):
 
 ```bash

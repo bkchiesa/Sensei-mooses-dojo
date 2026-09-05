@@ -3,6 +3,7 @@ import SpriteKit
 final class FightScene: SKScene {
     private let playerID: FighterID
     private let cpuID: FighterID
+    private let stage: StageConfig
 
     private var player: FighterActor!
     private var cpu: FighterActor!
@@ -23,9 +24,12 @@ final class FightScene: SKScene {
     private var master: SKSpriteNode?
     private var near: SKSpriteNode?
 
-    init(size: CGSize, playerID: FighterID, cpuID: FighterID) {
+    init(size: CGSize, playerID: FighterID, cpuID: FighterID, stageID: StageID = .lionsBridge) {
         self.playerID = playerID
         self.cpuID = cpuID
+        let resolved = StageConfig.config(for: stageID)
+        // v0 only implements Lions Bridge; reserved stages fall back so the loop stays playable.
+        self.stage = resolved.wired ? resolved : .lionsBridge
         super.init(size: size)
         scaleMode = .aspectFill
     }
@@ -51,17 +55,18 @@ final class FightScene: SKScene {
     }
 
     private func buildStage() {
-        // Layered parallax when present; `stage1_master` is always the readable plate.
-        let hasParallax = [Art.stageSky, Art.stageFar, Art.stageMid, Art.stageNear].contains(where: Art.hasTexture)
+        // Layered parallax when present; `stage1_master` is the readable plate for Stage 1.
+        let layers = [stage.skyName, stage.farName, stage.midName, stage.nearName]
+        let hasParallax = layers.contains(where: Art.hasTexture)
         if hasParallax {
-            sky = addLayer(Art.stageSky, z: -50, fallback: SKColor(red: 0.95, green: 0.5, blue: 0.28, alpha: 1), required: false)
-            far = addLayer(Art.stageFar, z: -40, fallback: .clear, required: false)
-            mid = addLayer(Art.stageMid, z: -25, fallback: .clear, required: false)
-            master = addLayer(Art.stageMaster, z: -15, fallback: .clear, required: Art.hasTexture(Art.stageMaster))
-            near = addLayer(Art.stageNear, z: 8, fallback: .clear, required: false)
+            sky = addLayer(stage.skyName, z: -50, fallback: SKColor(red: 0.95, green: 0.5, blue: 0.28, alpha: 1), required: false)
+            far = addLayer(stage.farName, z: -40, fallback: .clear, required: false)
+            mid = addLayer(stage.midName, z: -25, fallback: .clear, required: false)
+            master = addLayer(stage.masterName, z: -15, fallback: .clear, required: Art.hasTexture(stage.masterName))
+            near = addLayer(stage.nearName, z: 8, fallback: .clear, required: false)
         } else {
             master = addLayer(
-                Art.stageMaster,
+                stage.masterName,
                 z: -20,
                 fallback: SKColor(red: 0.55, green: 0.32, blue: 0.22, alpha: 1),
                 required: true
@@ -74,7 +79,7 @@ final class FightScene: SKScene {
         addChild(floor)
 
         let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        caption.text = "STAGE 1  ·  LIONS BRIDGE  ·  MOOD B"
+        caption.text = stage.hudCaption
         caption.fontSize = 13
         caption.fontColor = SKColor(white: 1, alpha: 0.7)
         caption.position = CGPoint(x: size.width / 2, y: size.height - 28)

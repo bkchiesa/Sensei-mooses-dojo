@@ -16,6 +16,7 @@ REQUIRED_SWIFT = [
     "SceneDelegate.swift",
     "GameViewController.swift",
     "Game/Roster.swift",
+    "Game/Stage.swift",
     "Game/Art.swift",
     "Game/SceneRouter.swift",
     "Game/FighterActor.swift",
@@ -43,8 +44,9 @@ SCENE_TOKENS = {
     "Scenes/TitleScene.swift": ["Sensei Moose's Dojo", "TAP TO CONTINUE", "mooseTitle"],
     "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "FighterID.allCases"],
     "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb"],
-    "Scenes/FightScene.swift": ["stage1_master", "REMATCH", "VirtualControls"],
-    "Game/Art.swift": ["moose_title_idle", "moose_title_body", "moose_title_head", "stage1_master", "stage1_sky"],
+    "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls"],
+    "Game/Art.swift": ["moose_title_idle", "moose_title_body", "moose_title_head"],
+    "Game/Stage.swift": ["lionsBridge", "hiltonElementary", "axsomDojo", "stage1"],
     "Game/VirtualControls.swift": ["PUNCH", "KICK", "JUMP"],
 }
 

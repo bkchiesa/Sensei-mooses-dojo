@@ -7,11 +7,13 @@ enum Art {
     static let titleIdle = "moose_title_idle"
     static let titleBody = "moose_title_body"
     static let titleHead = "moose_title_head"
-    static let stageMaster = "stage1_master"
-    static let stageSky = "stage1_sky"
-    static let stageFar = "stage1_far"
-    static let stageMid = "stage1_mid"
-    static let stageNear = "stage1_near"
+
+    /// Stage 1 (Lions Bridge) names — kept as constants so PNG drop-in paths stay stable.
+    static let stageMaster = StageConfig.lionsBridge.masterName
+    static let stageSky = StageConfig.lionsBridge.skyName
+    static let stageFar = StageConfig.lionsBridge.farName
+    static let stageMid = StageConfig.lionsBridge.midName
+    static let stageNear = StageConfig.lionsBridge.nearName
 
     static func hasTexture(_ name: String) -> Bool {
         guard let image = UIImage(named: name) else { return false }

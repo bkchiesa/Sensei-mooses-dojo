@@ -9,9 +9,14 @@ enum SceneRouter {
         CharacterSelectScene(size: size)
     }
 
-    static func fight(size: CGSize, player: FighterID, cpu: FighterID? = nil) -> SKScene {
+    static func fight(
+        size: CGSize,
+        player: FighterID,
+        cpu: FighterID? = nil,
+        stage: StageID = .lionsBridge
+    ) -> SKScene {
         let opponent = cpu ?? FighterID.allCases.first { $0 != player } ?? .jb
-        return FightScene(size: size, playerID: player, cpuID: opponent)
+        return FightScene(size: size, playerID: player, cpuID: opponent, stageID: stage)
     }
 
     static func present(_ next: SKScene, from current: SKScene) {

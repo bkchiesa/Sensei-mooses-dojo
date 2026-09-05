@@ -11,6 +11,7 @@ SWIFT_FILES = [
     ("SceneDelegate.swift", "SceneDelegate.swift"),
     ("GameViewController.swift", "GameViewController.swift"),
     ("Roster.swift", "Game/Roster.swift"),
+    ("Stage.swift", "Game/Stage.swift"),
     ("Art.swift", "Game/Art.swift"),
     ("SceneRouter.swift", "Game/SceneRouter.swift"),
     ("FighterActor.swift", "Game/FighterActor.swift"),
