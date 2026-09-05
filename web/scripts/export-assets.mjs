@@ -169,32 +169,53 @@ function copySelectDir(src) {
   if (!fs.existsSync(src)) return;
   for (const file of fs.readdirSync(src)) {
     if (file === "README.md" || file === "plate.json") continue;
+    if (/sidebyside|side-by-side/i.test(file)) continue;
     fs.copyFileSync(path.join(src, file), path.join(uiSelectOut, file));
   }
 }
 copySelectDir(uiSelectConcepts);
 copySelectDir(uiSelectSrc);
-const plateCandidates = ["hampton-roads-map.png", "select_map_plate.png", "select-map-plate.png", "hampton-roads-map.svg"];
-const screenCandidates = ["select_screen.png", "select-screen.png"];
+const plateCandidates = [
+  "select-map-plate-C.png",
+  "select_map_plate.png",
+  "select-map-plate.png",
+  "hampton-roads-map.png",
+  "hampton-roads-map.svg",
+];
+const screenCandidates = ["select-screen-C.png", "select_screen.png", "select-screen.png"];
 const plateFile = plateCandidates.find((name) => fs.existsSync(path.join(uiSelectOut, name))) ?? null;
 const screenFile = screenCandidates.find((name) => fs.existsSync(path.join(uiSelectOut, name))) ?? null;
+const framedPlate = Boolean(plateFile && /select-map-plate-C|select_map_plate|select-map-plate/i.test(plateFile) && plateFile.endsWith(".png"));
+if (fs.existsSync(path.join(uiSelectSrc, "select-map-plate-C.png")) && plateFile === "hampton-roads-map.svg") {
+  console.error("Locked select-map-plate-C.png exists but export chose the SVG placeholder.");
+  process.exit(1);
+}
+if (fs.existsSync(path.join(uiSelectSrc, "select-screen-C.png")) && !screenFile) {
+  console.error("Locked select-screen-C.png exists but export did not publish a screen file.");
+  process.exit(1);
+}
 fs.writeFileSync(
   path.join(uiSelectOut, "plate.json"),
   JSON.stringify(
     {
       file: plateFile,
       screen: screenFile,
+      variant: plateFile === "select-map-plate-C.png" || screenFile === "select-screen-C.png" ? "C" : null,
+      locked: Boolean(plateFile && plateFile.endsWith(".png") && screenFile),
+      framed: framedPlate,
       bounds: { lonMin: -76.76, lonMax: -76.28, latMin: 36.955, latMax: 37.3 },
       projection: "equirectangular",
       standardParallelDeg: 37.1275,
-      platePx: { width: 1111, height: 1000 },
+      platePx: framedPlate ? { width: 1920, height: 1080 } : { width: 1111, height: 1000 },
+      mapRectPx: framedPlate ? { x: 476.65, y: 152.15, w: 976.62, h: 864.18 } : null,
       uv: "u=(lon-lonMin)/(lonMax-lonMin) west→east; v=1-(lat-latMin)/(latMax-latMin) north→south",
-      note: "Finals in dojo-art/finals/ui/select overwrite concepts. Code draws landmark dots. PNG plate replaces the SVG placeholder without moving dots.",
+      note: "Locked Brandon plate C + screen C. Finals overwrite concepts. Code draws geo lon/lat dots on the framed plate. PNG wins over the SVG placeholder.",
     },
     null,
     2,
   ),
 );
+console.log(`Select UI → plate=${plateFile ?? "none"} screen=${screenFile ?? "none"}`);
 
 copied.sort();
 fs.writeFileSync(

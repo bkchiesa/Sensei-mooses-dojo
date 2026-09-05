@@ -41,8 +41,15 @@ Number extra frames `_01`, `_02`, … Phaser (`web/src/game/anims.ts`) loads wha
 
 ## PLAYER SELECT map
 
-`dojo-art/finals/ui/select/hampton-roads-map.svg` is a geo-faithful placeholder (same lon/lat UV as the dots). Pixel’s locked `select_map_plate.png` (or `hampton-roads-map.png`) replaces it. Optional `select_screen.png` is a dim wash behind the live chrome. Concepts may live in `dojo-art/concepts/ui/select/` until finals copy; export lets finals overwrite.
+Locked Brandon finals (2026-09-05):
 
-Contract: north-up, lon −76.76…−76.28, lat 36.955…37.30, **1111×1000** (aspect ≈ 1.111), UV 0,0 = NW. Full image = full bounds — no padding. See `dojo-art/finals/ui/select/README.md`.
+- `dojo-art/finals/ui/select/select-screen-C.png` (alias `select_screen.png`) — full SF2-homage select wash
+- `dojo-art/finals/ui/select/select-map-plate-C.png` (alias `select_map_plate.png`) — framed 1920×1080 Lower Peninsula oval
+
+`export-assets` prefers the **C** names, writes `web/public/assets/ui/select/plate.json`, and fails if C exists but the SVG placeholder would ship instead. SelectScene / Boot load those PNGs so iPad Safari shows screen C + plate C, not the SVG alone.
+
+`hampton-roads-map.svg` stays as a geo-faithful fallback (same lon/lat UV). Code draws landmark dots; on framed plate C they project through `PLATE_C_MAP_RECT`. Concepts may live in `dojo-art/concepts/ui/select/` until finals copy.
+
+Contract: north-up, lon −76.76…−76.28, lat 36.955…37.30. Raw placeholder **1111×1000** (aspect ≈ 1.111), UV 0,0 = NW. Framed plate C is 1920×1080 with the geo box inset. See `dojo-art/finals/ui/select/README.md`.
 
 A `manifest.json` listing copied filenames is written next to the PNGs (gitignored).

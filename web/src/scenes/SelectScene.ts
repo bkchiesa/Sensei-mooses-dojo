@@ -1,11 +1,17 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD, GOLD_NUM } from "../config";
 import { dummyOpponent, slotName, STARTERS, STAGES, stageById, type FighterDef, type StageDef } from "../data/catalog";
-import { PIXEL_PLATE_PX, SELECT_MAP_CHROME } from "../data/peninsula";
+import { PIXEL_PLATE_PX, isFramedSelectPlate, selectMapChrome } from "../data/peninsula";
 import { arcadeStart } from "../game/arcade";
 import { PeninsulaMap } from "../game/peninsulaMap";
 import { applyQueryUnlocks, selectRoster } from "../game/storage";
-import { hexColor, textStyle } from "../game/ui";
+import { textStyle } from "../game/ui";
+
+interface PlateMeta {
+  file?: string | null;
+  screen?: string | null;
+  variant?: string | null;
+}
 
 export type SelectMode = "arcade" | "freePlay";
 export type SelectPhase = "player" | "opponent" | "stage";
@@ -53,27 +59,31 @@ export class SelectScene extends Phaser.Scene {
   }
 
   private maybeLoadMapArt(then: () => void): void {
-    if (this.textures.exists("ui-select-map") || this.textures.exists("ui-select-screen")) {
+    if (this.hasSelectArt()) {
       then();
       return;
     }
-    const fallback = () => {
-      if (this.sys.isActive() && !this.fightLabel) then();
-    };
     void fetch("assets/ui/select/plate.json")
       .then((res) => (res.ok ? res.json() : { file: "hampton-roads-map.svg" }))
       .catch(() => ({ file: "hampton-roads-map.svg" }))
-      .then((meta: { file?: string | null; screen?: string | null }) => {
+      .then((meta: PlateMeta) => {
         if (!this.sys.isActive() || this.fightLabel) return;
+        if (this.hasSelectArt()) {
+          then();
+          return;
+        }
         let queued = 0;
         const enqueue = (key: string, file: string) => {
+          if (this.textures.exists(key) && this.textureWide(key)) return;
           const url = `assets/ui/select/${file}`;
           if (file.endsWith(".svg")) this.load.svg(key, url, PIXEL_PLATE_PX);
           else this.load.image(key, url);
           queued += 1;
         };
-        if (meta.file) enqueue("ui-select-map", meta.file);
-        if (meta.screen) enqueue("ui-select-screen", meta.screen);
+        const plate = meta.file || "select-map-plate-C.png";
+        const screen = meta.screen || "select-screen-C.png";
+        enqueue("ui-select-map", plate);
+        enqueue("ui-select-screen", screen);
         if (!queued) {
           then();
           return;
@@ -82,7 +92,16 @@ export class SelectScene extends Phaser.Scene {
         this.load.once("loaderror", () => then());
         this.load.start();
       });
-    this.time.delayedCall(800, fallback);
+  }
+
+  private hasSelectArt(): boolean {
+    return this.textureWide("ui-select-map") || this.textureWide("ui-select-screen");
+  }
+
+  private textureWide(key: string): boolean {
+    if (!this.textures.exists(key)) return false;
+    const src = this.textures.get(key).getSourceImage() as { width?: number };
+    return Boolean(src?.width && src.width >= 8);
   }
 
   private buildLayout(): void {
@@ -114,20 +133,18 @@ export class SelectScene extends Phaser.Scene {
   }
 
   private buildWash(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x2c2a58, 1);
-    g.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
-    if (this.textures.exists("ui-select-screen")) {
-      const src = this.textures.get("ui-select-screen").getSourceImage() as { width?: number };
-      if (src?.width && src.width >= 8) {
-        const art = this.add.image(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "ui-select-screen");
-        art.setDisplaySize(DESIGN_WIDTH, DESIGN_HEIGHT);
-        art.setAlpha(0.28);
-        this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x140d1f, 0.45);
-      }
+    this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x2c2a58, 1);
+    if (this.textureWide("ui-select-screen")) {
+      const src = this.textures.get("ui-select-screen").getSourceImage() as { width: number; height: number };
+      const art = this.add.image(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "ui-select-screen");
+      const scale = Math.max(DESIGN_WIDTH / src.width, DESIGN_HEIGHT / src.height);
+      art.setDisplaySize(src.width * scale, src.height * scale);
+      art.setAlpha(0.88);
+      this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x140d1f, 0.28);
+      return;
     }
     for (let i = 0; i < 7; i++) {
-      const label = this.add
+      this.add
         .text(-80 + i * 220, 40 + (i % 2) * 80, "SENSEI MOOSE'S DOJO", {
           fontFamily: FONT,
           fontSize: "22px",
@@ -136,7 +153,6 @@ export class SelectScene extends Phaser.Scene {
         })
         .setAlpha(0.045)
         .setAngle(-18);
-      void label;
     }
   }
 
@@ -235,10 +251,15 @@ export class SelectScene extends Phaser.Scene {
   }
 
   private buildMap(): void {
+    const src = this.textureWide("ui-select-map")
+      ? (this.textures.get("ui-select-map").getSourceImage() as { width?: number; height?: number })
+      : null;
+    const framed = isFramedSelectPlate(src?.width, src?.height);
+    const chrome = selectMapChrome(framed);
     const interactive = this.phase === "stage";
     this.map = new PeninsulaMap(
       this,
-      { x: DESIGN_WIDTH / 2, y: 205, w: SELECT_MAP_CHROME.w, h: SELECT_MAP_CHROME.h },
+      { x: DESIGN_WIDTH / 2, y: framed ? 198 : 205, w: chrome.w, h: chrome.h },
       (id) => this.onMapDot(id),
       interactive,
     );
@@ -271,7 +292,7 @@ export class SelectScene extends Phaser.Scene {
       .text(DESIGN_WIDTH / 2, 468, `${this.playerPick?.displayName ?? "You"}  vs  ${this.opponentPick?.displayName ?? "CPU"}`, textStyle(16))
       .setOrigin(0.5);
     this.add
-      .text(DESIGN_WIDTH / 2, 494, "Tap a landmark. Map plate is a swap-in — dots stay on real lon/lat.", {
+      .text(DESIGN_WIDTH / 2, 494, "Tap a Lower Peninsula landmark to choose the stage.", {
         fontFamily: FONT,
         fontSize: "12px",
         color: "#9aa0c8",
@@ -294,6 +315,10 @@ export class SelectScene extends Phaser.Scene {
     const gridW = Math.min(columns, fighters.length) * slot + Math.max(Math.min(columns, fighters.length) - 1, 0) * gap;
     const startX = (DESIGN_WIDTH - gridW) / 2 + slot / 2;
     const startY = 490;
+    if (this.textureWide("ui-select-screen")) {
+      const panelH = rows * (slot + 10) + 16;
+      this.add.rectangle(DESIGN_WIDTH / 2, startY + (rows - 1) * (slot + 10) * 0.5, gridW + 28, panelH, 0x120c1c, 0.72);
+    }
 
     fighters.forEach((fighter, index) => {
       const col = index % columns;

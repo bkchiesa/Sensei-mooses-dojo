@@ -55,6 +55,9 @@ export class BootScene extends Phaser.Scene {
       this.load.image(key, `assets/${key}.png`);
     }
     this.load.json("fighter-anims", "assets/fighters/index.json");
+    this.load.json("ui-select-plate", "assets/ui/select/plate.json");
+    this.load.image("ui-select-map", "assets/ui/select/select-map-plate-C.png");
+    this.load.image("ui-select-screen", "assets/ui/select/select-screen-C.png");
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
       console.warn("Missing art (placeholder will be used):", file.key);
     });

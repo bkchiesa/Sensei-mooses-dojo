@@ -3,23 +3,23 @@ import { STAGES, type StageDef } from "./catalog";
 /**
  * PLAYER SELECT map contract (Pixel + code).
  *
- * Plate is a north-up rectangle of the Lower Peninsula. Landmark dots are
- * overlaid in code from WGS84 — never paint pips on the plate.
+ * Locked Brandon plate C (`select-map-plate-C.png`) is a framed 1920×1080
+ * oval (PLAYER SELECT chrome + Lower Peninsula). Landmark dots stay in code
+ * from WGS84 so Free Play can highlight / pick stages.
  *
  *   lon −76.76 … −76.28
  *   lat  36.955 … 37.30
  *
- * UV (full plate, no padding, no letterbox baked into the file):
+ * Raw / SVG placeholder plates are a full-bleed north-up rectangle:
  *   u = (lon − lonMin) / (lonMax − lonMin)     // 0 = west
  *   v = 1 − (lat − latMin) / (latMax − latMin) // 0 = north
  *
- * Plot aspect uses a 37.13°N standard parallel so 1° of longitude is not
- * stretched to the same pixel length as 1° of latitude. Recommended plate
- * size: 1111 × 1000 (or any size with width/height ≈ 1.111).
+ * Framed plate C maps that same UV into `PLATE_C_MAP_RECT` (fitted to the
+ * painted landmarks). Plot aspect uses a 37.13°N standard parallel so 1° of
+ * longitude is not stretched to the same pixel length as 1° of latitude.
  *
- * Drop `dojo-art/finals/ui/select/hampton-roads-map.png` over the SVG
- * placeholder. `export-assets` writes `plate.json` so the game swaps the
- * under-image without touching dot positions.
+ * `export-assets` writes `plate.json` so SelectScene loads screen C + plate C
+ * instead of the SVG placeholder alone.
  */
 export interface StageGeo {
   id: string;
@@ -39,19 +39,32 @@ export const PENINSULA_BOUNDS = {
   latMax: 37.3,
 } as const;
 
-/** SF2 oval chrome. The geo plot letterboxes inside this so dots stay faithful. */
+/** SF2 oval chrome for the raw / SVG geo plate (letterboxed plot inside). */
 export const SELECT_MAP_CHROME = { w: 500, h: 360 } as const;
 
+/** 16:9 chrome that shows framed plate C without squashing the oval. */
+export const SELECT_MAP_CHROME_C = { w: 620, h: 349 } as const;
+
+/** Raw geo-rectangle placeholder (SVG / future full-bleed PNG). */
 export const PIXEL_PLATE_PX = { width: 1111, height: 1000 } as const;
 
+/** Locked framed map plate C. */
+export const PLATE_C_PX = { width: 1920, height: 1080 } as const;
+
+/**
+ * Lon/lat box inside framed plate C, in plate pixels.
+ * Least-squares fit to painted COLONIAL…SHIPYARD landmarks (~27px RMSE).
+ */
+export const PLATE_C_MAP_RECT = { x: 476.65, y: 152.15, w: 976.62, h: 864.18 } as const;
+
 export const STAGE_GEO: StageGeo[] = [
-  { id: "colonial", short: "Williamsburg", lon: -76.7, lat: 37.271, labelDy: -10 },
+  { id: "colonial", short: "Colonial", lon: -76.7, lat: 37.271, labelDy: -10 },
   { id: "busch", short: "Busch", lon: -76.646, lat: 37.234, labelDx: 10 },
   { id: "nnpark", short: "NN Park", lon: -76.556, lat: 37.187, labelDy: -10 },
   { id: "phmall", short: "PH Mall", lon: -76.508, lat: 37.11, labelDx: -16 },
   { id: "oysterpoint", short: "Oyster Pt", lon: -76.492, lat: 37.088, labelDx: 14 },
-  { id: "stadium", short: "Stadium", lon: -76.501, lat: 37.082, labelDy: 11 },
-  { id: "axsomDojo", short: "Dojo", lon: -76.495, lat: 37.075, labelDx: -14 },
+  { id: "stadium", short: "Todd Stad", lon: -76.501, lat: 37.082, labelDy: 11 },
+  { id: "axsomDojo", short: "Axsom", lon: -76.495, lat: 37.075, labelDx: -14 },
   { id: "subwaywarwick", short: "Warwick", lon: -76.518, lat: 37.072, labelDx: -18, labelDy: 8 },
   { id: "lionsBridge", short: "Lions Br.", lon: -76.489, lat: 37.055, labelDx: -16 },
   { id: "mariners", short: "Mariners", lon: -76.487, lat: 37.05, labelDx: 16, labelDy: 8 },
@@ -152,4 +165,14 @@ export function geoForStage(id: string): StageGeo | undefined {
 
 export function stageForGeo(id: string): StageDef | undefined {
   return STAGES.find((s) => s.id === id);
+}
+
+/** True when the loaded map texture is the framed 16:9 plate C (not the 1111×1000 SVG). */
+export function isFramedSelectPlate(width?: number, height?: number): boolean {
+  if (!width || !height || width < 8 || height < 8) return false;
+  return width >= 1600 && height >= 900 && width / height > 1.5;
+}
+
+export function selectMapChrome(framed: boolean): { w: number; h: number } {
+  return framed ? SELECT_MAP_CHROME_C : SELECT_MAP_CHROME;
 }
