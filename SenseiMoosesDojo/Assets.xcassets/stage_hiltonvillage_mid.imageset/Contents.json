@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "stage_hiltonvillage_mid.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

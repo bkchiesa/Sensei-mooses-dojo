@@ -34,6 +34,18 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | JB | `jb` | `fighter_jb_portrait` | `fighter_jb_idle_00` |
 
 
+
+### Extra stages Batch A (art parked; optional)
+
+Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stage_<id>_`.
+
+| Stage | id | Prefix |
+| --- | --- | --- |
+| Oyster Point | `oysterpoint` | `stage_oysterpoint_*` |
+| Patrick Henry Mall | `phmall` | `stage_phmall_*` |
+| Newport News Shipyard | `shipyard` | `stage_shipyard_*` |
+| Hilton Village | `hiltonvillage` | `stage_hiltonvillage_*` |
+
 ## Unlock on defeat (design)
 
 Clearing a boss unlocks them as a **playable** character on Character Select.

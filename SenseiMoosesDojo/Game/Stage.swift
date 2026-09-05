@@ -8,6 +8,10 @@ struct StageID: Hashable {
     static let lionsBridge = StageID(rawValue: "lionsBridge")
     static let hiltonElementary = StageID(rawValue: "hiltonElementary")
     static let axsomDojo = StageID(rawValue: "axsomDojo")
+    static let oysterpoint = StageID(rawValue: "oysterpoint")
+    static let phmall = StageID(rawValue: "phmall")
+    static let shipyard = StageID(rawValue: "shipyard")
+    static let hiltonvillage = StageID(rawValue: "hiltonvillage")
 }
 
 /// Table-driven stage row. Asset names are `\(assetPrefix)_master` / `_sky` / `_far` / `_mid` / `_near`.
@@ -37,7 +41,11 @@ struct StageConfig {
         StageConfig(id: .lionsBridge, displayName: "Lions Bridge", assetPrefix: "stage1", number: 1, mood: "B", wired: true),
         StageConfig(id: .hiltonElementary, displayName: "Hilton Elementary School", assetPrefix: "stage2", number: 2, mood: "B", wired: true),
         StageConfig(id: .axsomDojo, displayName: "Axsom Martial Arts Dojo", assetPrefix: "stage3", number: 3, mood: "B", wired: true),
-        // Later: NN landmarks + generics — add a row (stage4+, new StageID static optional).
+        // Extra NN landmarks (Batch A) — art parked; not on arcade ladder yet.
+        StageConfig(id: .oysterpoint, displayName: "Oyster Point", assetPrefix: "stage_oysterpoint", number: 4, mood: nil, wired: true),
+        StageConfig(id: .phmall, displayName: "Patrick Henry Mall", assetPrefix: "stage_phmall", number: 5, mood: nil, wired: true),
+        StageConfig(id: .shipyard, displayName: "Newport News Shipyard", assetPrefix: "stage_shipyard", number: 6, mood: nil, wired: true),
+        StageConfig(id: .hiltonvillage, displayName: "Hilton Village", assetPrefix: "stage_hiltonvillage", number: 7, mood: nil, wired: true),
     ]
 
     static func config(for id: StageID) -> StageConfig {
