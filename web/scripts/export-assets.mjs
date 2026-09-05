@@ -15,6 +15,9 @@ const catalog = path.join(root, "SenseiMoosesDojo/Assets.xcassets");
 const out = path.join(root, "web/public/assets");
 const fightersOut = path.join(out, "fighters");
 const fighterSheets = path.join(root, "web/fighter-sheets");
+const uiSelectSrc = path.join(root, "dojo-art/finals/ui/select");
+const uiSelectOut = path.join(out, "ui/select");
+const mooseSheetIdle = path.join(fighterSheets, "senseiMoose", "idle_00.png");
 
 const ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"];
 
@@ -69,12 +72,18 @@ for (const id of [...fighterIds].sort()) {
   fs.mkdirSync(destDir, { recursive: true });
   const source =
     id === "senseiMoose"
-      ? path.join(out, "moose_title_idle.png")
+      ? fs.existsSync(mooseSheetIdle)
+        ? mooseSheetIdle
+        : path.join(out, "moose_title_idle.png")
       : fs.existsSync(path.join(out, `fighter_${id}_idle_00.png`))
         ? path.join(out, `fighter_${id}_idle_00.png`)
         : path.join(out, `boss_${id}_idle_00.png`);
   const dest = path.join(destDir, "idle_00.png");
   if (fs.existsSync(source)) fs.copyFileSync(source, dest);
+  if (id === "senseiMoose" && fs.existsSync(source)) {
+    fs.copyFileSync(source, path.join(out, "boss_senseiMoose_idle_00.png"));
+    copied.push("boss_senseiMoose_idle_00.png");
+  }
 
   const overlay = path.join(fighterSheets, id);
   if (fs.existsSync(overlay) && fs.statSync(overlay).isDirectory()) {
@@ -126,6 +135,15 @@ Ids match the roster (\`matt\`, \`misty\`, \`senseiMoose\`, …). Extra frames: 
 Until those files exist, the web game stretches the idle pose for every anim.
 `,
 );
+
+fs.rmSync(uiSelectOut, { recursive: true, force: true });
+fs.mkdirSync(uiSelectOut, { recursive: true });
+if (fs.existsSync(uiSelectSrc)) {
+  for (const file of fs.readdirSync(uiSelectSrc)) {
+    if (file === "README.md") continue;
+    fs.copyFileSync(path.join(uiSelectSrc, file), path.join(uiSelectOut, file));
+  }
+}
 
 copied.sort();
 fs.writeFileSync(

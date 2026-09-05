@@ -93,13 +93,13 @@ function boss(
   summary: string,
   flavor: UltimateFlavor,
 ): FighterDef {
-  const hasDedicatedArt = id !== "senseiMoose";
+  const moose = id === "senseiMoose";
   return {
     id,
     kind: "boss",
     displayName,
-    portrait: hasDedicatedArt ? `boss_${id}_portrait` : "moose_title_idle",
-    idle: hasDedicatedArt ? `boss_${id}_idle_00` : "moose_title_idle",
+    portrait: moose ? "boss_senseiMoose_idle_00" : `boss_${id}_portrait`,
+    idle: moose ? "boss_senseiMoose_idle_00" : `boss_${id}_idle_00`,
     accent,
     ultimate: ult(id, name, summary, flavor),
     stageId,

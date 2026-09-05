@@ -84,8 +84,8 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 
 | Scene | What happens |
 | --- | --- |
-| **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. Tap elsewhere starts Arcade. |
-| **CharacterSelectScene** | Arcade: starters only (Matt / Simon / Rich / Amanda / JB). Free Play: starters plus unlocked bosses, then a stage (arcade + NN landmarks). |
+| **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
+| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): 1P/2P busts, Hampton Roads peninsula map with landmark dots, bottom headshot grid. Arcade: starters. Free Play: unlocked bosses, then tap a map dot for the stage. |
 | **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK** / **★ ULT**. Arcade does **not** auto-advance — tap **Next Fight**. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
@@ -256,9 +256,23 @@ Previous body height was 210px. All fighters are **2×** (`FIGHTER_HEIGHT = 420`
 
 Curves lerp monotonically on `t = index / 15`. Dummy is a fixed easy profile below Misty.
 
-### Fighter anim sheets (waiting on Pixel)
+### PLAYER SELECT (SF2 homage, no Capcom IP)
 
-Until Pixel delivers punch / kick / jump / block / crouch / leg-sweep frames, the game **stretches each idle**. Drop sheets here and re-export:
+Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
+
+- Large **1P / 2P** busts left and right
+- Center **Virginia Lower Peninsula / Hampton Roads** map (placeholder until Pixel)
+- Dots on real landmark geography (`web/src/data/peninsula.ts`)
+- **PLAYER SELECT** label
+- Bottom fighter headshot grid
+
+Pixel map/UI finals: `dojo-art/finals/ui/select/` (see README there). Free Play stage pick is a map-dot tap.
+
+### Fighter anim sheets (Pixel)
+
+**Sensei Moose pose-bar FINALS** drop in `web/fighter-sheets/senseiMoose/` (`idle_00` … `sweep_03`). Export prefers that idle over `moose_title_idle` and writes `boss_senseiMoose_idle_00` for fight/select. Height stays `MOOSE_HEIGHT_SCALE` 1.3. Ultimates unchanged.
+
+Until other roster sheets exist, those fighters **stretch each idle**. Drop more sheets here and re-export:
 
 ```
 web/fighter-sheets/<id>/idle_00.png

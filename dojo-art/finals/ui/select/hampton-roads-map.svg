@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" width="720" height="400">
+  <rect width="720" height="400" fill="#16365c"/>
+  <ellipse cx="360" cy="200" rx="348" ry="188" fill="#1b4574"/>
+  <path
+    fill="#c9b48a"
+    stroke="#8a7048"
+    stroke-width="3"
+    d="M72 48 L144 20 L216 56 L274 96 L360 120 L461 144 L605 164 L691 176 L655 216 L619 248 L684 280 L634 320 L547 340 L490 380 L403 368 L360 320 L389 288 L346 248 L302 200 L259 160 L202 112 L115 80 Z"
+  />
+  <text x="120" y="300" fill="#8ec4e8" font-family="Trebuchet MS, sans-serif" font-size="13" font-weight="bold">JAMES RIVER</text>
+  <text x="500" y="60" fill="#8ec4e8" font-family="Trebuchet MS, sans-serif" font-size="13" font-weight="bold">YORK RIVER</text>
+  <text x="540" y="210" fill="#8ec4e8" font-family="Trebuchet MS, sans-serif" font-size="13" font-weight="bold">CHESAPEAKE BAY</text>
+  <text x="250" y="28" fill="#f2e6c4" font-family="Trebuchet MS, sans-serif" font-size="14" font-weight="bold">LOWER PENINSULA</text>
+</svg>

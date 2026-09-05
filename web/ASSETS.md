@@ -37,4 +37,10 @@ web/fighter-sheets/<id>/
 
 Number extra frames `_01`, `_02`, … The Phaser anim system (`web/src/game/anims.ts`) loads whatever `index.json` lists and falls back to a scaled idle for missing anims.
 
+**Sensei Moose:** if `web/fighter-sheets/senseiMoose/idle_00.png` exists, export uses it (not `moose_title_idle`) and also writes `boss_senseiMoose_idle_00.png` so fight/select load the pose-bar idle. Remaining Moose frames are copied into `fighters/senseiMoose/` and listed in `index.json`. Magenta chroma is left as Pixel delivered it.
+
+## PLAYER SELECT map
+
+`dojo-art/finals/ui/select/hampton-roads-map.svg` (and later Pixel PNG) copies to `web/public/assets/ui/select/`.
+
 A `manifest.json` listing copied filenames is written next to the PNGs (gitignored).

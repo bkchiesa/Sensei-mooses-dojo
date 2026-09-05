@@ -69,6 +69,7 @@ export class Fighter {
     this.strike.setOrigin(0.5, 0.5);
     this.root.add([this.body, this.strike]);
     this.root.setDepth(10);
+    this.playAnim("idle", true);
   }
 
   private fallbackKey(): string {
