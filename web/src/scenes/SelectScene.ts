@@ -34,6 +34,7 @@ export class SelectScene extends Phaser.Scene {
   private map?: PeninsulaMap;
   private fightLabel!: Phaser.GameObjects.Text;
   private goTimer?: Phaser.Time.TimerEvent;
+  private built = false;
 
   constructor() {
     super("Select");
@@ -50,46 +51,43 @@ export class SelectScene extends Phaser.Scene {
     this.map = undefined;
     this.fightLabel = undefined as unknown as Phaser.GameObjects.Text;
     this.goTimer = undefined;
+    this.built = false;
   }
 
   create(): void {
     applyQueryUnlocks();
     this.cameras.main.setBackgroundColor(0x2c2a58);
-    this.maybeLoadMapArt(() => this.buildLayout());
+    const hadArt = this.hasSelectArt();
+    this.buildLayout();
+    if (!hadArt) this.loadSelectArtThenReload();
   }
 
-  private maybeLoadMapArt(then: () => void): void {
-    if (this.hasSelectArt()) {
-      then();
-      return;
-    }
+  private loadSelectArtThenReload(): void {
     void fetch("assets/ui/select/plate.json")
-      .then((res) => (res.ok ? res.json() : { file: "hampton-roads-map.svg" }))
-      .catch(() => ({ file: "hampton-roads-map.svg" }))
+      .then((res) => (res.ok ? res.json() : { file: "select-map-plate-C.png", screen: "select-screen-C.png" }))
+      .catch(() => ({ file: "select-map-plate-C.png", screen: "select-screen-C.png" }))
       .then((meta: PlateMeta) => {
-        if (!this.sys.isActive() || this.fightLabel) return;
-        if (this.hasSelectArt()) {
-          then();
-          return;
-        }
+        if (!this.sys.isActive() || this.hasSelectArt()) return;
         let queued = 0;
         const enqueue = (key: string, file: string) => {
-          if (this.textures.exists(key) && this.textureWide(key)) return;
+          if (this.textureWide(key)) return;
           const url = `assets/ui/select/${file}`;
           if (file.endsWith(".svg")) this.load.svg(key, url, PIXEL_PLATE_PX);
           else this.load.image(key, url);
           queued += 1;
         };
-        const plate = meta.file || "select-map-plate-C.png";
-        const screen = meta.screen || "select-screen-C.png";
-        enqueue("ui-select-map", plate);
-        enqueue("ui-select-screen", screen);
-        if (!queued) {
-          then();
-          return;
-        }
-        this.load.once("complete", () => then());
-        this.load.once("loaderror", () => then());
+        enqueue("ui-select-map", meta.file || "select-map-plate-C.png");
+        enqueue("ui-select-screen", meta.screen || "select-screen-C.png");
+        if (!queued) return;
+        this.load.once("complete", () => {
+          if (!this.sys.isActive() || !this.hasSelectArt()) return;
+          this.scene.restart({
+            mode: this.mode,
+            phase: this.phase,
+            player: this.playerPick ?? undefined,
+            opponent: this.opponentPick ?? undefined,
+          });
+        });
         this.load.start();
       });
   }
@@ -99,13 +97,18 @@ export class SelectScene extends Phaser.Scene {
   }
 
   private textureWide(key: string): boolean {
-    if (!this.textures.exists(key)) return false;
-    const src = this.textures.get(key).getSourceImage() as { width?: number };
-    return Boolean(src?.width && src.width >= 8);
+    try {
+      if (!this.textures.exists(key)) return false;
+      const src = this.textures.get(key).getSourceImage() as { width?: number } | undefined;
+      return Boolean(src?.width && src.width >= 8);
+    } catch {
+      return false;
+    }
   }
 
   private buildLayout(): void {
-    if (!this.sys.isActive() || this.fightLabel) return;
+    if (!this.sys.isActive() || this.built) return;
+    this.built = true;
     this.buildWash();
     this.buildNav();
     this.buildPortraits();
@@ -135,10 +138,12 @@ export class SelectScene extends Phaser.Scene {
   private buildWash(): void {
     this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x2c2a58, 1);
     if (this.textureWide("ui-select-screen")) {
-      const src = this.textures.get("ui-select-screen").getSourceImage() as { width: number; height: number };
+      const src = this.textures.get("ui-select-screen").getSourceImage() as { width?: number; height?: number };
+      const sw = src.width || DESIGN_WIDTH;
+      const sh = src.height || DESIGN_HEIGHT;
       const art = this.add.image(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "ui-select-screen");
-      const scale = Math.max(DESIGN_WIDTH / src.width, DESIGN_HEIGHT / src.height);
-      art.setDisplaySize(src.width * scale, src.height * scale);
+      const scale = Math.max(DESIGN_WIDTH / sw, DESIGN_HEIGHT / sh);
+      art.setDisplaySize(sw * scale, sh * scale);
       art.setAlpha(0.88);
       this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x140d1f, 0.28);
       return;

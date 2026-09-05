@@ -177,8 +177,12 @@ export class PeninsulaMap {
   }
 
   private plateSource(): { width?: number; height?: number } | null {
-    if (!this.scene.textures.exists("ui-select-map")) return null;
-    return this.scene.textures.get("ui-select-map").getSourceImage() as { width?: number; height?: number };
+    try {
+      if (!this.scene.textures.exists("ui-select-map")) return null;
+      return this.scene.textures.get("ui-select-map").getSourceImage() as { width?: number; height?: number };
+    } catch {
+      return null;
+    }
   }
 
   private hasPlateArt(): boolean {
