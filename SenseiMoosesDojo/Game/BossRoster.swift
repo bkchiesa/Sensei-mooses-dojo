@@ -13,7 +13,11 @@ enum BossID: String, CaseIterable {
     case hudson
     case michael
     case kasey
-    /// Reserved — unlock when cleared (same rule as batch 1 unless Brandon changes it).
+    // Batch 3 (likeness locked)
+    case jaylen
+    case amiyr
+    case shaun
+    case ryan
     case austin
     case senseiMoose
 
@@ -29,6 +33,10 @@ enum BossID: String, CaseIterable {
         case .hudson: return "Hudson"
         case .michael: return "Michael"
         case .kasey: return "Kasey"
+        case .jaylen: return "Jaylen"
+        case .amiyr: return "Amiyr"
+        case .shaun: return "Shaun"
+        case .ryan: return "Ryan"
         case .austin: return "Austin"
         case .senseiMoose: return "Sensei Moose"
         }
@@ -41,4 +49,5 @@ enum BossID: String, CaseIterable {
     /// Bosses with parked art on this PR (batch 1).
     static var batch1: [BossID] { [.misty, .lucas, .chris, .christiano, .dakota] }
     static var batch2: [BossID] { [.johnk, .finley, .hudson, .michael, .kasey] }
+    static var batch3: [BossID] { [.jaylen, .amiyr, .shaun, .ryan, .austin] }
 }

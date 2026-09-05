@@ -26,8 +26,8 @@ enum UnlockStore {
 
     /// Select filter: starters first, then unlocked bosses (art-ready batch first).
     static func selectRoster() -> (starters: [FighterID], unlockedBosses: [BossID]) {
-        let unlocked = (BossID.batch1 + BossID.batch2).filter { isUnlocked($0) }
-            + BossID.allCases.filter { $0 == .austin || $0 == .senseiMoose }.filter { isUnlocked($0) }
+        let unlocked = (BossID.batch1 + BossID.batch2 + BossID.batch3).filter { isUnlocked($0) }
+            + ([BossID.senseiMoose] as [BossID]).filter { isUnlocked($0) }
         return (starters, unlocked)
     }
 
