@@ -51,8 +51,8 @@ struct StageConfig {
         StageConfig(id: .shipyard, displayName: "Newport News Shipyard", assetPrefix: "stage_shipyard", number: 6, mood: nil, wired: true),
         StageConfig(id: .hiltonvillage, displayName: "Hilton Village", assetPrefix: "stage_hiltonvillage", number: 7, mood: nil, wired: true),
         // Extra NN landmarks Batch B
-        StageConfig(id: .mariners, displayName: "Mariners Museum", assetPrefix: "stage_mariners", number: 8, mood: "B", wired: true),
-        StageConfig(id: .subwaywarwick, displayName: "Warwick Subway", assetPrefix: "stage_subwaywarwick", number: 9, mood: "B", wired: true),
+        StageConfig(id: .mariners, displayName: "Mariners' Museum", assetPrefix: "stage_mariners", number: 8, mood: "B", wired: true),
+        StageConfig(id: .subwaywarwick, displayName: "Warwick Blvd", assetPrefix: "stage_subwaywarwick", number: 9, mood: "B", wired: true),
         StageConfig(id: .nnpark, displayName: "Newport News Park", assetPrefix: "stage_nnpark", number: 10, mood: "B", wired: true),
         StageConfig(id: .jrbridge, displayName: "James River Bridge", assetPrefix: "stage_jrbridge", number: 11, mood: "B", wired: true),
     ]

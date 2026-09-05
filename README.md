@@ -50,8 +50,8 @@ Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stag
 
 | Stage | id | Prefix |
 | --- | --- | --- |
-| Mariners Museum | `mariners` | `stage_mariners_*` |
-| Warwick Subway | `subwaywarwick` | `stage_subwaywarwick_*` |
+| Mariners' Museum | `mariners` | `stage_mariners_*` |
+| Warwick Blvd shop strip | `subwaywarwick` | `stage_subwaywarwick_*` |
 | Newport News Park | `nnpark` | `stage_nnpark_*` |
 | James River Bridge | `jrbridge` | `stage_jrbridge_*` |
 
