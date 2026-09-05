@@ -28,4 +28,5 @@ Optional overlay that wins on re-export: `web/fighter-sheets/<id>/<anim>_NN.png`
 | matt, simon, rich, amanda, jb | 24 action frames |
 | senseiMoose / moose | incoming — ~666px, display 1.3× (`MOOSE_HEIGHT_SCALE`). Ultimates unchanged. |
 | misty | incoming — drop-in `web/fighter-sheets/misty/<anim>_NN.png` (overlay wins) |
+| lucas | incoming — drop-in `web/fighter-sheets/lucas/<anim>_NN.png` (overlay wins) |
 | other bosses | incoming — catalog idle fallback until their folders land |
