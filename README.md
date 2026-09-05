@@ -62,7 +62,11 @@ Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stag
 | Colonial Capitol | `colonial` | `stage_colonial_*` |
 | Local Stadium | `stadium` | `stage_stadium_*` |
 
-Busch / alley / rooftop not locked yet.
+| Busch Gardens | `busch` | `stage_busch_*` |
+| Hampton Waterfront | `hampton` | `stage_hampton_*` |
+| Poquoson Waterfront | `poquoson` | `stage_poquoson_*` |
+
+Alley / rooftop still not locked.
 
 ## Unlock on defeat (design)
 
