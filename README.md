@@ -68,7 +68,7 @@ v0 fight loop still uses **Stage 1 + starter roster** only. `BossID` + `UnlockSt
 | Michael | `michael` | `boss_michael_portrait` | `boss_michael_idle_00` |
 | Kasey | `kasey` | `boss_kasey_portrait` | `boss_kasey_idle_00` |
 
-### Boss batch 3 (likeness locked; art pending)
+### Boss batch 3 (art parked)
 
 | Display | id | Portrait | Idle |
 | --- | --- | --- | --- |
