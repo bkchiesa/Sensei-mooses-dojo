@@ -23,6 +23,25 @@ const mooseSheetIdle = path.join(fighterSheets, "senseiMoose", "idle_00.png");
 
 const ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"];
 const STARTER_IDS = ["matt", "simon", "rich", "amanda", "jb"];
+const BOSS_IDS = [
+  "misty",
+  "lucas",
+  "chris",
+  "christiano",
+  "dakota",
+  "johnk",
+  "finley",
+  "hudson",
+  "michael",
+  "kasey",
+  "jaylen",
+  "amiyr",
+  "shaun",
+  "ryan",
+  "austin",
+  "senseiMoose",
+];
+const ROSTER_IDS = [...STARTER_IDS, ...BOSS_IDS];
 
 function listPixelFrames(dir, id) {
   if (!dir || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
@@ -99,7 +118,7 @@ for (const file of copied) {
   if (starter) fighterIds.add(starter[1]);
   if (boss) fighterIds.add(boss[1]);
 }
-fighterIds.add("senseiMoose");
+for (const id of ROSTER_IDS) fighterIds.add(id);
 
 const fighters = {};
 for (const id of [...fighterIds].sort()) {
@@ -144,7 +163,11 @@ const index = {
   convention: "web/public/assets/fighters/<id>/<anim>_00.png",
   anims: ANIM_NAMES,
   note: "Pixel frames from dojo-art/finals/fighters/<id>/ (fighter_<id>_<anim>_NN.png) and web/fighter-sheets/<id>/<anim>_NN.png. Missing anims stretch idle.",
-  pixelStatus: STARTER_IDS.every((id) => (fighters[id]?.punch?.length ?? 0) > 0) ? "starters" : "partial",
+  pixelStatus: ROSTER_IDS.every((id) => ANIM_NAMES.every((anim) => (fighters[id]?.[anim]?.length ?? 0) > 0))
+    ? "full-roster"
+    : STARTER_IDS.every((id) => (fighters[id]?.punch?.length ?? 0) > 0)
+      ? "starters"
+      : "partial",
   fighters,
 };
 
@@ -159,7 +182,7 @@ Generated. Sources, in overlay order:
 2. \`dojo-art/finals/fighters/<id>/fighter_<id>_<anim>_NN.png\`
 3. \`web/fighter-sheets/<id>/<anim>_NN.png\` (wins)
 
-Starters (matt / simon / rich / amanda / jb) ship full idle/punch/kick/jump/block/crouch/sweep sets. Bosses and Moose stretch idle until their folders land.
+Full roster (starters + bosses + Sensei Moose) ships idle/punch/kick/jump/block/crouch/sweep from fighter-sheets and dojo-art finals. Missing anims stretch idle.
 `,
 );
 

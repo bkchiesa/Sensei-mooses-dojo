@@ -1,6 +1,22 @@
 import type { FighterAnimName } from "../data/catalog";
 import { FIGHTER_ANIM_NAMES } from "../data/catalog";
 
+/** Pose-bar FINALS: 4 / 4 / 4 / 4 / 2 / 2 / 4. */
+export const FIGHTER_ANIM_FRAME_COUNTS: Record<FighterAnimName, number> = {
+  idle: 4,
+  punch: 4,
+  kick: 4,
+  jump: 4,
+  block: 2,
+  crouch: 2,
+  sweep: 4,
+};
+
+export function defaultAnimFiles(anim: FighterAnimName): string[] {
+  const n = FIGHTER_ANIM_FRAME_COUNTS[anim];
+  return Array.from({ length: n }, (_, i) => `${anim}_${String(i).padStart(2, "0")}.png`);
+}
+
 /** Texture key written by the loader for a drop-in frame. */
 export function fighterAnimKey(fighterId: string, anim: FighterAnimName, frame = 0): string {
   return `fanim-${fighterId}-${anim}-${String(frame).padStart(2, "0")}`;

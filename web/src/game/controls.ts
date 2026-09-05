@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD_NUM } from "../config";
 
-type ActionName = "left" | "right" | "jump" | "punch" | "kick" | "ultimate";
+type ActionName = "left" | "right" | "down" | "jump" | "punch" | "kick" | "ultimate";
 
 interface PadButton {
   name: ActionName;
@@ -15,6 +15,7 @@ interface PadButton {
 export class VirtualControls {
   leftHeld = false;
   rightHeld = false;
+  downHeld = false;
   enabled = true;
   onJump?: () => void;
   onPunch?: () => void;
@@ -27,6 +28,7 @@ export class VirtualControls {
   private readonly keys: {
     left: Phaser.Input.Keyboard.Key[];
     right: Phaser.Input.Keyboard.Key[];
+    down: Phaser.Input.Keyboard.Key[];
     jump: Phaser.Input.Keyboard.Key[];
     punch: Phaser.Input.Keyboard.Key[];
     kick: Phaser.Input.Keyboard.Key[];
@@ -40,6 +42,7 @@ export class VirtualControls {
     const actionY = H - 92;
 
     this.addButton("left", "◀", 90, moveY, 42, 0x262626, 0.55);
+    this.addButton("down", "▼", 138, moveY + 56, 34, 0x262626, 0.55);
     this.addButton("right", "▶", 186, moveY, 42, 0x262626, 0.55);
     this.addButton("jump", "JUMP", W - 96, H - (92 + 78), 38, 0x3373bf, 0.7);
     this.addButton("punch", "PUNCH", W - 176, actionY, 40, 0xbf4033, 0.75);
@@ -52,6 +55,7 @@ export class VirtualControls {
     this.keys = {
       left: [...k("LEFT"), ...k("A")],
       right: [...k("RIGHT"), ...k("D")],
+      down: [...k("DOWN"), ...k("S")],
       jump: [...k("UP"), ...k("W"), ...k("SPACE")],
       punch: [...k("J"), ...k("Z")],
       kick: [...k("K"), ...k("X")],
@@ -140,12 +144,14 @@ export class VirtualControls {
     }
     if (name === "left") this.leftHeld = down;
     if (name === "right") this.rightHeld = down;
+    if (name === "down") this.downHeld = down;
   }
 
   pollKeyboard(): void {
     if (!this.enabled) {
       this.leftHeld = false;
       this.rightHeld = false;
+      this.downHeld = false;
       return;
     }
     const down = (keys: Phaser.Input.Keyboard.Key[]) => keys.some((k) => k.isDown);
@@ -160,6 +166,10 @@ export class VirtualControls {
       this.leftHeld = false;
       this.rightHeld = false;
     }
+
+    const crouchKey = down(this.keys.down);
+    const crouchPad = [...this.pointers.values()].some((n) => n === "down");
+    this.downHeld = crouchKey || crouchPad;
 
     if (just(this.keys.jump)) this.onJump?.();
     if (just(this.keys.punch)) this.onPunch?.();
@@ -180,6 +190,7 @@ export class VirtualControls {
     if (!on) {
       this.leftHeld = false;
       this.rightHeld = false;
+      this.downHeld = false;
       this.pointers.clear();
     }
     for (const b of this.buttons) {
@@ -192,6 +203,7 @@ export class VirtualControls {
   reset(): void {
     this.leftHeld = false;
     this.rightHeld = false;
+    this.downHeld = false;
     this.pointers.clear();
     for (const b of this.buttons) b.circle.setAlpha(this.enabled ? 1 : 0.28);
     this.setUltimateReady(false);

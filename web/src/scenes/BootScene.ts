@@ -1,7 +1,14 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
-import { BOSSES, fighterById, STARTERS } from "../data/catalog";
-import { fighterAnimUrl, parseAnimIndex, registerAnimPack, type FighterAnimName } from "../game/anims";
+import { BOSSES, FIGHTER_ANIM_NAMES, fighterById, STARTERS } from "../data/catalog";
+import {
+  animPackFor,
+  defaultAnimFiles,
+  fighterAnimUrl,
+  parseAnimIndex,
+  registerAnimPack,
+  type FighterAnimName,
+} from "../game/anims";
 import { applyQueryUnlocks } from "../game/storage";
 
 export class BootScene extends Phaser.Scene {
@@ -92,33 +99,54 @@ export class BootScene extends Phaser.Scene {
 
   private loadFighterAnimsThen(): void {
     const index = parseAnimIndex(this.cache.json.get("fighter-anims"));
-    if (!index) {
-      this.startAfterBoot();
-      return;
-    }
+    const listed = index?.fighters ?? {};
     const pending: { key: string; url: string }[] = [];
-    for (const [id, anims] of Object.entries(index.fighters)) {
+    for (const fighter of [...STARTERS, ...BOSSES]) {
+      const id = fighter.id;
+      const listedAnims = listed[id] ?? (id === "senseiMoose" ? listed.moose : undefined) ?? {};
       const frames: Partial<Record<FighterAnimName, string[]>> = {};
-      for (const [anim, files] of Object.entries(anims)) {
-        if (!files?.length) continue;
+      for (const anim of FIGHTER_ANIM_NAMES) {
+        const files = listedAnims[anim]?.length ? listedAnims[anim]! : defaultAnimFiles(anim);
         const keys: string[] = [];
         files.forEach((file, i) => {
           const key = `fanim-${id}-${anim}-${String(i).padStart(2, "0")}`;
           keys.push(key);
-          pending.push({ key, url: fighterAnimUrl(id, anim as FighterAnimName, file) });
+          pending.push({ key, url: fighterAnimUrl(id, anim, file) });
         });
-        frames[anim as FighterAnimName] = keys;
+        frames[anim] = keys;
       }
       registerAnimPack({ id, frames });
     }
+    const finish = () => {
+      for (const key of this.textures.getTextureKeys()) {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+      }
+      this.pruneMissingAnimFrames();
+      this.startAfterBoot();
+    };
     const missing = pending.filter((p) => !this.textures.exists(p.key));
     if (!missing.length) {
-      this.startAfterBoot();
+      finish();
       return;
     }
     for (const file of missing) this.load.image(file.key, file.url);
-    this.load.once("complete", () => this.startAfterBoot());
+    this.load.once("complete", finish);
     this.load.start();
+  }
+
+  private pruneMissingAnimFrames(): void {
+    for (const fighter of [...STARTERS, ...BOSSES]) {
+      const pack = animPackFor(fighter.id);
+      const frames: Partial<Record<FighterAnimName, string[]>> = {};
+      for (const [anim, keys] of Object.entries(pack.frames)) {
+        const kept = (keys ?? []).filter((key) => {
+          if (!this.textures.exists(key)) return false;
+          return this.textures.get(key).getSourceImage().width > 1;
+        });
+        if (kept.length) frames[anim as FighterAnimName] = kept;
+      }
+      registerAnimPack({ id: fighter.id, frames });
+    }
   }
 
   private ensurePlaceholder(key: string, color: number): void {
