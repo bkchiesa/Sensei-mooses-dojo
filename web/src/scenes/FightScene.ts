@@ -13,7 +13,7 @@ import { layerDrift, startStageAmbient } from "../game/ambient";
 import { VirtualControls } from "../game/controls";
 import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
-import { submitScore, unlockBoss } from "../game/storage";
+import { debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
 import { promptName, textStyle } from "../game/ui";
 
 export interface FightData {
@@ -265,7 +265,7 @@ export class FightScene extends Phaser.Scene {
     } else {
       this.cpu.setWalk(false, false);
       if (this.cpuCooldown <= 0 && this.cpu.onGround) {
-        if (dummy && Math.random() < 0.4) {
+        if (dummy && Math.random() < 0.62) {
           this.cpuCooldown = 0.45;
         } else {
           this.cpu.startAttack(distance < 90 ? "punch" : "kick");
@@ -283,7 +283,8 @@ export class FightScene extends Phaser.Scene {
     this.resolveUltimate(this.cpu, this.player);
     const pBox = this.player.attackHitbox();
     if (pBox && Phaser.Geom.Intersects.RectangleToRectangle(this.cpu.hurtbox(), pBox)) {
-      this.cpu.applyHit(this.player.activeAttack === "kick" ? 14 : 8, this.player.x);
+      const debugMul = debugHeavyHits() ? 8 : 1;
+      this.cpu.applyHit((this.player.activeAttack === "kick" ? 14 : 8) * debugMul, this.player.x);
       this.player.markConnected();
     }
     const cBox = this.cpu.attackHitbox();

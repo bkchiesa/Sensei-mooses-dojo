@@ -55,7 +55,7 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Punch / Kick | **PUNCH** / **KICK** | J/Z · K/X |
 | Ultimate | **★ ULT** (lights up when meter is full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same.
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and **Next Fight** quickly.
 
 ### Ported vs still stubbed
 
@@ -249,7 +249,7 @@ Previous body height was 210px. All fighters are **2×** (`FIGHTER_HEIGHT = 420`
 
 | Index | Who | Attack CD | Approach | Block | CPU dmg dealt | CPU dmg taken | ULT use |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| -1 | Intro dummy | 1.15s | 128px | 4% | 0.72× | 1.18× | low |
+| -1 | Intro dummy | 1.45s | 140px | 2% | 0.55× | 1.35× | low |
 | 0 | Misty | 0.92s | 118px | 8% | 0.82× | 1.08× | 0.45 |
 | 7 | Hudson (mid) | ~0.60s | ~93px | ~27% | ~1.10× | ~0.88× | ~0.70 |
 | 15 | Sensei Moose | 0.28s | 68px | 46% | 1.38× | 0.68× | 0.95 |

@@ -32,13 +32,13 @@ export interface Difficulty {
 
 const DUMMY: Difficulty = {
   index: -1,
-  attackCooldown: 1.15,
-  approachDistance: 128,
-  blockRate: 0.04,
-  cpuDamageDealt: 0.72,
-  cpuDamageTaken: 1.18,
-  ultAggressiveness: 0.35,
-  jumpChance: 0.08,
+  attackCooldown: 1.45,
+  approachDistance: 140,
+  blockRate: 0.02,
+  cpuDamageDealt: 0.55,
+  cpuDamageTaken: 1.35,
+  ultAggressiveness: 0.22,
+  jumpChance: 0.05,
 };
 
 export function difficultyForStep(index: number): Difficulty {
