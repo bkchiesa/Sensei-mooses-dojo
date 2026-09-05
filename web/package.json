@@ -1,0 +1,19 @@
+{
+  "name": "sensei-mooses-dojo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "export-assets": "node scripts/export-assets.mjs",
+    "dev": "npm run export-assets && vite",
+    "build": "npm run export-assets && tsc --noEmit && vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "phaser": "^3.88.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vite": "^6.3.5"
+  }
+}
