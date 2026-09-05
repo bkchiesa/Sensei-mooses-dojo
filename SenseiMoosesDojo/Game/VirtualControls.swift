@@ -111,7 +111,7 @@ final class VirtualControls: SKNode {
         }
     }
 
-    private func hitName(_ touch: UITouch, in scene: SKScene) -> String? {
+    private func hitName(_ touch: UITouch, in _: SKScene) -> String? {
         let point = touch.location(in: self)
         let hit = nodes(at: point)
         return hit.compactMap { $0.name }.first { buttons[$0] != nil }

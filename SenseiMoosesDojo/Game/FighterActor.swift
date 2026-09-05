@@ -111,6 +111,8 @@ final class FighterActor: SKNode {
         isAttacking = false
         activeAttack = nil
         strike.alpha = 0
+        body.removeAllActions()
+        body.position = .zero
         let dir: CGFloat = position.x >= fromX ? 1 : -1
         vx = 220 * dir
         vy = 240

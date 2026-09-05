@@ -11,9 +11,10 @@ final class TitleScene: SKScene {
     }
 
     private func buildWash() {
-        if Art.hasTexture(Art.stageMaster) {
+        let washName = Art.hasTexture(Art.stageSky) ? Art.stageSky : Art.stageMaster
+        if Art.hasTexture(washName) {
             let plate = Art.sprite(
-                named: Art.stageMaster,
+                named: washName,
                 fallbackColor: backgroundColor,
                 fallbackSize: size
             )
