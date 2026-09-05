@@ -3,9 +3,12 @@ import { FONT, GOLD, GOLD_NUM } from "../config";
 import {
   PENINSULA_SHORE,
   PENINSULA_WATER_LABELS,
+  PLATE_C_MAP_RECT,
+  PLATE_C_PX,
   STAGE_GEO,
   fitGeoPlot,
   geoToUv,
+  isFramedSelectPlate,
   type StageGeo,
 } from "../data/peninsula";
 
@@ -19,6 +22,8 @@ export interface MapRect {
 export class PeninsulaMap {
   readonly root: Phaser.GameObjects.Container;
   private readonly plot: { w: number; h: number };
+  private readonly framed: boolean;
+  private readonly plateSize: { width: number; height: number };
   private readonly dots = new Map<string, Phaser.GameObjects.Arc>();
   private readonly labels = new Map<string, Phaser.GameObjects.Text>();
   private selectedId: string | null = null;
@@ -31,30 +36,40 @@ export class PeninsulaMap {
     onPick: (id: string) => void,
     interactive: boolean,
   ) {
-    this.plot = fitGeoPlot(rect.w, rect.h);
+    const src = this.plateSource();
+    this.framed = isFramedSelectPlate(src?.width, src?.height);
+    this.plateSize = this.framed
+      ? { width: src?.width ?? PLATE_C_PX.width, height: src?.height ?? PLATE_C_PX.height }
+      : { width: src?.width ?? 0, height: src?.height ?? 0 };
+    this.plot = this.framed ? { w: rect.w, h: rect.h } : fitGeoPlot(rect.w, rect.h);
     this.root = scene.add.container(rect.x, rect.y);
     this.drawPlate();
     this.drawLand();
     this.drawWaterLabels();
     for (const geo of STAGE_GEO) {
       const { px, py } = this.project(geo);
-      const dot = scene.add.circle(px, py, 7, 0x4c8ad4, 1).setStrokeStyle(2, 0xe8f2ff, 0.9);
+      const dot = scene.add.circle(px, py, this.framed ? 6 : 7, 0x4c8ad4, 1).setStrokeStyle(2, 0xe8f2ff, 0.95);
       this.dots.set(geo.id, dot);
-      const label = scene.add
-        .text(px + (geo.labelDx ?? 0), py + (geo.labelDy ?? -12), geo.short, {
-          fontFamily: FONT,
-          fontSize: "10px",
-          color: "#dce8f4",
-          fontStyle: "bold",
-        })
-        .setOrigin(geo.labelDx && geo.labelDx > 0 ? 0 : geo.labelDx && geo.labelDx < 0 ? 1 : 0.5, 0.5);
-      this.labels.set(geo.id, label);
+      const nodes: Phaser.GameObjects.GameObject[] = [dot];
+      if (!this.framed) {
+        const label = scene.add
+          .text(px + (geo.labelDx ?? 0), py + (geo.labelDy ?? -12), geo.short, {
+            fontFamily: FONT,
+            fontSize: "10px",
+            color: "#dce8f4",
+            fontStyle: "bold",
+          })
+          .setOrigin(geo.labelDx && geo.labelDx > 0 ? 0 : geo.labelDx && geo.labelDx < 0 ? 1 : 0.5, 0.5);
+        this.labels.set(geo.id, label);
+        nodes.push(label);
+      }
       const hit = scene.add.circle(px, py, 18, 0xffffff, 0.001);
       if (interactive) {
         hit.setInteractive({ useHandCursor: true });
         hit.on("pointerup", () => onPick(geo.id));
       }
-      this.root.add([dot, label, hit]);
+      nodes.push(hit);
+      this.root.add(nodes);
     }
   }
 
@@ -87,30 +102,42 @@ export class PeninsulaMap {
     this.root.destroy(true);
   }
 
-  /** Raw 0–1 UV over the geo plot. No inset — Pixel plate pixels must match. */
+  /** Raw 0–1 UV over the geo plot. Framed plate C uses the fitted map rect. */
   private project(geo: Pick<StageGeo, "lon" | "lat">): { px: number; py: number } {
     const { u, v } = geoToUv(geo.lon, geo.lat);
+    if (this.framed) {
+      const plateX = PLATE_C_MAP_RECT.x + u * PLATE_C_MAP_RECT.w;
+      const plateY = PLATE_C_MAP_RECT.y + v * PLATE_C_MAP_RECT.h;
+      return {
+        px: (plateX / this.plateSize.width - 0.5) * this.plot.w,
+        py: (plateY / this.plateSize.height - 0.5) * this.plot.h,
+      };
+    }
     return { px: (u - 0.5) * this.plot.w, py: (v - 0.5) * this.plot.h };
   }
 
   private drawPlate(): void {
     const { w, h } = this.rect;
     const g = this.scene.add.graphics();
-    g.fillStyle(0x10243c, 0.92);
-    g.fillEllipse(0, 0, w, h);
-    g.lineStyle(4, GOLD_NUM, 0.85);
-    g.strokeEllipse(0, 0, w, h);
-    g.lineStyle(1, 0xffffff, 0.2);
-    g.strokeEllipse(0, 0, w - 12, h - 12);
+    if (this.framed) {
+      g.fillStyle(0x0c1428, 1);
+      g.fillRect(-w / 2, -h / 2, w, h);
+      g.lineStyle(3, GOLD_NUM, 0.75);
+      g.strokeRect(-w / 2, -h / 2, w, h);
+    } else {
+      g.fillStyle(0x10243c, 0.92);
+      g.fillEllipse(0, 0, w, h);
+      g.lineStyle(4, GOLD_NUM, 0.85);
+      g.strokeEllipse(0, 0, w, h);
+      g.lineStyle(1, 0xffffff, 0.2);
+      g.strokeEllipse(0, 0, w - 12, h - 12);
+    }
     this.root.add(g);
 
-    if (!this.scene.textures.exists("ui-select-map")) return;
-    const src = this.scene.textures.get("ui-select-map").getSourceImage() as { width?: number };
-    if (!src?.width || src.width < 8) return;
-
+    if (!this.hasPlateArt()) return;
     const art = this.scene.add.image(0, 0, "ui-select-map");
     art.setDisplaySize(this.plot.w, this.plot.h);
-    this.clipToChrome(art);
+    if (!this.framed) this.clipToChrome(art);
     this.root.add(art);
   }
 
@@ -131,7 +158,8 @@ export class PeninsulaMap {
   }
 
   private drawWaterLabels(): void {
-    const style = { fontFamily: FONT, fontSize: "11px", color: "#8ec4e8", fontStyle: "bold" as const };
+    if (this.framed) return;
+    const style = { fontFamily: FONT, fontSize: "11px", color: "#8ec4e8", fontStyle: "bold" };
     for (const label of PENINSULA_WATER_LABELS) {
       const { px, py } = this.project(label);
       this.root.add(this.scene.add.text(px, py, label.text, style).setOrigin(0.5));
@@ -148,9 +176,17 @@ export class PeninsulaMap {
     );
   }
 
+  private plateSource(): { width?: number; height?: number } | null {
+    try {
+      if (!this.scene.textures.exists("ui-select-map")) return null;
+      return this.scene.textures.get("ui-select-map").getSourceImage() as { width?: number; height?: number };
+    } catch {
+      return null;
+    }
+  }
+
   private hasPlateArt(): boolean {
-    if (!this.scene.textures.exists("ui-select-map")) return false;
-    const src = this.scene.textures.get("ui-select-map").getSourceImage() as { width?: number };
+    const src = this.plateSource();
     return Boolean(src?.width && src.width >= 8);
   }
 

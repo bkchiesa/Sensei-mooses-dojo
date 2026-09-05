@@ -41,8 +41,21 @@ Number extra frames `_01`, `_02`, … Phaser (`web/src/game/anims.ts`) loads wha
 
 ## PLAYER SELECT map
 
-`dojo-art/finals/ui/select/hampton-roads-map.svg` is a geo-faithful placeholder (same lon/lat UV as the dots). Pixel’s locked `select_map_plate.png` (or `hampton-roads-map.png`) replaces it. Optional `select_screen.png` is a dim wash behind the live chrome. Concepts may live in `dojo-art/concepts/ui/select/` until finals copy; export lets finals overwrite.
+Locked **map plate C** (`dojo-art/finals/ui/select/select-map-plate-C.png`) is the peninsula. Select UI is **live unlocked portraits** — do not display `select-screen-C.png` as the picker (stand-in heads are baked into that plate).
 
-Contract: north-up, lon −76.76…−76.28, lat 36.955…37.30, **1111×1000** (aspect ≈ 1.111), UV 0,0 = NW. Full image = full bounds — no padding. See `dojo-art/finals/ui/select/README.md`.
+`export-assets` prefers `select-map-plate-C.png` and writes `plate.json`. The SVG placeholder remains a fallback. Landmark dots stay on real lon/lat (`PLATE_C_MAP_RECT` on the framed 1920×1080 plate).
+
+## Title splash hook (later)
+
+Drop into `dojo-art/finals/ui/title/`:
+
+- `dojo-interior.png` → `title-dojo-interior`
+- `logo.png` → `title-logo` (spritesheet later for an animated logo)
+
+Boot already preloads those keys; Title uses them when present.
+
+## Audio hook
+
+`dojo-art/finals/audio/fight_a_loop.ogg` (or `.mp3`) plays on Select and Fight when present. Same cue for both.
 
 A `manifest.json` listing copied filenames is written next to the PNGs (gitignored).

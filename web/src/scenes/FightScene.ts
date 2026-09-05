@@ -10,10 +10,13 @@ import {
   type ArcadeProgress,
 } from "../game/arcade";
 import { layerDrift, startStageAmbient } from "../game/ambient";
+import { playFightLoop } from "../game/audio";
 import { VirtualControls } from "../game/controls";
 import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
-import { debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
+import { hideMatchOverlay, showMatchOverlay } from "../game/matchOverlay";
+import { go } from "../game/nav";
+import { applyQueryUnlocks, debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
 import { promptName, textStyle } from "../game/ui";
 
 export interface FightData {
@@ -50,12 +53,16 @@ export class FightScene extends Phaser.Scene {
   private cameraX = 0;
   private layers: Partial<Record<"sky" | "far" | "mid" | "master" | "near", Phaser.GameObjects.Image>> = {};
   private built = false;
+  private overlayBusy = false;
 
   constructor() {
     super("Fight");
   }
 
   init(data: FightData): void {
+    applyQueryUnlocks();
+    this.input.enabled = true;
+    this.overlayBusy = false;
     this.arcade = data.arcade ?? null;
     if (this.arcade) {
       this.playerFighter = arcadePlayer(this.arcade);
@@ -79,6 +86,7 @@ export class FightScene extends Phaser.Scene {
     this.layers = {};
     this.overlay = undefined;
     this.countdownLabel = undefined;
+    this.overlayBusy = false;
   }
 
   create(): void {
@@ -113,6 +121,8 @@ export class FightScene extends Phaser.Scene {
     if (this.built) return;
     this.built = true;
     this.scene.stop("Title");
+    this.scene.stop("Select");
+    playFightLoop(this);
     this.buildStage();
     this.player = new Fighter(this, this.playerFighter, true, DESIGN_WIDTH * 0.28, GROUND_Y);
     this.cpu = new Fighter(this, this.opponentFighter, false, DESIGN_WIDTH * 0.72, GROUND_Y);
@@ -213,7 +223,7 @@ export class FightScene extends Phaser.Scene {
     this.updateParallax();
     if (this.matchOver) return;
 
-    if (this.controlsLive && !this.roundOver) {
+    if (this.controlsLive && !this.roundOver && this.pad) {
       this.pad.pollKeyboard();
       this.player.setCrouch(this.pad.downHeld);
       this.player.setWalk(this.pad.leftHeld, this.pad.rightHeld);
@@ -238,7 +248,7 @@ export class FightScene extends Phaser.Scene {
     this.playerBar.setMeter(this.player.ultimateMeter);
     this.cpuBar.set(this.cpu.hp, this.cpu.maxHP);
     this.cpuBar.setMeter(this.cpu.ultimateMeter);
-    this.pad.setUltimateReady(this.controlsLive && this.player.isMeterFull && !this.player.isUltimate && !this.roundOver);
+    this.pad?.setUltimateReady(this.controlsLive && this.player.isMeterFull && !this.player.isUltimate && !this.roundOver);
 
     if (this.controlsLive && !this.roundOver && (this.player.hp <= 0 || this.cpu.hp <= 0)) {
       this.finishRound(this.cpu.hp <= 0 && this.player.hp > 0);
@@ -506,16 +516,20 @@ export class FightScene extends Phaser.Scene {
   private endMatch(playerWon: boolean): void {
     this.matchOver = true;
     this.controlsLive = false;
-    this.pad.setEnabled(false);
-    this.pad.reset();
+    this.overlayBusy = false;
+    this.pad.detach();
+    this.input.enabled = true;
+    this.input.setTopOnly(true);
+    applyQueryUnlocks();
 
     const boss = this.arcade ? arcadeCurrentBoss(this.arcade) : null;
     if (playerWon && boss) unlockBoss(boss.id);
 
-    const panel = this.add.container(0, 0).setDepth(200);
+    const panel = this.add.container(0, 0).setDepth(240);
     const dimmer = this.add
-      .rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x000000, 0.55)
-      .setInteractive();
+      .rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x000000, 0.58)
+      .setInteractive({ useHandCursor: false });
+    dimmer.setDepth(240);
     panel.add(dimmer);
     panel.add(
       this.add
@@ -543,81 +557,89 @@ export class FightScene extends Phaser.Scene {
           .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.5, `NEXT:  ${arcadeOpponent(next).displayName.toUpperCase()}`, textStyle(22))
           .setOrigin(0.5),
       );
-      this.addOverlayButton(panel, "NEXT FIGHT", DESIGN_HEIGHT * 0.62, () => this.advanceArcade(), true);
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.73, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.84, () => this.toSelect());
-      this.bindOverlayConfirm(() => this.advanceArcade());
+      this.showEndActions(
+        [
+          { label: "NEXT FIGHT", onClick: () => this.advanceArcade(), primary: true },
+          { label: "REMATCH", onClick: () => this.rematch() },
+          { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
+        ],
+        () => this.advanceArcade(),
+      );
     } else if (playerWon && this.arcade && !next) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.48, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
-      this.addOverlayButton(panel, "SUBMIT SCORE", DESIGN_HEIGHT * 0.58, () => void this.submit());
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.68, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.78, () => this.toSelect());
+      this.showEndActions([
+        { label: "SUBMIT SCORE", onClick: () => void this.submit(), primary: true },
+        { label: "REMATCH", onClick: () => this.rematch() },
+        { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
+      ]);
     } else if (playerWon) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.46, `SCORE  ${this.fightScore()}`, textStyle(22)).setOrigin(0.5));
-      this.addOverlayButton(panel, "SUBMIT SCORE", DESIGN_HEIGHT * 0.56, () => void this.submit());
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.66, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.76, () => this.toSelect());
+      this.showEndActions([
+        { label: "SUBMIT SCORE", onClick: () => void this.submit(), primary: true },
+        { label: "REMATCH", onClick: () => this.rematch() },
+        { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
+      ]);
     } else {
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.52, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.64, () => this.toSelect());
+      this.showEndActions([
+        { label: "REMATCH", onClick: () => this.rematch(), primary: true },
+        { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
+      ]);
     }
     this.overlay = panel;
   }
 
   private bindOverlayConfirm(onConfirm: () => void): void {
-    const fire = (event?: KeyboardEvent) => {
-      event?.preventDefault();
-      onConfirm();
-    };
-    this.input.keyboard?.once("keydown-ENTER", () => fire());
-    this.input.keyboard?.once("keydown-SPACE", () => fire());
-    this.input.keyboard?.once("keydown-N", () => fire());
+    const fire = () => onConfirm();
+    this.input.keyboard?.once("keydown-ENTER", fire);
+    this.input.keyboard?.once("keydown-SPACE", fire);
+    this.input.keyboard?.once("keydown-N", fire);
   }
 
-  private addOverlayButton(
-    panel: Phaser.GameObjects.Container,
-    title: string,
-    y: number,
-    onClick: () => void,
-    primary = false,
+  private showEndActions(
+    actions: { label: string; onClick: () => void; primary?: boolean }[],
+    onConfirm?: () => void,
   ): void {
-    const bg = this.add
-      .rectangle(DESIGN_WIDTH / 2, y, primary ? 420 : 360, primary ? 64 : 52, 0x1f1f1f, 0.95)
-      .setStrokeStyle(primary ? 3 : 2, GOLD_NUM);
-    const label = this.add.text(DESIGN_WIDTH / 2, y, title, textStyle(primary ? 24 : 20)).setOrigin(0.5);
-    bg.setInteractive({ useHandCursor: true });
-    label.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", onClick);
-    label.on("pointerdown", onClick);
-    panel.add([bg, label]);
+    showMatchOverlay(actions);
+    if (onConfirm) this.bindOverlayConfirm(onConfirm);
+  }
+
+  private onceOverlay(fn: () => void): void {
+    if (this.overlayBusy) return;
+    this.overlayBusy = true;
+    this.input.enabled = false;
+    hideMatchOverlay();
+    fn();
   }
 
   private rematch(): void {
-    if (this.arcade) this.restartFight({ arcade: this.arcade });
-    else {
-      this.restartFight({
-        playerId: this.playerFighter.id,
-        opponentId: this.opponentFighter.id,
-        stageId: this.stage.id,
-      });
-    }
+    this.onceOverlay(() => {
+      if (this.arcade) this.restartFight({ arcade: this.arcade });
+      else {
+        this.restartFight({
+          playerId: this.playerFighter.id,
+          opponentId: this.opponentFighter.id,
+          stageId: this.stage.id,
+        });
+      }
+    });
   }
 
   private advanceArcade(): void {
-    if (!this.arcade) return;
-    const next = arcadeNext(this.arcade);
-    if (!next) return;
-    this.restartFight({ arcade: next });
+    this.onceOverlay(() => {
+      if (!this.arcade) return;
+      applyQueryUnlocks();
+      const next = arcadeNext(this.arcade);
+      if (!next) return;
+      this.restartFight({ arcade: next });
+    });
   }
 
   private restartFight(data: FightData): void {
-    this.scene.stop("Title");
-    this.scene.stop("Select");
-    this.scene.restart(data);
+    go(this, "Fight", data);
   }
 
   private toSelect(): void {
-    this.scene.start("Select", { mode: this.arcade ? "arcade" : "freePlay" });
+    this.onceOverlay(() => go(this, "Select", { mode: this.arcade ? "arcade" : "freePlay" }));
   }
 
   private async submit(): Promise<void> {
@@ -625,7 +647,15 @@ export class FightScene extends Phaser.Scene {
     const name = await promptName(score);
     if (name === null) return;
     submitScore(name, score);
-    this.scene.start("Leaderboard");
+    go(this, "Leaderboard");
+  }
+
+  shutdown(): void {
+    hideMatchOverlay();
+    this.pad?.detach();
+    this.overlay?.destroy(true);
+    this.overlay = undefined;
+    this.input.enabled = false;
   }
 }
 

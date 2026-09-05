@@ -9,7 +9,9 @@ import {
   registerAnimPack,
   type FighterAnimName,
 } from "../game/anims";
+import { FIGHT_LOOP_KEY } from "../game/audio";
 import { applyQueryUnlocks } from "../game/storage";
+import { TITLE_ART } from "../game/titleArt";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -52,6 +54,8 @@ export class BootScene extends Phaser.Scene {
       "stage1_sky",
       "stage1_master",
     ]);
+    this.load.json("ui-select-plate", "assets/ui/select/plate.json");
+    this.load.image("ui-select-map", "assets/ui/select/select-map-plate-C.png");
     for (const f of [...STARTERS, ...BOSSES]) {
       keys.add(f.portrait);
       keys.add(f.idle);
@@ -63,6 +67,14 @@ export class BootScene extends Phaser.Scene {
     }
     this.load.json("fighter-anims", "assets/fighters/index.json");
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
+      const optional = new Set([
+        TITLE_ART.interior,
+        TITLE_ART.logo,
+        FIGHT_LOOP_KEY,
+        "ui-select-map",
+        "ui-select-plate",
+      ]);
+      if (optional.has(file.key)) return;
       console.warn("Missing art (placeholder will be used):", file.key);
     });
   }
