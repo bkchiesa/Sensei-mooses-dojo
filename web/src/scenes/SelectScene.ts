@@ -1,23 +1,27 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
-import { slotName, STARTERS, type FighterDef } from "../data/catalog";
+import { ARCADE_STAGE_IDS, slotName, STARTERS, STAGES, type FighterDef, type StageDef } from "../data/catalog";
 import { arcadeStart } from "../game/arcade";
 import { selectRoster } from "../game/storage";
 import { hexColor, textStyle } from "../game/ui";
 
 export type SelectMode = "arcade" | "freePlay";
+export type SelectPhase = "player" | "opponent" | "stage";
 
 interface SelectData {
   mode?: SelectMode;
-  phase?: "player" | "opponent";
+  phase?: SelectPhase;
   player?: FighterDef;
+  opponent?: FighterDef;
 }
 
 export class SelectScene extends Phaser.Scene {
   private mode: SelectMode = "arcade";
-  private phase: "player" | "opponent" = "player";
+  private phase: SelectPhase = "player";
   private playerPick: FighterDef | null = null;
+  private opponentPick: FighterDef | null = null;
   private selected: FighterDef | null = null;
+  private selectedStage: StageDef | null = null;
   private cards = new Map<string, Phaser.GameObjects.Container>();
   private fightLabel!: Phaser.GameObjects.Text;
   private goTimer?: Phaser.Time.TimerEvent;
@@ -30,16 +34,21 @@ export class SelectScene extends Phaser.Scene {
     this.mode = data.mode ?? "arcade";
     this.phase = data.phase ?? "player";
     this.playerPick = data.player ?? null;
+    this.opponentPick = data.opponent ?? null;
     this.selected = null;
+    this.selectedStage = null;
     this.cards.clear();
   }
 
   create(): void {
     this.cameras.main.setBackgroundColor(0x120f1a);
     this.buildHeader();
-    this.buildSlots();
+    if (this.phase === "stage") this.buildStageSlots();
+    else this.buildSlots();
+    const idle =
+      this.phase === "stage" ? "SELECT A STAGE" : this.phase === "opponent" ? "SELECT OPPONENT" : "SELECT A FIGHTER";
     this.fightLabel = this.add
-      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 40, this.phase === "opponent" ? "SELECT OPPONENT" : "SELECT A FIGHTER", {
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 36, idle, {
         fontFamily: FONT,
         fontSize: "22px",
         color: "#8c8c8c",
@@ -48,7 +57,8 @@ export class SelectScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
     this.fightLabel.on("pointerup", () => {
-      if (this.selected) this.startFight(this.selected);
+      if (this.phase === "stage" && this.selectedStage) this.startOnStage(this.selectedStage);
+      else if (this.selected) this.advance(this.selected);
     });
   }
 
@@ -60,21 +70,25 @@ export class SelectScene extends Phaser.Scene {
 
   private buildHeader(): void {
     const heading =
-      this.phase === "opponent"
-        ? `FREE PLAY  ·  CHOOSE OPPONENT`
-        : this.mode === "arcade"
-          ? "ARCADE  ·  CHOOSE YOUR FIGHTER"
-          : "FREE PLAY  ·  CHOOSE YOUR FIGHTER";
-    this.add.text(DESIGN_WIDTH / 2, 42, heading, textStyle(28, GOLD)).setOrigin(0.5);
+      this.phase === "stage"
+        ? "FREE PLAY  ·  CHOOSE STAGE"
+        : this.phase === "opponent"
+          ? "FREE PLAY  ·  CHOOSE OPPONENT"
+          : this.mode === "arcade"
+            ? "ARCADE  ·  CHOOSE YOUR FIGHTER"
+            : "FREE PLAY  ·  CHOOSE YOUR FIGHTER";
+    this.add.text(DESIGN_WIDTH / 2, 42, heading, textStyle(26, GOLD)).setOrigin(0.5);
 
     const hint =
-      this.phase === "opponent"
-        ? `${this.playerPick?.displayName ?? "You"} vs …`
-        : this.mode === "arcade"
-          ? "Starters always available  ·  Beat the dummy, then the boss ladder"
-          : "Starters + unlocked bosses  ·  then pick an opponent";
+      this.phase === "stage"
+        ? `${this.playerPick?.displayName ?? "You"} vs ${this.opponentPick?.displayName ?? "CPU"}  ·  Arcade + NN landmarks`
+        : this.phase === "opponent"
+          ? `${this.playerPick?.displayName ?? "You"} vs …`
+          : this.mode === "arcade"
+            ? "Starters always available  ·  Beat the dummy, then the boss ladder"
+            : "Starters + unlocked bosses  ·  then opponent  ·  then a stage";
     this.add
-      .text(DESIGN_WIDTH / 2, 74, hint, { fontFamily: FONT, fontSize: "14px", color: "#bfbfbf" })
+      .text(DESIGN_WIDTH / 2, 72, hint, { fontFamily: FONT, fontSize: "14px", color: "#bfbfbf" })
       .setOrigin(0.5);
 
     const back = this.add.text(36, 28, "← TITLE", textStyle(16, "#d9d9d9")).setInteractive({ useHandCursor: true });
@@ -86,6 +100,14 @@ export class SelectScene extends Phaser.Scene {
         .setOrigin(1, 0)
         .setInteractive({ useHandCursor: true });
       free.on("pointerup", () => this.scene.start("Select", { mode: "freePlay" }));
+    } else if (this.phase === "stage") {
+      const backOpp = this.add
+        .text(DESIGN_WIDTH - 36, 28, "← CHANGE OPPONENT", textStyle(16, "#d9d9d9"))
+        .setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true });
+      backOpp.on("pointerup", () =>
+        this.scene.start("Select", { mode: "freePlay", phase: "opponent", player: this.playerPick }),
+      );
     } else if (this.phase === "opponent") {
       const backPick = this.add
         .text(DESIGN_WIDTH - 36, 28, "← CHANGE FIGHTER", textStyle(16, "#d9d9d9"))
@@ -131,6 +153,46 @@ export class SelectScene extends Phaser.Scene {
     }
   }
 
+  private buildStageSlots(): void {
+    const columns = 4;
+    const slotW = 300;
+    const slotH = 86;
+    const gapX = 14;
+    const gapY = 12;
+    const gridW = columns * slotW + (columns - 1) * gapX;
+    const startX = (DESIGN_WIDTH - gridW) / 2 + slotW / 2;
+    const startY = 130;
+
+    STAGES.forEach((stage, index) => {
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const card = this.makeStageCard(stage, slotW, slotH);
+      card.setPosition(startX + col * (slotW + gapX), startY + row * (slotH + gapY));
+      this.cards.set(stage.id, card);
+    });
+  }
+
+  private makeStageCard(stage: StageDef, width: number, height: number): Phaser.GameObjects.Container {
+    const root = this.add.container(0, 0);
+    const arcade = ARCADE_STAGE_IDS.includes(stage.id);
+    const panel = this.add.rectangle(0, 0, width, height, 0x1f1f1f, 0.92).setStrokeStyle(2, arcade ? 0xffd651 : 0x6a5a88);
+    const num = this.add.text(-width / 2 + 14, 0, String(stage.number).padStart(2, "0"), textStyle(22, GOLD)).setOrigin(0, 0.5);
+    const name = this.add.text(-width / 2 + 52, -10, stage.displayName, textStyle(16)).setOrigin(0, 0.5);
+    const tag = this.add
+      .text(-width / 2 + 52, 12, arcade ? "ARCADE" : "LANDMARK", {
+        fontFamily: FONT,
+        fontSize: "11px",
+        color: arcade ? GOLD : "#9aa0c8",
+      })
+      .setOrigin(0, 0.5);
+    root.add([panel, num, name, tag]);
+    const hit = this.add.rectangle(0, 0, width, height, 0x000000, 0.001);
+    hit.setInteractive({ useHandCursor: true });
+    hit.on("pointerup", () => this.selectStage(stage));
+    root.add(hit);
+    return root;
+  }
+
   private makeCard(fighter: FighterDef, width: number, height: number): Phaser.GameObjects.Container {
     const root = this.add.container(0, 0);
     const panel = this.add.rectangle(0, 0, width, height, 0x1f1f1f, 0.92).setStrokeStyle(3, fighter.accent);
@@ -163,26 +225,39 @@ export class SelectScene extends Phaser.Scene {
     root.add([name, ult]);
     const hit = this.add.rectangle(0, 0, width, height, 0x000000, 0.001);
     hit.setInteractive({ useHandCursor: true });
-    hit.on("pointerup", () => this.select(fighter));
+    hit.on("pointerup", () => this.selectFighter(fighter));
     root.add(hit);
     return root;
   }
 
-  private select(fighter: FighterDef): void {
+  private selectFighter(fighter: FighterDef): void {
     this.selected = fighter;
     for (const [key, node] of this.cards) {
       const highlight = key === slotName(fighter);
       node.setScale(highlight ? 1.06 : 1);
       node.setAlpha(highlight ? 1 : 0.72);
     }
-    const verb = this.phase === "opponent" ? "FIGHT" : this.mode === "arcade" ? "ARCADE" : "NEXT";
+    const verb = this.phase === "opponent" ? "NEXT" : this.mode === "arcade" ? "ARCADE" : "NEXT";
     this.fightLabel.setText(`${verb}  —  ${fighter.displayName.toUpperCase()}`);
     this.fightLabel.setColor(GOLD);
     this.goTimer?.remove(false);
-    this.goTimer = this.time.delayedCall(220, () => this.startFight(fighter));
+    this.goTimer = this.time.delayedCall(220, () => this.advance(fighter));
   }
 
-  private startFight(fighter: FighterDef): void {
+  private selectStage(stage: StageDef): void {
+    this.selectedStage = stage;
+    for (const [key, node] of this.cards) {
+      const highlight = key === stage.id;
+      node.setScale(highlight ? 1.04 : 1);
+      node.setAlpha(highlight ? 1 : 0.7);
+    }
+    this.fightLabel.setText(`FIGHT  —  ${stage.displayName.toUpperCase()}`);
+    this.fightLabel.setColor(GOLD);
+    this.goTimer?.remove(false);
+    this.goTimer = this.time.delayedCall(220, () => this.startOnStage(stage));
+  }
+
+  private advance(fighter: FighterDef): void {
     this.goTimer?.remove(false);
     if (this.mode === "arcade") {
       this.scene.start("Fight", { arcade: arcadeStart(fighter) });
@@ -192,11 +267,22 @@ export class SelectScene extends Phaser.Scene {
       this.scene.start("Select", { mode: "freePlay", phase: "opponent", player: fighter });
       return;
     }
+    this.scene.start("Select", {
+      mode: "freePlay",
+      phase: "stage",
+      player: this.playerPick ?? STARTERS[0],
+      opponent: fighter,
+    });
+  }
+
+  private startOnStage(stage: StageDef): void {
+    this.goTimer?.remove(false);
     const player = this.playerPick ?? STARTERS[0];
+    const opponent = this.opponentPick ?? STARTERS[1];
     this.scene.start("Fight", {
       playerId: player.id,
-      opponentId: fighter.id,
-      stageId: fighter.stageId,
+      opponentId: opponent.id,
+      stageId: stage.id,
     });
   }
 }

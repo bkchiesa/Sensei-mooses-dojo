@@ -155,14 +155,12 @@ export class Fighter {
     this.vx = 220 * dir;
     this.vy = 240;
     this.onGround = false;
-    this.scene.tweens.addCounter({
-      from: 0.7,
-      to: 0,
-      duration: 160,
-      onUpdate: (tw) => {
-        this.body.setTintFill(0xffffff);
-        this.body.setAlpha(0.55 + 0.45 * (1 - (tw.getValue() ?? 0)));
-      },
+    this.body.setTint(0xffffff);
+    this.scene.tweens.add({
+      targets: this.body,
+      alpha: 0.55,
+      duration: 80,
+      yoyo: true,
       onComplete: () => {
         this.body.clearTint();
         this.body.setAlpha(1);

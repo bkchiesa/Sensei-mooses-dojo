@@ -61,12 +61,12 @@ Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug)
 
 | Ported | Still stubbed / native-only |
 | --- | --- |
-| Title, Arcade, Free Play (pick you, then opponent), Fight | Game Center (web uses this-browser Top 10) |
-| Starters Matt/Simon/Rich/Amanda/JB | Extra NN landmark stages (art parked, not in the web export) |
+| Title, Arcade, Free Play (you → opponent → stage), Fight | Game Center (web uses this-browser Top 10) |
+| Starters Matt/Simon/Rich/Amanda/JB | Alley / rooftop stages (not locked yet) |
 | Boss ladder Misty → … → Austin → Sensei Moose | Native SpriteKit project (kept, not the play path) |
 | Unlock-on-win → Free Play roster | `boss_senseiMoose_*` art (falls back to title moose) |
 | Unique ultimates, 30% HP, meter from landed hits (~6) | App Store / signing |
-| Arcade stage mapping (Lions Bridge / Hilton / Axsom Dojo) | Pixel extra ult frames beyond `_00` except Austin + Moose |
+| Arcade stages 1–3 + Free Play landmarks (Batch A–C incl. Busch / Hampton / Poquoson) | Pixel extra ult frames beyond `_00` except Austin + Moose |
 | Touch + keyboard, static GitHub Pages build | |
 
 ## Native Xcode prototype (deferred)
@@ -84,7 +84,7 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | Scene | What happens |
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. Tap elsewhere starts Arcade. |
-| **CharacterSelectScene** | Arcade: starters only (Matt / Simon / Rich / Amanda / JB). Free Play: starters plus any unlocked bosses. |
+| **CharacterSelectScene** | Arcade: starters only (Matt / Simon / Rich / Amanda / JB). Free Play: starters plus unlocked bosses, then a stage (arcade + NN landmarks). |
 | **FightScene** | Health bars + **ULT** meters, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK** / **★ ULT**. Arcade ladder unchanged. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
@@ -120,18 +120,17 @@ Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stag
 | Newport News Park | `nnpark` | `stage_nnpark_*` |
 | James River Bridge | `jrbridge` | `stage_jrbridge_*` |
 
-### Extra stages Batch C partial (art parked)
+### Extra stages Batch C (art parked)
 
 | Stage | id | Prefix |
 | --- | --- | --- |
 | Colonial Capitol | `colonial` | `stage_colonial_*` |
 | Local Stadium | `stadium` | `stage_stadium_*` |
-
 | Busch Gardens | `busch` | `stage_busch_*` |
 | Hampton Waterfront | `hampton` | `stage_hampton_*` |
 | Poquoson Waterfront | `poquoson` | `stage_poquoson_*` |
 
-Alley / rooftop still not locked.
+Alley / rooftop still not locked. Web Free Play exports the **master** plate for these landmarks (`web/ASSETS.md`). Arcade still uses Stage 1–3.
 
 ## Unlock on defeat (design)
 
