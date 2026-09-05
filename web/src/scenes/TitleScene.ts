@@ -121,6 +121,7 @@ export class TitleScene extends Phaser.Scene {
     });
 
     this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
+      if (!this.sys.isActive()) return;
       const hits = this.input.hitTestPointer(p);
       if (hits.some((obj) => Boolean(obj.getData("menu")))) return;
       this.scene.start("Select", { mode: "arcade" });

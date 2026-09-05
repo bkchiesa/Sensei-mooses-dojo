@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
 import { ARCADE_STAGE_IDS, slotName, STARTERS, STAGES, type FighterDef, type StageDef } from "../data/catalog";
 import { arcadeStart } from "../game/arcade";
-import { selectRoster } from "../game/storage";
+import { applyQueryUnlocks, selectRoster } from "../game/storage";
 import { hexColor, textStyle } from "../game/ui";
 
 export type SelectMode = "arcade" | "freePlay";
@@ -41,6 +41,7 @@ export class SelectScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyQueryUnlocks();
     this.cameras.main.setBackgroundColor(0x120f1a);
     this.buildHeader();
     if (this.phase === "stage") this.buildStageSlots();

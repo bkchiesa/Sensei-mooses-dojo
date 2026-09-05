@@ -112,6 +112,7 @@ export class FightScene extends Phaser.Scene {
   private buildFight(): void {
     if (this.built) return;
     this.built = true;
+    this.scene.stop("Title");
     this.buildStage();
     this.player = new Fighter(this, this.playerFighter, true, DESIGN_WIDTH * 0.28, GROUND_Y);
     this.cpu = new Fighter(this, this.opponentFighter, false, DESIGN_WIDTH * 0.72, GROUND_Y);
@@ -510,8 +511,11 @@ export class FightScene extends Phaser.Scene {
     const boss = this.arcade ? arcadeCurrentBoss(this.arcade) : null;
     if (playerWon && boss) unlockBoss(boss.id);
 
-    const panel = this.add.container(0, 0).setDepth(100);
-    panel.add(this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x000000, 0.55));
+    const panel = this.add.container(0, 0).setDepth(200);
+    const dimmer = this.add
+      .rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x000000, 0.55)
+      .setInteractive();
+    panel.add(dimmer);
     panel.add(
       this.add
         .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.24, playerWon ? "YOU WIN" : "YOU LOSE", textStyle(52, playerWon ? GOLD : "#ff5947"))
@@ -569,9 +573,9 @@ export class FightScene extends Phaser.Scene {
   }
 
   private rematch(): void {
-    if (this.arcade) this.scene.start("Fight", { arcade: this.arcade });
+    if (this.arcade) this.restartFight({ arcade: this.arcade });
     else {
-      this.scene.start("Fight", {
+      this.restartFight({
         playerId: this.playerFighter.id,
         opponentId: this.opponentFighter.id,
         stageId: this.stage.id,
@@ -583,7 +587,13 @@ export class FightScene extends Phaser.Scene {
     if (!this.arcade) return;
     const next = arcadeNext(this.arcade);
     if (!next) return;
-    this.scene.start("Fight", { arcade: next });
+    this.restartFight({ arcade: next });
+  }
+
+  private restartFight(data: FightData): void {
+    this.scene.stop("Title");
+    this.scene.stop("Select");
+    this.scene.restart(data);
   }
 
   private toSelect(): void {
