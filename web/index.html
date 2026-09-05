@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#140d1f" />
+    <meta name="description" content="Sensei Moose's Dojo — browser street-fighter. Arcade ladder, Free Play, unique ultimates." />
+    <title>Sensei Moose's Dojo</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="rotate-hint">
+      <p>Best in landscape — rotate your iPad or phone.</p>
+      <button type="button" id="rotate-dismiss">Play anyway</button>
+    </div>
+    <div id="game"></div>
+    <div id="name-modal" hidden>
+      <form id="name-form" autocomplete="on">
+        <h2>Submit Score</h2>
+        <p id="name-score"></p>
+        <input id="name-input" type="text" maxlength="16" placeholder="Display name" />
+        <div class="row">
+          <button type="button" id="name-cancel">Cancel</button>
+          <button type="submit">Submit</button>
+        </div>
+      </form>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
