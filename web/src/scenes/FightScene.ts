@@ -100,12 +100,12 @@ export class FightScene extends Phaser.Scene {
     this.player.resetRound(DESIGN_WIDTH * 0.28, GROUND_Y, true);
     this.cpu.resetRound(DESIGN_WIDTH * 0.72, GROUND_Y, false);
 
-    this.playerBar = new HealthBar(this, this.playerFighter, 36, 52, 420, true);
+    this.playerBar = new HealthBar(this, this.playerFighter, 48, 64, 400, true);
     const cpuTitle =
       this.arcade && arcadeCurrentBoss(this.arcade)
         ? this.opponentFighter.displayName
         : `CPU · ${this.opponentFighter.displayName}`;
-    this.cpuBar = new HealthBar(this, this.opponentFighter, DESIGN_WIDTH - 36 - 420, 52, 420, false, cpuTitle);
+    this.cpuBar = new HealthBar(this, this.opponentFighter, DESIGN_WIDTH - 48 - 400, 64, 400, false, cpuTitle);
 
     this.pad = new VirtualControls(this);
     this.pad.onJump = () => this.player.jump();
@@ -374,8 +374,6 @@ class HealthBar {
   private readonly meter: Phaser.GameObjects.Rectangle;
   private readonly width: number;
   private readonly alignLeft: boolean;
-  private readonly fillX: number;
-  private readonly meterX: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -388,43 +386,38 @@ class HealthBar {
   ) {
     this.width = width;
     this.alignLeft = alignLeft;
-    const back = scene.add.rectangle(x, y, width + 6, 28, 0x141414, 0.82).setOrigin(0, 0.5).setDepth(50);
-    back.setStrokeStyle(1, 0xffffff, 0.2);
-    this.fillX = alignLeft ? x + 3 : x + width - 3;
-    this.fill = scene.add.rectangle(this.fillX, y, width, 22, fighter.accent).setOrigin(alignLeft ? 0 : 1, 0.5).setDepth(51);
-    const meterBack = scene.add.rectangle(x + 3, y + 22, width, 12, 0x120818, 0.92).setOrigin(0, 0.5).setDepth(50);
-    meterBack.setStrokeStyle(1, 0x8c66f2, 0.7);
-    this.meterX = this.fillX;
-    this.meter = scene.add.rectangle(this.meterX, y + 22, 4, 8, 0x8c66f2).setOrigin(alignLeft ? 0 : 1, 0.5).setDepth(51);
-    scene.add
-      .text(alignLeft ? x + 8 : x + width - 8, y + 36, "ULT", {
-        fontFamily: FONT,
-        fontSize: "11px",
-        color: "#c4b4ff",
-        fontStyle: "bold",
-      })
-      .setOrigin(alignLeft ? 0 : 1, 0)
-      .setDepth(51);
+    const root = scene.add.container(x, y).setDepth(60);
+    const plate = scene.add.rectangle(0, 8, width + 10, 56, 0x000000, 0.62).setOrigin(0, 0.5);
+    plate.setStrokeStyle(2, GOLD_NUM, 0.85);
+    const hpBack = scene.add.rectangle(5, 0, width, 20, 0x2a1212, 1).setOrigin(0, 0.5);
+    this.fill = scene.add.rectangle(5, 0, width, 20, 0x40cc52, 1).setOrigin(this.alignLeft ? 0 : 1, 0.5);
+    if (!this.alignLeft) this.fill.setPosition(5 + width, 0);
+    const meterBack = scene.add.rectangle(5, 20, width, 12, 0x1a1030, 1).setOrigin(0, 0.5);
+    this.meter = scene.add.rectangle(5, 20, 6, 12, 0x8c66f2, 1).setOrigin(this.alignLeft ? 0 : 1, 0.5);
+    if (!this.alignLeft) this.meter.setPosition(5 + width, 20);
+    const name = scene.add
+      .text(8, -22, (title ?? fighter.displayName).toUpperCase(), textStyle(14, "#ffffff"))
+      .setOrigin(this.alignLeft ? 0 : 1, 0.5);
+    if (!this.alignLeft) name.setX(width + 2);
+    const ult = scene.add.text(8, 34, "ULT", textStyle(12, "#c4b4ff")).setOrigin(this.alignLeft ? 0 : 1, 0.5);
+    if (!this.alignLeft) ult.setX(width + 2);
+    root.add([plate, hpBack, this.fill, meterBack, this.meter, name, ult]);
     if (scene.textures.exists(fighter.portrait)) {
-      const portrait = scene.add.image(alignLeft ? x - 20 : x + width + 20, y, fighter.portrait);
-      portrait.setDisplaySize(36, 36);
-      portrait.setDepth(51);
+      const portrait = scene.add.image(this.alignLeft ? -22 : width + 32, 4, fighter.portrait);
+      portrait.setDisplaySize(44, 44);
+      root.add(portrait);
     }
-    scene.add
-      .text(alignLeft ? x + 8 : x + width - 8, y - 22, (title ?? fighter.displayName).toUpperCase(), textStyle(13))
-      .setOrigin(alignLeft ? 0 : 1, 0.5)
-      .setDepth(51);
   }
 
   set(hp: number, maxHP: number): void {
     const t = Phaser.Math.Clamp(hp / maxHP, 0, 1);
-    this.fill.width = this.width * t;
+    this.fill.setSize(Math.max(2, this.width * t), 20);
     this.fill.setFillStyle(t > 0.35 ? 0x40cc52 : 0xd92e29);
   }
 
   setMeter(t: number): void {
     const clamped = Phaser.Math.Clamp(t, 0, 1);
-    this.meter.width = this.width * clamped;
+    this.meter.setSize(Math.max(clamped > 0 ? 6 : 0, this.width * clamped), 12);
     this.meter.setFillStyle(clamped >= 1 ? GOLD_NUM : 0x8c66f2);
   }
 }
