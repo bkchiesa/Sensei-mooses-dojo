@@ -144,13 +144,8 @@ if (fs.existsSync(uiSelectSrc)) {
     fs.copyFileSync(path.join(uiSelectSrc, file), path.join(uiSelectOut, file));
   }
 }
-const platePng = "hampton-roads-map.png";
-const plateSvg = "hampton-roads-map.svg";
-const plateFile = fs.existsSync(path.join(uiSelectOut, platePng))
-  ? platePng
-  : fs.existsSync(path.join(uiSelectOut, plateSvg))
-    ? plateSvg
-    : null;
+const plateCandidates = ["hampton-roads-map.png", "select_map_plate.png", "hampton-roads-map.svg"];
+const plateFile = plateCandidates.find((name) => fs.existsSync(path.join(uiSelectOut, name))) ?? null;
 fs.writeFileSync(
   path.join(uiSelectOut, "plate.json"),
   JSON.stringify(
