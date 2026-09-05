@@ -1,12 +1,14 @@
 # Dojo starter action sprite sheets (raw)
 
-Game-ready SF2 arcade + 64-bit N64 low-poly sheets for the five starters.
+Game-ready SF2 arcade + 64-bit N64 low-poly sheets for all five starters.
 Each file is one horizontal animation sheet on solid magenta (`#FF00FF`) chroma.
 All fighters face **RIGHT**. Closed family-friendly karate gi.
 
 Filename pattern: `dojo-art-raw/fighters/<id>/raw_<id>_<anim>_sheet.png`
 
 Tokens: `idle` | `punch` | `kick` | `jump` | `block` | `crouch` | `sweep`
+
+Total: **35** sheets (5 fighters × 7 anims).
 
 ## matt (7/7)
 
@@ -38,8 +40,32 @@ Tokens: `idle` | `punch` | `kick` | `jump` | `block` | `crouch` | `sweep`
 - `dojo-art-raw/fighters/rich/raw_rich_crouch_sheet.png`
 - `dojo-art-raw/fighters/rich/raw_rich_sweep_sheet.png`
 
-## amanda (in progress)
+## amanda (7/7)
 
 - `dojo-art-raw/fighters/amanda/raw_amanda_idle_sheet.png`
+- `dojo-art-raw/fighters/amanda/raw_amanda_punch_sheet.png`
+- `dojo-art-raw/fighters/amanda/raw_amanda_kick_sheet.png`
+- `dojo-art-raw/fighters/amanda/raw_amanda_jump_sheet.png`
+- `dojo-art-raw/fighters/amanda/raw_amanda_block_sheet.png`
+- `dojo-art-raw/fighters/amanda/raw_amanda_crouch_sheet.png`
+- `dojo-art-raw/fighters/amanda/raw_amanda_sweep_sheet.png`
 
-## jb (pending)
+## jb (7/7)
+
+- `dojo-art-raw/fighters/jb/raw_jb_idle_sheet.png`
+- `dojo-art-raw/fighters/jb/raw_jb_punch_sheet.png`
+- `dojo-art-raw/fighters/jb/raw_jb_kick_sheet.png`
+- `dojo-art-raw/fighters/jb/raw_jb_jump_sheet.png`
+- `dojo-art-raw/fighters/jb/raw_jb_block_sheet.png`
+- `dojo-art-raw/fighters/jb/raw_jb_crouch_sheet.png`
+- `dojo-art-raw/fighters/jb/raw_jb_sweep_sheet.png`
+
+## Likeness lock
+
+Generated against locked portrait + idle refs:
+
+- **matt** — spiky brown hair, fair/tan skin, white gi, blue belt, blue fingerless gloves, smirk
+- **simon** — blonde blocky hair, white gi, yellow-gold trim/belt/wristbands
+- **rich** — dark brown skin, red headband, white gi, green belt; forced face RIGHT
+- **amanda** — long dark-brown hair, white gi, purple trim/undershirt/belt/wristbands
+- **jb** — spiky black hair, white gi, teal trim/wristbands, black+teal belt, wooden bo staff
