@@ -58,6 +58,16 @@ v0 fight loop still uses **Stage 1 + starter roster** only. `BossID` + `UnlockSt
 | Christiano | `christiano` | `boss_christiano_portrait` | `boss_christiano_idle_00` |
 | Dakota | `dakota` | `boss_dakota_portrait` | `boss_dakota_idle_00` |
 
+### Boss batch 2 (likeness locked; art pending)
+
+| Display | id | Portrait | Idle |
+| --- | --- | --- | --- |
+| John K. | `johnk` | `boss_johnk_portrait` | `boss_johnk_idle_00` |
+| Finley | `finley` | `boss_finley_portrait` | `boss_finley_idle_00` |
+| Hudson | `hudson` | `boss_hudson_portrait` | `boss_hudson_idle_00` |
+| Michael | `michael` | `boss_michael_portrait` | `boss_michael_idle_00` |
+| Kasey | `kasey` | `boss_kasey_portrait` | `boss_kasey_idle_00` |
+
 ## Drop-in art (no code changes)
 
 Pixel finals can replace the colored placeholders. Keep the **imageset folder name** and the **PNG filename** the same.

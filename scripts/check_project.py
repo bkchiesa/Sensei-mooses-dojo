@@ -48,7 +48,7 @@ SCENE_TOKENS = {
     "Scenes/TitleScene.swift": ["Sensei Moose's Dojo", "TAP TO CONTINUE", "mooseTitle", "leaderboard"],
     "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "UnlockStore.starters"],
     "Game/UnlockStore.swift": ["UnlockStore", "UserDefaults", "unlock"],
-    "Game/BossRoster.swift": ["case misty", "boss_", "batch1"],
+    "Game/BossRoster.swift": ["case misty", "case johnk", "boss_", "batch1", "batch2"],
     "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb"],
     "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score"],
     "Scenes/LeaderboardScene.swift": ["TOP 10", "LeaderboardService"],
