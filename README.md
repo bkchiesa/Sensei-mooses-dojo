@@ -46,6 +46,15 @@ Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stag
 | Newport News Shipyard | `shipyard` | `stage_shipyard_*` |
 | Hilton Village | `hiltonvillage` | `stage_hiltonvillage_*` |
 
+### Extra stages Batch B (art parked; optional)
+
+| Stage | id | Prefix |
+| --- | --- | --- |
+| Mariners Museum | `mariners` | `stage_mariners_*` |
+| Warwick Subway | `subwaywarwick` | `stage_subwaywarwick_*` |
+| Newport News Park | `nnpark` | `stage_nnpark_*` |
+| James River Bridge | `jrbridge` | `stage_jrbridge_*` |
+
 ## Unlock on defeat (design)
 
 Clearing a boss unlocks them as a **playable** character on Character Select.
