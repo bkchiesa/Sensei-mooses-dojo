@@ -5,6 +5,7 @@ import { textStyle } from "../game/ui";
 
 export class TitleScene extends Phaser.Scene {
   private titleTaps = 0;
+  private menuConsumed = false;
 
   constructor() {
     super("Title");
@@ -122,6 +123,10 @@ export class TitleScene extends Phaser.Scene {
 
     this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
       if (!this.sys.isActive()) return;
+      if (this.menuConsumed) {
+        this.menuConsumed = false;
+        return;
+      }
       const hits = this.input.hitTestPointer(p);
       if (hits.some((obj) => Boolean(obj.getData("menu")))) return;
       this.scene.start("Select", { mode: "arcade" });
@@ -136,10 +141,11 @@ export class TitleScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     text.setInteractive({ useHandCursor: true });
     const go = (e: Phaser.Input.Pointer) => {
+      this.menuConsumed = true;
       e.event?.stopPropagation?.();
       onClick();
     };
-    bg.on("pointerup", go);
-    text.on("pointerup", go);
+    bg.on("pointerdown", go);
+    text.on("pointerdown", go);
   }
 }

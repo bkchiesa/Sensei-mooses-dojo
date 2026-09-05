@@ -542,9 +542,10 @@ export class FightScene extends Phaser.Scene {
           .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.5, `NEXT:  ${arcadeOpponent(next).displayName.toUpperCase()}`, textStyle(22))
           .setOrigin(0.5),
       );
-      this.addOverlayButton(panel, "NEXT FIGHT", DESIGN_HEIGHT * 0.6, () => this.advanceArcade());
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.7, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.8, () => this.toSelect());
+      this.addOverlayButton(panel, "NEXT FIGHT", DESIGN_HEIGHT * 0.62, () => this.advanceArcade(), true);
+      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.73, () => this.rematch());
+      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.84, () => this.toSelect());
+      this.bindOverlayConfirm(() => this.advanceArcade());
     } else if (playerWon && this.arcade && !next) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.48, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
       this.addOverlayButton(panel, "SUBMIT SCORE", DESIGN_HEIGHT * 0.58, () => void this.submit());
@@ -562,13 +563,31 @@ export class FightScene extends Phaser.Scene {
     this.overlay = panel;
   }
 
-  private addOverlayButton(panel: Phaser.GameObjects.Container, title: string, y: number, onClick: () => void): void {
-    const bg = this.add.rectangle(DESIGN_WIDTH / 2, y, 360, 52, 0x1f1f1f, 0.95).setStrokeStyle(2, GOLD_NUM);
-    const label = this.add.text(DESIGN_WIDTH / 2, y, title, textStyle(20)).setOrigin(0.5);
+  private bindOverlayConfirm(onConfirm: () => void): void {
+    const fire = (event?: KeyboardEvent) => {
+      event?.preventDefault();
+      onConfirm();
+    };
+    this.input.keyboard?.once("keydown-ENTER", () => fire());
+    this.input.keyboard?.once("keydown-SPACE", () => fire());
+    this.input.keyboard?.once("keydown-N", () => fire());
+  }
+
+  private addOverlayButton(
+    panel: Phaser.GameObjects.Container,
+    title: string,
+    y: number,
+    onClick: () => void,
+    primary = false,
+  ): void {
+    const bg = this.add
+      .rectangle(DESIGN_WIDTH / 2, y, primary ? 420 : 360, primary ? 64 : 52, 0x1f1f1f, 0.95)
+      .setStrokeStyle(primary ? 3 : 2, GOLD_NUM);
+    const label = this.add.text(DESIGN_WIDTH / 2, y, title, textStyle(primary ? 24 : 20)).setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerup", onClick);
     label.setInteractive({ useHandCursor: true });
-    label.on("pointerup", onClick);
+    bg.on("pointerdown", onClick);
+    label.on("pointerdown", onClick);
     panel.add([bg, label]);
   }
 

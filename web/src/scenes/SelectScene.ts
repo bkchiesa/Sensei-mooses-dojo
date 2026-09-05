@@ -91,6 +91,11 @@ export class SelectScene extends Phaser.Scene {
     this.add
       .text(DESIGN_WIDTH / 2, 72, hint, { fontFamily: FONT, fontSize: "14px", color: "#bfbfbf" })
       .setOrigin(0.5);
+    if (this.mode === "freePlay" && this.phase === "player" && selectRoster().unlockedBosses.length > 0) {
+      this.add
+        .text(DESIGN_WIDTH / 2, 94, `${selectRoster().unlockedBosses.length} BOSSES UNLOCKED`, textStyle(13, "#9fff9f"))
+        .setOrigin(0.5);
+    }
 
     const back = this.add.text(36, 28, "← TITLE", textStyle(16, "#d9d9d9")).setInteractive({ useHandCursor: true });
     back.on("pointerup", () => this.scene.start("Title"));
