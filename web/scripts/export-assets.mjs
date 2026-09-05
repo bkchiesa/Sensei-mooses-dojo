@@ -16,6 +16,7 @@ const out = path.join(root, "web/public/assets");
 const fightersOut = path.join(out, "fighters");
 const fighterSheets = path.join(root, "web/fighter-sheets");
 const uiSelectSrc = path.join(root, "dojo-art/finals/ui/select");
+const uiSelectConcepts = path.join(root, "dojo-art/concepts/ui/select");
 const uiSelectOut = path.join(out, "ui/select");
 const dojoFightersSrc = path.join(root, "dojo-art/finals/fighters");
 const mooseSheetIdle = path.join(fighterSheets, "senseiMoose", "idle_00.png");
@@ -162,25 +163,31 @@ Starters (matt / simon / rich / amanda / jb) ship full idle/punch/kick/jump/bloc
 
 fs.rmSync(uiSelectOut, { recursive: true, force: true });
 fs.mkdirSync(uiSelectOut, { recursive: true });
-if (fs.existsSync(uiSelectSrc)) {
-  for (const file of fs.readdirSync(uiSelectSrc)) {
+function copySelectDir(src) {
+  if (!fs.existsSync(src)) return;
+  for (const file of fs.readdirSync(src)) {
     if (file === "README.md" || file === "plate.json") continue;
-    fs.copyFileSync(path.join(uiSelectSrc, file), path.join(uiSelectOut, file));
+    fs.copyFileSync(path.join(src, file), path.join(uiSelectOut, file));
   }
 }
-const plateCandidates = ["hampton-roads-map.png", "select_map_plate.png", "hampton-roads-map.svg"];
+copySelectDir(uiSelectConcepts);
+copySelectDir(uiSelectSrc);
+const plateCandidates = ["hampton-roads-map.png", "select_map_plate.png", "select-map-plate.png", "hampton-roads-map.svg"];
+const screenCandidates = ["select_screen.png", "select-screen.png"];
 const plateFile = plateCandidates.find((name) => fs.existsSync(path.join(uiSelectOut, name))) ?? null;
+const screenFile = screenCandidates.find((name) => fs.existsSync(path.join(uiSelectOut, name))) ?? null;
 fs.writeFileSync(
   path.join(uiSelectOut, "plate.json"),
   JSON.stringify(
     {
       file: plateFile,
+      screen: screenFile,
       bounds: { lonMin: -76.76, lonMax: -76.28, latMin: 36.955, latMax: 37.3 },
       projection: "equirectangular",
       standardParallelDeg: 37.1275,
       platePx: { width: 1111, height: 1000 },
       uv: "u=(lon-lonMin)/(lonMax-lonMin) west→east; v=1-(lat-latMin)/(latMax-latMin) north→south",
-      note: "Full image = full bounds, no padding. Code draws landmark dots. PNG replaces the SVG placeholder without moving dots. Keep in sync with web/src/data/peninsula.ts.",
+      note: "Finals in dojo-art/finals/ui/select overwrite concepts. Code draws landmark dots. PNG plate replaces the SVG placeholder without moving dots.",
     },
     null,
     2,

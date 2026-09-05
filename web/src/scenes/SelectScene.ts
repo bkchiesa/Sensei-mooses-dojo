@@ -49,12 +49,11 @@ export class SelectScene extends Phaser.Scene {
   create(): void {
     applyQueryUnlocks();
     this.cameras.main.setBackgroundColor(0x2c2a58);
-    this.buildWash();
     this.maybeLoadMapArt(() => this.buildLayout());
   }
 
   private maybeLoadMapArt(then: () => void): void {
-    if (this.textures.exists("ui-select-map")) {
+    if (this.textures.exists("ui-select-map") || this.textures.exists("ui-select-screen")) {
       then();
       return;
     }
@@ -64,18 +63,20 @@ export class SelectScene extends Phaser.Scene {
     void fetch("assets/ui/select/plate.json")
       .then((res) => (res.ok ? res.json() : { file: "hampton-roads-map.svg" }))
       .catch(() => ({ file: "hampton-roads-map.svg" }))
-      .then((meta: { file?: string | null }) => {
+      .then((meta: { file?: string | null; screen?: string | null }) => {
         if (!this.sys.isActive() || this.fightLabel) return;
-        const file = meta.file;
-        if (!file) {
+        let queued = 0;
+        const enqueue = (key: string, file: string) => {
+          const url = `assets/ui/select/${file}`;
+          if (file.endsWith(".svg")) this.load.svg(key, url, PIXEL_PLATE_PX);
+          else this.load.image(key, url);
+          queued += 1;
+        };
+        if (meta.file) enqueue("ui-select-map", meta.file);
+        if (meta.screen) enqueue("ui-select-screen", meta.screen);
+        if (!queued) {
           then();
           return;
-        }
-        const url = `assets/ui/select/${file}`;
-        if (file.endsWith(".svg")) {
-          this.load.svg("ui-select-map", url, PIXEL_PLATE_PX);
-        } else {
-          this.load.image("ui-select-map", url);
         }
         this.load.once("complete", () => then());
         this.load.once("loaderror", () => then());
@@ -86,6 +87,7 @@ export class SelectScene extends Phaser.Scene {
 
   private buildLayout(): void {
     if (!this.sys.isActive() || this.fightLabel) return;
+    this.buildWash();
     this.buildNav();
     this.buildPortraits();
     this.buildMap();
@@ -115,6 +117,15 @@ export class SelectScene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x2c2a58, 1);
     g.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
+    if (this.textures.exists("ui-select-screen")) {
+      const src = this.textures.get("ui-select-screen").getSourceImage() as { width?: number };
+      if (src?.width && src.width >= 8) {
+        const art = this.add.image(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "ui-select-screen");
+        art.setDisplaySize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        art.setAlpha(0.28);
+        this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x140d1f, 0.45);
+      }
+    }
     for (let i = 0; i < 7; i++) {
       const label = this.add
         .text(-80 + i * 220, 40 + (i % 2) * 80, "SENSEI MOOSE'S DOJO", {

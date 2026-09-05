@@ -266,7 +266,7 @@ Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
 - **PLAYER SELECT** label
 - Bottom fighter headshot grid
 
-Pixel map plate: drop `hampton-roads-map.png` in `dojo-art/finals/ui/select/` using the lon/lat box in that README. Placeholder SVG matches the same UV so the B-faithful plate can replace it without moving dots. Free Play stage pick is a map-dot tap.
+Pixel map plate: drop locked `select_map_plate.png` (or `hampton-roads-map.png`) in `dojo-art/finals/ui/select/` using the lon/lat box in that README. Optional `select_screen.png` is a wash behind the live chrome. Concepts may sit in `dojo-art/concepts/ui/select/` until finals copy. Placeholder SVG matches the same UV so the plate can replace it without moving dots. Free Play stage pick is a map-dot tap.
 
 ### Fighter anim sheets (Pixel)
 
