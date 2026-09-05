@@ -4,7 +4,7 @@
  *
  * Source of truth: SenseiMoosesDojo/Assets.xcassets/<name>.imageset/<name>.png
  * Arcade + landmark stages copy full parallax (sky / far / mid / master / near).
- * Fighter drop-in folders get idle placeholders until Pixel delivers full sheets.
+ * Fighter folders: catalog idle, then dojo-art/finals/fighters, then web/fighter-sheets overlay.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -17,9 +17,41 @@ const fightersOut = path.join(out, "fighters");
 const fighterSheets = path.join(root, "web/fighter-sheets");
 const uiSelectSrc = path.join(root, "dojo-art/finals/ui/select");
 const uiSelectOut = path.join(out, "ui/select");
+const dojoFightersSrc = path.join(root, "dojo-art/finals/fighters");
 const mooseSheetIdle = path.join(fighterSheets, "senseiMoose", "idle_00.png");
 
 const ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"];
+const STARTER_IDS = ["matt", "simon", "rich", "amanda", "jb"];
+
+function listPixelFrames(dir, id) {
+  if (!dir || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
+  const frames = [];
+  const prefixed = new RegExp(`^(?:fighter|boss)_${id}_(idle|punch|kick|jump|block|crouch|sweep)_(\\d+)\\.png$`, "i");
+  const short = /^(idle|punch|kick|jump|block|crouch|sweep)_(\d+)\.png$/i;
+  for (const file of fs.readdirSync(dir)) {
+    if (!file.endsWith(".png") || /contact/i.test(file)) continue;
+    const match = prefixed.exec(file) || short.exec(file);
+    if (!match) continue;
+    frames.push({ destName: `${match[1].toLowerCase()}_${match[2]}.png`, from: path.join(dir, file) });
+  }
+  return frames;
+}
+
+function ingestPixelFrames(id, destDir) {
+  const layers = [
+    path.join(dojoFightersSrc, id),
+    path.join(dojoFightersSrc, id, "frames"),
+    path.join(fighterSheets, id),
+  ];
+  const latest = new Map();
+  for (const dir of layers) {
+    for (const frame of listPixelFrames(dir, id)) latest.set(frame.destName, frame.from);
+  }
+  for (const [destName, from] of latest) {
+    fs.copyFileSync(from, path.join(destDir, destName));
+  }
+  return latest;
+}
 
 function keep(filename) {
   if (filename.startsWith("moose_") || filename.startsWith("fighter_") || filename.startsWith("boss_")) return true;
@@ -80,16 +112,17 @@ for (const id of [...fighterIds].sort()) {
         : path.join(out, `boss_${id}_idle_00.png`);
   const dest = path.join(destDir, "idle_00.png");
   if (fs.existsSync(source)) fs.copyFileSync(source, dest);
-  if (id === "senseiMoose" && fs.existsSync(source)) {
-    fs.copyFileSync(source, path.join(out, "boss_senseiMoose_idle_00.png"));
-    copied.push("boss_senseiMoose_idle_00.png");
-  }
-
-  const overlay = path.join(fighterSheets, id);
-  if (fs.existsSync(overlay) && fs.statSync(overlay).isDirectory()) {
-    for (const file of fs.readdirSync(overlay)) {
-      if (!file.endsWith(".png")) continue;
-      fs.copyFileSync(path.join(overlay, file), path.join(destDir, file));
+  const pixel = ingestPixelFrames(id, destDir);
+  const idleOut = path.join(destDir, "idle_00.png");
+  if (fs.existsSync(idleOut)) {
+    if (id === "senseiMoose") {
+      fs.copyFileSync(idleOut, path.join(out, "boss_senseiMoose_idle_00.png"));
+      copied.push("boss_senseiMoose_idle_00.png");
+    } else if (pixel.has("idle_00.png")) {
+      const catalogName = fs.existsSync(path.join(out, `fighter_${id}_idle_00.png`))
+        ? `fighter_${id}_idle_00.png`
+        : `boss_${id}_idle_00.png`;
+      fs.copyFileSync(idleOut, path.join(out, catalogName));
     }
   }
 
@@ -107,8 +140,8 @@ for (const id of [...fighterIds].sort()) {
 const index = {
   convention: "web/public/assets/fighters/<id>/<anim>_00.png",
   anims: ANIM_NAMES,
-  note: "Placeholders until Pixel drops punch/kick/jump/block/crouch/sweep sheets. Number frames _00, _01, … and re-export.",
-  pixelStatus: "waiting",
+  note: "Pixel frames from dojo-art/finals/fighters/<id>/ (fighter_<id>_<anim>_NN.png) and web/fighter-sheets/<id>/<anim>_NN.png. Missing anims stretch idle.",
+  pixelStatus: STARTER_IDS.every((id) => (fighters[id]?.punch?.length ?? 0) > 0) ? "starters" : "partial",
   fighters,
 };
 
@@ -117,22 +150,13 @@ fs.writeFileSync(
   path.join(fightersOut, "README.md"),
   `# Fighter animation drop-in
 
-Pixel: drop frames here, then run \`npm run export-assets\` (or just keep files that match this layout if you change the exporter).
+Generated. Sources, in overlay order:
 
-\`\`\`
-web/public/assets/fighters/<id>/
-  idle_00.png
-  punch_00.png
-  kick_00.png
-  jump_00.png
-  block_00.png
-  crouch_00.png
-  sweep_00.png
-\`\`\`
+1. Catalog idle placeholder
+2. \`dojo-art/finals/fighters/<id>/fighter_<id>_<anim>_NN.png\`
+3. \`web/fighter-sheets/<id>/<anim>_NN.png\` (wins)
 
-Ids match the roster (\`matt\`, \`misty\`, \`senseiMoose\`, …). Extra frames: \`<anim>_01.png\`, \`_02\`, … listed in \`index.json\`.
-
-Until those files exist, the web game stretches the idle pose for every anim.
+Starters (matt / simon / rich / amanda / jb) ship full idle/punch/kick/jump/block/crouch/sweep sets. Bosses and Moose stretch idle until their folders land.
 `,
 );
 

@@ -16,3 +16,5 @@ web/fighter-sheets/<id>/
 Extra frames: `punch_01.png`, `punch_02.png`, … Roster ids match the catalog (`matt`, `simon`, `misty`, `senseiMoose`, …).
 
 Until a file exists for an anim, the web game stretches that fighter’s idle pose.
+
+Starters also land under `dojo-art/finals/fighters/<id>/fighter_<id>_<anim>_NN.png`. This folder wins when both exist (use it for pose-bar overwrites).

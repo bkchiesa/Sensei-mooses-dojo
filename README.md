@@ -270,9 +270,11 @@ Pixel map plate: drop `hampton-roads-map.png` in `dojo-art/finals/ui/select/` us
 
 ### Fighter anim sheets (Pixel)
 
+**Starters** (`matt`, `simon`, `rich`, `amanda`, `jb`) have full action sets in `dojo-art/finals/fighters/<id>/` (`fighter_<id>_idle_00` … `sweep_03`). Export copies them into `web/public/assets/fighters/<id>/` so punch/kick/jump/block/crouch/sweep play in Phaser. Display height stays `FIGHTER_HEIGHT` 420 (2×).
+
 **Sensei Moose pose-bar FINALS** drop in `web/fighter-sheets/senseiMoose/` (`idle_00` … `sweep_03`). Export prefers that idle over `moose_title_idle` and writes `boss_senseiMoose_idle_00` for fight/select. Height stays `MOOSE_HEIGHT_SCALE` 1.3. Ultimates unchanged.
 
-Until other roster sheets exist, those fighters **stretch each idle**. Drop more sheets here and re-export:
+Bosses still **stretch each idle** until their folders land. Overlay more sheets here and re-export:
 
 ```
 web/fighter-sheets/<id>/idle_00.png

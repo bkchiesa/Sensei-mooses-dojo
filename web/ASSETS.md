@@ -5,7 +5,7 @@ Playable sprites are **copied** from the native catalog. Do not hand-edit files 
 | Web file | Source |
 | --- | --- |
 | `web/public/assets/<name>.png` | `SenseiMoosesDojo/Assets.xcassets/<name>.imageset/<name>.png` |
-| `web/public/assets/fighters/<id>/<anim>_00.png` | Idle placeholder from catalog, or Pixel frames from `web/fighter-sheets/<id>/` |
+| `web/public/assets/fighters/<id>/<anim>_NN.png` | Pixel frames from `dojo-art/finals/fighters/<id>/` (and `web/fighter-sheets/<id>/` overlay) |
 
 `npm run export-assets` (also run by `dev` / `build`) copies:
 
@@ -14,7 +14,7 @@ Playable sprites are **copied** from the native catalog. Do not hand-edit files 
 - Boss portraits / idles: `boss_<id>_portrait`, `boss_<id>_idle_00`
 - **All wired stages, full parallax:** `stage1_*`, `stage2_*`, `stage3_*`, and `stage_<landmark>_*` (`sky` / `far` / `mid` / `master` / `near`) for Batch A–C (Oyster Point … Poquoson, including Busch / Hampton / Poquoson)
 - Ultimate frames: `ult_<id>_00`, plus Austin `ult_austin_00`…`14` and Sensei Moose extras
-- Fighter anim folders + `fighters/index.json` (idle placeholders until Pixel sheets land)
+- Fighter anim folders + `fighters/index.json` (starters have full punch/kick/jump/block/crouch/sweep; bosses/Moose still idle-fallback)
 
 FightScene loads the current stage’s layers on demand (not the whole catalog). Background `sky` / `far` / `mid` parallax with the camera; **`master` / `near` stay pinned** so the fight floor does not slide.
 
@@ -22,7 +22,7 @@ FightScene loads the current stage’s layers on demand (not the whole catalog).
 
 ## Fighter animation drop-in (Pixel)
 
-Expected layout (either committed under `web/fighter-sheets/` or listed in the generated `index.json`):
+Pixel FINALS live in `dojo-art/finals/fighters/<id>/fighter_<id>_<anim>_NN.png` (see `INDEX.md` there). Optional overlay:
 
 ```
 web/fighter-sheets/<id>/
@@ -35,7 +35,7 @@ web/fighter-sheets/<id>/
   sweep_00.png
 ```
 
-Number extra frames `_01`, `_02`, … The Phaser anim system (`web/src/game/anims.ts`) loads whatever `index.json` lists and falls back to a scaled idle for missing anims.
+Number extra frames `_01`, `_02`, … Phaser (`web/src/game/anims.ts`) loads whatever `index.json` lists and falls back to a scaled idle for missing anims. Display height is `FIGHTER_HEIGHT` 420 (2×).
 
 **Sensei Moose:** if `web/fighter-sheets/senseiMoose/idle_00.png` exists, export uses it (not `moose_title_idle`) and also writes `boss_senseiMoose_idle_00.png` so fight/select load the pose-bar idle. Remaining Moose frames are copied into `fighters/senseiMoose/` and listed in `index.json`. Magenta chroma is left as Pixel delivered it.
 
