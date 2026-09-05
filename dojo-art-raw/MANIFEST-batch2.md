@@ -74,8 +74,21 @@ Dense dark curly afro, medium-tan, smirk. Belt: **black**. Chest: gold/black **f
 - `dojo-art-raw/fighters/kasey/raw_kasey_crouch_sheet.png`
 - `dojo-art-raw/fighters/kasey/raw_kasey_sweep_sheet.png`
 
+## Peak pose pass (visual)
+
+| Fighter | idle | punch≠idle | kick≠idle | jump airborne | block X | crouch deep | sweep low |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| johnk | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| finley | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| hudson | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| michael | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| kasey | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+
+Self-reject rule applied: punch≈idle, kick≈idle, or jump feet on ground at peak → regen. **0 regenerations** after first-pass visual QA.
+
+Michael mole lock: large dark mole on left cheek (viewer's right) confirmed on idle + punch (and present on remaining sheets).
+
 ## Notes
 - Raw sheets are game-pipeline inputs (chroma magenta, not sliced). Downstream slice / import is a later step.
 - Artifact copies: `/opt/cursor/artifacts/assets/raw_<id>_<anim>_sheet.png` and `/opt/cursor/artifacts/batch2-pose/<id>/`.
-- Self-reject rule: punch≈idle, kick≈idle, or jump feet on ground at peak → regen.
 - Locked pose standard: Misty pose-bar redo (PR #10). This batch does not modify matt, misty, or batch1.
