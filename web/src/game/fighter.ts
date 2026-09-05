@@ -1,6 +1,7 @@
 import Phaser from "phaser";
-import { CHARGE_PER_HIT, FIGHTER_HEIGHT, ULT_DAMAGE_FRACTION } from "../config";
-import type { FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
+import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
+import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
+import { animPackFor, hasDedicatedFrames } from "./anims";
 
 export type AttackKind = "punch" | "kick";
 
@@ -13,7 +14,7 @@ export class Fighter {
   readonly fighter: FighterDef;
   readonly isPlayer: boolean;
   readonly maxHP = 100;
-  readonly bodyHeight = FIGHTER_HEIGHT;
+  readonly bodyHeight: number;
 
   hp = 100;
   facing = 1;
@@ -24,8 +25,11 @@ export class Fighter {
   isHit = false;
   isKO = false;
   isUltimate = false;
+  isBlocking = false;
   activeAttack: AttackKind | null = null;
   ultimateMeter = 0;
+  /** Incoming damage scale (CPU tankiness / player fragility). */
+  incomingMul = 1;
 
   readonly root: Phaser.GameObjects.Container;
   readonly body: Phaser.GameObjects.Image;
@@ -41,13 +45,20 @@ export class Fighter {
   private ultTween: Phaser.Tweens.TweenChain | null = null;
 
   private readonly moveSpeed = 280;
-  private readonly jumpVelocity = 920;
+  private readonly jumpVelocity: number;
   private readonly gravity = -2600;
+  private currentAnim: FighterAnimName = "idle";
+  private animFrame = 0;
+  private animElapsed = 0;
+  private blockElapsed = 0;
+  private blockDuration = 0.38;
 
   constructor(scene: Phaser.Scene, fighter: FighterDef, isPlayer: boolean, x: number, y: number) {
     this.scene = scene;
     this.fighter = fighter;
     this.isPlayer = isPlayer;
+    this.bodyHeight = fighter.id === "senseiMoose" ? Math.round(FIGHTER_HEIGHT * MOOSE_HEIGHT_SCALE) : FIGHTER_HEIGHT;
+    this.jumpVelocity = 920 * Math.sqrt(this.bodyHeight / 210);
     this.idleKey = scene.textures.exists(fighter.idle) ? fighter.idle : this.fallbackKey();
 
     this.root = scene.add.container(x, y);
@@ -67,7 +78,26 @@ export class Fighter {
 
   private fitBody(): void {
     if (this.body.height <= 0) return;
-    this.body.setDisplaySize((this.body.width / this.body.height) * FIGHTER_HEIGHT, FIGHTER_HEIGHT);
+    this.body.setDisplaySize((this.body.width / this.body.height) * this.bodyHeight, this.bodyHeight);
+  }
+
+  private poseKey(anim: FighterAnimName, frame = 0): string | null {
+    const frames = animPackFor(this.fighter.id).frames[anim];
+    if (frames && frames[frame] && this.scene.textures.exists(frames[frame])) return frames[frame];
+    if (anim === "idle" && this.scene.textures.exists(this.idleKey)) return this.idleKey;
+    return null;
+  }
+
+  playAnim(anim: FighterAnimName, force = false): void {
+    if (!force && this.currentAnim === anim) return;
+    this.currentAnim = anim;
+    this.animFrame = 0;
+    this.animElapsed = 0;
+    const key = this.poseKey(anim, 0) ?? this.idleKey;
+    if (this.scene.textures.exists(key)) {
+      this.body.setTexture(key);
+      this.fitBody();
+    }
   }
 
   get x(): number {
@@ -98,7 +128,7 @@ export class Fighter {
   }
 
   setWalk(left: boolean, right: boolean): void {
-    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO) {
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || this.isBlocking) {
       if (this.onGround) this.vx = 0;
       return;
     }
@@ -116,33 +146,53 @@ export class Fighter {
   }
 
   jump(): void {
-    if (!this.onGround || this.isHit || this.isKO || this.isUltimate) return;
+    if (!this.onGround || this.isHit || this.isKO || this.isUltimate || this.isBlocking) return;
     this.vy = this.jumpVelocity;
     this.onGround = false;
+    this.playAnim("jump");
+  }
+
+  startBlock(duration = 0.38): boolean {
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || !this.onGround) return false;
+    this.isBlocking = true;
+    this.blockElapsed = 0;
+    this.blockDuration = duration;
+    this.vx = 0;
+    this.playAnim("block");
+    if (!hasDedicatedFrames(this.fighter.id, "block")) {
+      this.body.setScale(1, 0.92);
+    }
+    return true;
   }
 
   startAttack(kind: AttackKind): boolean {
-    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || !this.onGround) return false;
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || this.isBlocking || !this.onGround) return false;
     this.isAttacking = true;
     this.activeAttack = kind;
     this.attackElapsed = 0;
     this.didConnect = false;
     this.vx = 0;
-    const lift = kind === "punch" ? 8 : -4;
-    this.scene.tweens.add({
-      targets: this.body,
-      x: 10,
-      y: -lift,
-      duration: ATTACK[kind].activeStart * 1000,
-      yoyo: true,
-      hold: (ATTACK[kind].activeEnd - ATTACK[kind].activeStart) * 1000,
-    });
+    this.playAnim(kind);
+    if (!hasDedicatedFrames(this.fighter.id, kind)) {
+      const lift = kind === "punch" ? 8 : -4;
+      this.scene.tweens.add({
+        targets: this.body,
+        x: 10,
+        y: -lift,
+        duration: ATTACK[kind].activeStart * 1000,
+        yoyo: true,
+        hold: (ATTACK[kind].activeEnd - ATTACK[kind].activeStart) * 1000,
+      });
+    }
     return true;
   }
 
   applyHit(damage: number, fromX: number): void {
     if (this.isKO) return;
-    this.hp = Math.max(0, this.hp - damage);
+    let incoming = damage * this.incomingMul;
+    if (this.isBlocking) incoming *= 0.28;
+    this.hp = Math.max(0, this.hp - incoming);
+    this.isBlocking = false;
     this.isHit = true;
     this.hitElapsed = 0;
     this.isAttacking = false;
@@ -176,15 +226,17 @@ export class Fighter {
     if (!this.isAttacking || !this.activeAttack || this.didConnect) return null;
     const kind = ATTACK[this.activeAttack];
     if (this.attackElapsed < kind.activeStart || this.attackElapsed > kind.activeEnd) return null;
-    const w = kind.range;
-    const h = this.activeAttack === "kick" ? 36 : 28;
+    const reach = this.bodyHeight / 210;
+    const w = kind.range * reach;
+    const h = (this.activeAttack === "kick" ? 36 : 28) * reach;
     const originX = this.facing > 0 ? this.x + 10 : this.x - 10 - w;
     const originY = this.y - this.bodyHeight * 0.55;
     return new Phaser.Geom.Rectangle(originX, originY, w, h);
   }
 
   hurtbox(): Phaser.Geom.Rectangle {
-    return new Phaser.Geom.Rectangle(this.x - 32, this.y - this.bodyHeight * 0.9, 64, this.bodyHeight * 0.9);
+    const w = 64 * (this.bodyHeight / 210);
+    return new Phaser.Geom.Rectangle(this.x - w / 2, this.y - this.bodyHeight * 0.9, w, this.bodyHeight * 0.9);
   }
 
   markConnected(): void {
@@ -203,6 +255,7 @@ export class Fighter {
     }
     this.ultimateMeter = 0;
     this.isUltimate = true;
+    this.isBlocking = false;
     this.ultimateElapsed = 0;
     this.ultimateDidConnect = false;
     this.vx = 0;
@@ -375,10 +428,7 @@ export class Fighter {
     this.body.setAlpha(1);
     this.body.setPosition(0, 0);
     this.body.clearTint();
-    if (this.scene.textures.exists(this.idleKey)) {
-      this.body.setTexture(this.idleKey);
-      this.fitBody();
-    }
+    this.playAnim("idle", true);
   }
 
   update(dt: number, groundY: number, minX: number, maxX: number): void {
@@ -402,6 +452,16 @@ export class Fighter {
         this.activeAttack = null;
         this.strike.setFillStyle(0xffffff, 0);
         this.body.setPosition(0, 0);
+        this.playAnim(this.onGround ? "idle" : "jump");
+      }
+    }
+
+    if (this.isBlocking) {
+      this.blockElapsed += dt;
+      if (this.blockElapsed >= this.blockDuration) {
+        this.isBlocking = false;
+        this.body.setScale(1);
+        this.playAnim("idle");
       }
     }
 
@@ -426,9 +486,32 @@ export class Fighter {
     }
 
     this.x = Phaser.Math.Clamp(this.x, minX, maxX);
+
+    if (!this.onGround && !this.isAttacking && !this.isUltimate && !this.isHit && !this.isKO) {
+      this.playAnim("jump");
+    } else if (this.onGround && this.currentAnim === "jump" && !this.isAttacking && !this.isUltimate) {
+      this.playAnim("idle");
+    }
+
+    this.cycleAnimFrames(dt);
   }
 
-  resetRound(x: number, y: number, facingRight: boolean): void {
+  private cycleAnimFrames(dt: number): void {
+    const frames = animPackFor(this.fighter.id).frames[this.currentAnim];
+    if (!frames || frames.length <= 1) return;
+    this.animElapsed += dt;
+    const fps = this.currentAnim === "idle" ? 8 : 12;
+    if (this.animElapsed < 1 / fps) return;
+    this.animElapsed = 0;
+    this.animFrame = (this.animFrame + 1) % frames.length;
+    const key = frames[this.animFrame];
+    if (this.scene.textures.exists(key)) {
+      this.body.setTexture(key);
+      this.fitBody();
+    }
+  }
+
+  resetRound(x: number, y: number, facingRight: boolean, opts?: { preserveMeter?: boolean }): void {
     this.stopUltTween();
     this.root.setRotation(0);
     this.hp = this.maxHP;
@@ -436,8 +519,9 @@ export class Fighter {
     this.isHit = false;
     this.isAttacking = false;
     this.isUltimate = false;
+    this.isBlocking = false;
     this.activeAttack = null;
-    this.ultimateMeter = 0;
+    if (!opts?.preserveMeter) this.ultimateMeter = 0;
     this.ultimateDidConnect = false;
     this.vx = 0;
     this.vy = 0;

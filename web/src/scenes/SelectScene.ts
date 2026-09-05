@@ -85,7 +85,7 @@ export class SelectScene extends Phaser.Scene {
         : this.phase === "opponent"
           ? `${this.playerPick?.displayName ?? "You"} vs …`
           : this.mode === "arcade"
-            ? "Starters always available  ·  Beat the dummy, then the boss ladder"
+            ? "Starters  ·  Best of 3  ·  Each boss has a home landmark  ·  Next Fight to advance"
             : "Starters + unlocked bosses  ·  then opponent  ·  then a stage";
     this.add
       .text(DESIGN_WIDTH / 2, 72, hint, { fontFamily: FONT, fontSize: "14px", color: "#bfbfbf" })

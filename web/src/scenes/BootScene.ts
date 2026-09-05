@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
 import { BOSSES, STARTERS } from "../data/catalog";
+import { fighterAnimUrl, parseAnimIndex, registerAnimPack, type FighterAnimName } from "../game/anims";
 import { applyQueryUnlocks } from "../game/storage";
 
 export class BootScene extends Phaser.Scene {
@@ -53,6 +54,7 @@ export class BootScene extends Phaser.Scene {
     for (const key of keys) {
       this.load.image(key, `assets/${key}.png`);
     }
+    this.load.json("fighter-anims", "assets/fighters/index.json");
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
       console.warn("Missing art (placeholder will be used):", file.key);
     });
@@ -66,7 +68,38 @@ export class BootScene extends Phaser.Scene {
       this.ensurePlaceholder(f.portrait, f.accent);
       this.ensurePlaceholder(f.idle, f.accent);
     }
-    this.scene.start("Title");
+    this.loadFighterAnimsThen("Title");
+  }
+
+  private loadFighterAnimsThen(next: string): void {
+    const index = parseAnimIndex(this.cache.json.get("fighter-anims"));
+    if (!index) {
+      this.scene.start(next);
+      return;
+    }
+    const pending: { key: string; url: string }[] = [];
+    for (const [id, anims] of Object.entries(index.fighters)) {
+      const frames: Partial<Record<FighterAnimName, string[]>> = {};
+      for (const [anim, files] of Object.entries(anims)) {
+        if (!files?.length) continue;
+        const keys: string[] = [];
+        files.forEach((file, i) => {
+          const key = `fanim-${id}-${anim}-${String(i).padStart(2, "0")}`;
+          keys.push(key);
+          pending.push({ key, url: fighterAnimUrl(id, anim as FighterAnimName, file) });
+        });
+        frames[anim as FighterAnimName] = keys;
+      }
+      registerAnimPack({ id, frames });
+    }
+    const missing = pending.filter((p) => !this.textures.exists(p.key));
+    if (!missing.length) {
+      this.scene.start(next);
+      return;
+    }
+    for (const file of missing) this.load.image(file.key, file.url);
+    this.load.once("complete", () => this.scene.start(next));
+    this.load.start();
   }
 
   private ensurePlaceholder(key: string, color: number): void {

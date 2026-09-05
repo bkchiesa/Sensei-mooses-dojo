@@ -81,7 +81,7 @@ export class TitleScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
     this.add
-      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 48, "Street-fight  ·  play in the browser  ·  Stage 1 Lions Bridge", {
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 48, "Street-fight  ·  best of 3  ·  play in the browser", {
         fontFamily: FONT,
         fontSize: "18px",
         color: "#d8d0dc",

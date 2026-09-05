@@ -5,18 +5,36 @@ Playable sprites are **copied** from the native catalog. Do not hand-edit files 
 | Web file | Source |
 | --- | --- |
 | `web/public/assets/<name>.png` | `SenseiMoosesDojo/Assets.xcassets/<name>.imageset/<name>.png` |
+| `web/public/assets/fighters/<id>/<anim>_00.png` | Idle placeholder from catalog, or Pixel frames from `web/fighter-sheets/<id>/` |
 
 `npm run export-assets` (also run by `dev` / `build`) copies:
 
 - Title moose: `moose_title_*`
 - Starter portraits / idles: `fighter_<id>_portrait`, `fighter_<id>_idle_00`
 - Boss portraits / idles: `boss_<id>_portrait`, `boss_<id>_idle_00`
-- Arcade stages: `stage1_*`, `stage2_*`, `stage3_*` (full sky / far / mid / master / near)
-- Extra landmarks: `stage_<id>_master` only (Batch A–C: oysterpoint … poquoson, including Busch / Hampton / Poquoson)
+- **All wired stages, full parallax:** `stage1_*`, `stage2_*`, `stage3_*`, and `stage_<landmark>_*` (`sky` / `far` / `mid` / `master` / `near`) for Batch A–C (Oyster Point … Poquoson, including Busch / Hampton / Poquoson)
 - Ultimate frames: `ult_<id>_00`, plus Austin `ult_austin_00`…`14` and Sensei Moose extras
+- Fighter anim folders + `fighters/index.json` (idle placeholders until Pixel sheets land)
 
-Parallax layers for extra landmarks stay in the native catalog. Free Play loads the master plate on demand.
+FightScene loads the current stage’s layers on demand (not the whole catalog). Background `sky` / `far` / `mid` parallax with the camera; **`master` / `near` stay pinned** so the fight floor does not slide.
 
 **Sensei Moose** has no `boss_senseiMoose_*` imageset yet. The web game uses `moose_title_idle` as portrait/idle, matching the SpriteKit fallback.
+
+## Fighter animation drop-in (Pixel)
+
+Expected layout (either committed under `web/fighter-sheets/` or listed in the generated `index.json`):
+
+```
+web/fighter-sheets/<id>/
+  idle_00.png
+  punch_00.png
+  kick_00.png
+  jump_00.png
+  block_00.png
+  crouch_00.png
+  sweep_00.png
+```
+
+Number extra frames `_01`, `_02`, … The Phaser anim system (`web/src/game/anims.ts`) loads whatever `index.json` lists and falls back to a scaled idle for missing anims.
 
 A `manifest.json` listing copied filenames is written next to the PNGs (gitignored).

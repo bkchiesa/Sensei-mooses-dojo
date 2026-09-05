@@ -15,6 +15,7 @@ interface PadButton {
 export class VirtualControls {
   leftHeld = false;
   rightHeld = false;
+  enabled = true;
   onJump?: () => void;
   onPunch?: () => void;
   onKick?: () => void;
@@ -101,6 +102,7 @@ export class VirtualControls {
   }
 
   private onPointer(p: Phaser.Input.Pointer, isDown: boolean): void {
+    if (!this.enabled) return;
     const name = this.hit(p.worldX, p.worldY);
     const previous = this.pointers.get(p.id);
     if (previous === name) return;
@@ -141,6 +143,11 @@ export class VirtualControls {
   }
 
   pollKeyboard(): void {
+    if (!this.enabled) {
+      this.leftHeld = false;
+      this.rightHeld = false;
+      return;
+    }
     const down = (keys: Phaser.Input.Keyboard.Key[]) => keys.some((k) => k.isDown);
     const just = (keys: Phaser.Input.Keyboard.Key[]) => keys.some((k) => Phaser.Input.Keyboard.JustDown(k));
 
@@ -168,11 +175,25 @@ export class VirtualControls {
     b.circle.setStrokeStyle(2, ready ? GOLD_NUM : 0xffffff, ready ? 1 : 0.2);
   }
 
+  setEnabled(on: boolean): void {
+    this.enabled = on;
+    if (!on) {
+      this.leftHeld = false;
+      this.rightHeld = false;
+      this.pointers.clear();
+    }
+    for (const b of this.buttons) {
+      if (b.name === "ultimate") continue;
+      b.circle.setAlpha(on ? 1 : 0.28);
+    }
+    if (!on) this.setUltimateReady(false);
+  }
+
   reset(): void {
     this.leftHeld = false;
     this.rightHeld = false;
     this.pointers.clear();
-    for (const b of this.buttons) b.circle.setAlpha(1);
+    for (const b of this.buttons) b.circle.setAlpha(this.enabled ? 1 : 0.28);
     this.setUltimateReady(false);
   }
 
