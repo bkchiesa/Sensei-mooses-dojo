@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
 import { unlockAllBosses } from "../game/storage";
-import { drawTitleInterior, drawTitleLogo, textureReady, TITLE_ART } from "../game/titleArt";
+import { drawTitleInterior, drawTitleLogo, hasTitleLogo, textureReady, TITLE_ART } from "../game/titleArt";
 import { textStyle } from "../game/ui";
 
 export class TitleScene extends Phaser.Scene {
@@ -34,14 +34,12 @@ export class TitleScene extends Phaser.Scene {
   }
 
   /**
-   * Backdrop hook: locked `title-dojo-interior` when present, else the
-   * current stage wash. Pixel can drop the interior later without touching
-   * Arcade / Free Play / Fight.
+   * Locked `title_bg_dojo` full-bleed when Boot loaded it; else the
+   * current stage wash. Arcade / Free Play / Fight stay untouched.
    */
   private buildWash(): void {
     if (drawTitleInterior(this)) {
-      this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x0f081a, 0.28);
-      this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 45, DESIGN_WIDTH, 90, 0x2e1a12);
+      this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 45, DESIGN_WIDTH, 90, 0x1a0c10, 0.55);
       return;
     }
     const wash = this.has("stage1_sky") ? "stage1_sky" : this.has("stage1_master") ? "stage1_master" : null;
@@ -53,7 +51,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private buildMoose(): void {
-    if (this.has(TITLE_ART.logo)) return;
+    if (hasTitleLogo(this)) return;
     const key = this.has(TITLE_ART.moose) ? TITLE_ART.moose : null;
     const h = DESIGN_HEIGHT * 0.4;
     const y = DESIGN_HEIGHT * 0.54;
@@ -78,35 +76,41 @@ export class TitleScene extends Phaser.Scene {
   }
 
   /**
-   * Wordmark hook: `title-logo` (static now; Boot can load a spritesheet
-   * later and play it here). Falls back to the live text title.
+   * Locked `title_logo_00–07` glow loop (hero / single frame if the loop
+   * is incomplete). Falls back to the live text title.
    */
   private buildTitle(): void {
-    const y = DESIGN_HEIGHT * 0.18;
+    const y = hasTitleLogo(this) ? DESIGN_HEIGHT * 0.38 : DESIGN_HEIGHT * 0.18;
     const logo = drawTitleLogo(this, DESIGN_WIDTH / 2, y);
+    const tagY = logo ? logo.y + logo.displayHeight * 0.5 + 14 : DESIGN_HEIGHT * 0.18 + 48;
+    const grantUnlock = () => {
+      if (this.menuConsumed) return;
+      this.titleTaps += 1;
+      if (this.titleTaps >= 8) {
+        unlockAllBosses();
+        this.add.text(DESIGN_WIDTH / 2, tagY + 52, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
+      }
+    };
     if (logo) {
-      this.tweens.add({
-        targets: logo,
-        scale: logo.scale * 1.04,
-        duration: 900,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
+      logo.setInteractive({ useHandCursor: true });
+      logo.on("pointerup", grantUnlock);
+      if (!logo.anims?.isPlaying) {
+        this.tweens.add({
+          targets: logo,
+          scale: logo.scale * 1.04,
+          duration: 900,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      }
     } else {
       this.add
         .text(DESIGN_WIDTH / 2 + 3, y + 3, "Sensei Moose's Dojo", textStyle(52, "#3f150a"))
         .setOrigin(0.5);
       const title = this.add.text(DESIGN_WIDTH / 2, y, "Sensei Moose's Dojo", textStyle(52, GOLD)).setOrigin(0.5);
       title.setInteractive({ useHandCursor: true });
-      title.on("pointerup", () => {
-        if (this.menuConsumed) return;
-        this.titleTaps += 1;
-        if (this.titleTaps >= 8) {
-          unlockAllBosses();
-          this.add.text(DESIGN_WIDTH / 2, y + 96, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
-        }
-      });
+      title.on("pointerup", grantUnlock);
       this.tweens.add({
         targets: title,
         scale: 1.045,
@@ -117,14 +121,14 @@ export class TitleScene extends Phaser.Scene {
       });
     }
     this.add
-      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 48, "Street-fight  ·  best of 3  ·  play in the browser", {
+      .text(DESIGN_WIDTH / 2, tagY, "Street-fight  ·  best of 3  ·  play in the browser", {
         fontFamily: FONT,
         fontSize: "18px",
         color: "#d8d0dc",
       })
       .setOrigin(0.5);
     this.add
-      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 72, "Stick / WASD move  ·  stick↑ or W jump  ·  J punch  ·  K kick  ·  U ult", {
+      .text(DESIGN_WIDTH / 2, tagY + 24, "Stick / WASD move  ·  stick↑ or W jump  ·  J punch  ·  K kick  ·  U ult", {
         fontFamily: FONT,
         fontSize: "14px",
         color: "#9a90a8",

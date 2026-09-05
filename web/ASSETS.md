@@ -45,14 +45,15 @@ Locked **map plate C** (`dojo-art/finals/ui/select/select-map-plate-C.png`) is t
 
 `export-assets` prefers `select-map-plate-C.png` and writes `plate.json`. The SVG placeholder remains a fallback. Landmark dots stay on real lon/lat (`PLATE_C_MAP_RECT` on the framed 1920×1080 plate).
 
-## Title splash hook (later)
+## Title splash (locked)
 
-Drop into `dojo-art/finals/ui/title/`:
+Locked files in `dojo-art/finals/ui/title/` (copied to `web/public/assets/ui/title/`):
 
-- `dojo-interior.png` → `title-dojo-interior`
-- `logo.png` → `title-logo` (spritesheet later for an animated logo)
+- `title_bg_dojo.png` → `title_bg_dojo` (full-bleed interior)
+- `title_logo_00.png` … `title_logo_07.png` → glow/breathe loop
+- `title_logo_hero.png` → static fallback / first-frame stand-in
 
-Boot already preloads those keys; Title uses them when present.
+`export-assets` writes `title.json` listing files that exist. Boot only preloads those URLs so iPad Safari does not 404 on missing frames. Legacy `dojo-interior.png` / `logo.png` load only if the locked names are absent and those files are present.
 
 ## Audio hook
 

@@ -245,10 +245,45 @@ fs.rmSync(uiTitleOut, { recursive: true, force: true });
 if (fs.existsSync(uiTitleSrc)) {
   fs.mkdirSync(uiTitleOut, { recursive: true });
   for (const file of fs.readdirSync(uiTitleSrc)) {
-    if (file === "README.md") continue;
+    if (file === "README.md" || file === "title.json") continue;
     fs.copyFileSync(path.join(uiTitleSrc, file), path.join(uiTitleOut, file));
   }
 }
+const titlePngs = fs.existsSync(uiTitleOut)
+  ? fs.readdirSync(uiTitleOut).filter((file) => file.endsWith(".png")).sort()
+  : [];
+const titleFrames = [];
+for (let i = 0; i < 8; i += 1) {
+  const name = `title_logo_${String(i).padStart(2, "0")}.png`;
+  if (titlePngs.includes(name)) titleFrames.push(name);
+}
+const titleBg = titlePngs.includes("title_bg_dojo.png")
+  ? "title_bg_dojo.png"
+  : titlePngs.includes("dojo-interior.png")
+    ? "dojo-interior.png"
+    : null;
+const titleHero = titlePngs.includes("title_logo_hero.png")
+  ? "title_logo_hero.png"
+  : titlePngs.includes("logo.png")
+    ? "logo.png"
+    : null;
+if (fs.existsSync(uiTitleOut)) {
+  fs.writeFileSync(
+    path.join(uiTitleOut, "title.json"),
+    JSON.stringify(
+      {
+        bg: titleBg,
+        hero: titleHero,
+        frames: titleFrames,
+        files: titlePngs,
+        note: "Locked splash filenames. Boot only preloads keys listed here.",
+      },
+      null,
+      2,
+    ),
+  );
+}
+console.log(`Title UI → bg=${titleBg ?? "none"} hero=${titleHero ?? "none"} frames=${titleFrames.length}`);
 
 fs.rmSync(audioOut, { recursive: true, force: true });
 if (fs.existsSync(audioSrc)) {
