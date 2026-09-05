@@ -1,6 +1,6 @@
 import SpriteKit
 
-/// On-screen pad: move L/R plus jump, punch, kick.
+/// On-screen pad: move L/R plus jump, punch, kick, and ★ ULT (dimmed until meter full).
 final class VirtualControls: SKNode {
     private(set) var leftHeld = false
     private(set) var rightHeld = false
@@ -8,6 +8,9 @@ final class VirtualControls: SKNode {
     var onJump: (() -> Void)?
     var onPunch: (() -> Void)?
     var onKick: (() -> Void)?
+    var onUltimate: (() -> Void)?
+
+    private var ultimateReady = false
 
     private var buttons: [String: SKShapeNode] = [:]
     private var tracked: [UITouch: String] = [:]
@@ -25,6 +28,8 @@ final class VirtualControls: SKNode {
         addButton(name: "jump", label: "JUMP", at: CGPoint(x: canvas.width - 96, y: actionY + 78), radius: 38, color: SKColor(red: 0.2, green: 0.45, blue: 0.75, alpha: 0.7))
         addButton(name: "punch", label: "PUNCH", at: CGPoint(x: canvas.width - 176, y: actionY), radius: 40, color: SKColor(red: 0.75, green: 0.25, blue: 0.2, alpha: 0.75))
         addButton(name: "kick", label: "KICK", at: CGPoint(x: canvas.width - 82, y: actionY - 8), radius: 40, color: SKColor(red: 0.8, green: 0.62, blue: 0.15, alpha: 0.75))
+        addButton(name: "ultimate", label: "★ ULT", at: CGPoint(x: canvas.width - 258, y: actionY + 74), radius: 40, color: SKColor(red: 0.55, green: 0.2, blue: 0.7, alpha: 0.85))
+        setUltimateReady(false)
     }
 
     @available(*, unavailable)
@@ -91,6 +96,16 @@ final class VirtualControls: SKNode {
         rightHeld = false
         tracked.removeAll()
         buttons.values.forEach { $0.alpha = 1 }
+        setUltimateReady(false)
+    }
+
+    func setUltimateReady(_ ready: Bool) {
+        ultimateReady = ready
+        guard let button = buttons["ultimate"] else { return }
+        button.alpha = ready ? 1 : 0.32
+        button.strokeColor = ready
+            ? SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
+            : SKColor(white: 1, alpha: 0.2)
     }
 
     private func fireAction(_ name: String) {
@@ -98,12 +113,18 @@ final class VirtualControls: SKNode {
         case "jump": onJump?()
         case "punch": onPunch?()
         case "kick": onKick?()
+        case "ultimate":
+            if ultimateReady { onUltimate?() }
         default: break
         }
     }
 
     private func press(_ name: String, down: Bool) {
-        buttons[name]?.alpha = down ? 0.55 : 1
+        if name == "ultimate" {
+            buttons[name]?.alpha = down ? 0.55 : (ultimateReady ? 1 : 0.32)
+        } else {
+            buttons[name]?.alpha = down ? 0.55 : 1
+        }
         switch name {
         case "left": leftHeld = down
         case "right": rightHeld = down

@@ -14,6 +14,7 @@ SWIFT_FILES = [
     ("BossRoster.swift", "Game/BossRoster.swift"),
     ("UnlockStore.swift", "Game/UnlockStore.swift"),
     ("ArcadeLadder.swift", "Game/ArcadeLadder.swift"),
+    ("UltimateMove.swift", "Game/UltimateMove.swift"),
     ("Stage.swift", "Game/Stage.swift"),
     ("Art.swift", "Game/Art.swift"),
     ("SceneRouter.swift", "Game/SceneRouter.swift"),

@@ -12,6 +12,7 @@ final class FightScene: SKScene {
     private var playerBar: HealthBar!
     private var cpuBar: HealthBar!
     private var overlay: SKNode?
+    private var ultBanner: SKLabelNode?
 
     private let groundY: CGFloat = 132
     private var lastTime: TimeInterval = 0
@@ -58,6 +59,10 @@ final class FightScene: SKScene {
         pad.onJump = { [weak self] in self?.player.jump() }
         pad.onPunch = { [weak self] in self?.player.startAttack(.punch) }
         pad.onKick = { [weak self] in self?.player.startAttack(.kick) }
+        pad.onUltimate = { [weak self] in
+            guard let self else { return }
+            self.tryUltimate(self.player, versus: self.cpu)
+        }
         addChild(pad)
     }
 
@@ -150,7 +155,10 @@ final class FightScene: SKScene {
 
         resolveHits()
         playerBar.set(hp: player.hp, maxHP: player.maxHP)
+        playerBar.setMeter(player.ultimateMeter)
         cpuBar.set(hp: cpu.hp, maxHP: cpu.maxHP)
+        cpuBar.setMeter(cpu.ultimateMeter)
+        pad.setUltimateReady(player.isMeterFull && !player.isUltimate && !roundOver)
         updateParallax()
 
         if player.hp <= 0 || cpu.hp <= 0 {
@@ -162,7 +170,11 @@ final class FightScene: SKScene {
         cpuCooldown -= dt
         let gap = cpu.position.x - player.position.x
         let distance = abs(gap)
-        if distance > 95 {
+        if cpu.isMeterFull, distance < 220, cpuCooldown <= 0, cpu.onGround {
+            cpu.setWalk(left: false, right: false)
+            tryUltimate(cpu, versus: player)
+            cpuCooldown = 1.1
+        } else if distance > 95 {
             cpu.setWalk(left: gap > 0, right: gap < 0)
         } else {
             cpu.setWalk(left: false, right: false)
@@ -177,6 +189,8 @@ final class FightScene: SKScene {
     }
 
     private func resolveHits() {
+        resolveUltimate(from: player, to: cpu)
+        resolveUltimate(from: cpu, to: player)
         if let box = player.attackHitbox(), hurtbox(cpu).intersects(box) {
             cpu.applyHit(damage: player.activeAttack?.damage ?? 8, fromX: player.position.x)
             player.markConnected()
@@ -185,6 +199,38 @@ final class FightScene: SKScene {
             player.applyHit(damage: cpu.activeAttack?.damage ?? 8, fromX: cpu.position.x)
             cpu.markConnected()
         }
+    }
+
+    private func resolveUltimate(from attacker: FighterActor, to defender: FighterActor) {
+        guard attacker.ultimateShouldConnect else { return }
+        let reach = abs(attacker.position.x - defender.position.x) < 220
+        guard reach || attacker.fighter.ultimate.flavor == .figure4 || attacker.fighter.ultimate.flavor == .teleport else { return }
+        let damage = defender.maxHP * UltimateMove.damageFraction
+        defender.applyHit(damage: damage, fromX: attacker.position.x)
+        attacker.markUltimateConnected()
+    }
+
+    private func tryUltimate(_ attacker: FighterActor, versus defender: FighterActor) {
+        guard attacker.startUltimate(toward: defender.position.x) else { return }
+        showUltimateBanner(attacker.fighter.ultimate.name)
+    }
+
+    private func showUltimateBanner(_ name: String) {
+        ultBanner?.removeFromParent()
+        let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        label.text = name.uppercased()
+        label.fontSize = 28
+        label.fontColor = SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
+        label.position = CGPoint(x: size.width / 2, y: size.height * 0.62)
+        label.zPosition = 70
+        addChild(label)
+        ultBanner = label
+        label.run(.sequence([
+            .group([.scale(to: 1.12, duration: 0.12), .fadeIn(withDuration: 0.08)]),
+            .wait(forDuration: 0.7),
+            .fadeOut(withDuration: 0.2),
+            .removeFromParent()
+        ]))
     }
 
     private func hurtbox(_ fighter: FighterActor) -> CGRect {
@@ -378,6 +424,7 @@ final class FightScene: SKScene {
 
 final class HealthBar: SKNode {
     private let fill: SKSpriteNode
+    private let meterFill: SKSpriteNode
     private let width: CGFloat
     private let alignLeft: Bool
 
@@ -386,6 +433,7 @@ final class HealthBar: SKNode {
         self.alignLeft = alignLeft
         let height: CGFloat = 22
         fill = SKSpriteNode(color: fighter.accent, size: CGSize(width: width, height: height))
+        meterFill = SKSpriteNode(color: SKColor(red: 0.45, green: 0.35, blue: 0.9, alpha: 1), size: CGSize(width: 0, height: 8))
         super.init()
 
         let back = SKSpriteNode(color: SKColor(white: 0.08, alpha: 0.75), size: CGSize(width: width + 6, height: height + 6))
@@ -396,6 +444,21 @@ final class HealthBar: SKNode {
         fill.anchorPoint = CGPoint(x: alignLeft ? 0 : 1, y: 0.5)
         fill.position = CGPoint(x: alignLeft ? 3 : width - 3, y: 0)
         addChild(fill)
+
+        let meterBack = SKSpriteNode(color: SKColor(white: 0.1, alpha: 0.8), size: CGSize(width: width, height: 10))
+        meterBack.anchorPoint = CGPoint(x: 0, y: 0.5)
+        meterBack.position = CGPoint(x: 3, y: -20)
+        addChild(meterBack)
+        meterFill.anchorPoint = CGPoint(x: alignLeft ? 0 : 1, y: 0.5)
+        meterFill.position = CGPoint(x: alignLeft ? 3 : width - 3, y: -20)
+        addChild(meterFill)
+        let ultTag = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        ultTag.text = "ULT"
+        ultTag.fontSize = 9
+        ultTag.fontColor = SKColor(white: 0.85, alpha: 1)
+        ultTag.horizontalAlignmentMode = alignLeft ? .left : .right
+        ultTag.position = CGPoint(x: alignLeft ? 8 : width - 8, y: -32)
+        addChild(ultTag)
 
         let portrait = Art.portrait(fighter, height: 36)
         portrait.position = CGPoint(x: alignLeft ? -28 : width + 28, y: 0)
@@ -419,5 +482,13 @@ final class HealthBar: SKNode {
         fill.color = t > 0.35
             ? SKColor(red: 0.25, green: 0.8, blue: 0.32, alpha: 1)
             : SKColor(red: 0.85, green: 0.18, blue: 0.16, alpha: 1)
+    }
+
+    func setMeter(_ t: CGFloat) {
+        let clamped = max(0, min(1, t))
+        meterFill.size.width = width * clamped
+        meterFill.color = clamped >= 1
+            ? SKColor(red: 1, green: 0.84, blue: 0.32, alpha: 1)
+            : SKColor(red: 0.55, green: 0.4, blue: 0.95, alpha: 1)
     }
 }

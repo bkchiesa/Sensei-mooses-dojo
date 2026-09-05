@@ -20,7 +20,7 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. Tap elsewhere starts Arcade. |
 | **CharacterSelectScene** | Arcade: starters only (Matt / Simon / Rich / Amanda / JB). Free Play: starters plus any unlocked bosses. |
-| **FightScene** | Health bars, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK**. Arcade: starter dummy on Lions Bridge, then the boss ladder with auto-advance. Rematch stays. A boss win calls `UnlockStore.unlock`. |
+| **FightScene** | Health bars + **ULT** meters, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK** / **★ ULT**. Arcade ladder unchanged. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster
@@ -133,6 +133,47 @@ FightScene loads `stage1_master` plus any of `stage1_sky` / `far` / `mid` / `nea
 | Lions Bridge (mood B) | `lionsBridge` | Wired | `stage1_*` |
 | Hilton Elementary (mood B waterfront) | `hiltonElementary` | Wired for batch 2 | `stage2_*` |
 | Axsom Martial Arts Dojo (mood B dusk) | `axsomDojo` | Wired for batch 3 + Sensei | `stage3_*` |
+
+## Ultimate moves
+
+Every playable (starters, unlocked bosses, Sensei Moose) has a unique ultimate in `Game/UltimateMove.swift`. Each entry has its own name, summary, and placeholder motion (`UltimateFlavor`); optional Pixel frames are `ult_<id>_00`.
+
+| Rule | Detail |
+| --- | --- |
+| Button | **★ ULT** on the virtual pad (dimmed until the meter is full) |
+| Meter | Separate bar under each health bar. Fills only from **landed** punches/kicks |
+| Charge | **6** successful hits fill the meter (`UltimateMove.hitsToFill`, range 4–8) |
+| Damage | **30%** of the opponent’s max HP, applied once |
+| After use | Meter empties; charge again from hits |
+| Art | Optional `ult_<id>_00` imageset; otherwise colorized idle + motion |
+
+Locked signatures: **Austin — Tornado Kick** (spinning kick barrage homage). **Sensei Moose — Figure-Four Lock** (figure-4 leglock homage).
+
+| Fighter | Ultimate | Flavor |
+| --- | --- | --- |
+| Matt | Rising Fang | Dragon-punch leap |
+| Simon | Spirit Wave | Fireball-style palm lunge |
+| Rich | Grove Lock | Command-grab slam |
+| Amanda | Violet Flash | Flip kick |
+| JB | Gold Rush | Clothesline charge |
+| Misty | Pink Mist Dive | Dash-through cross |
+| Lucas | Blue Barrage | Rapid fists |
+| Chris | Redwood Lariat | Spinning clothesline |
+| Christiano | Emerald Spear | Flying dropkick |
+| Dakota | Prairie Suplex | Snap suplex |
+| John K. | K-Bomb | Sit-out powerbomb |
+| Finley | Clover Rana | Headscissors flip |
+| Hudson | Timber Elbow | Elbow drop |
+| Michael | Tide Spear | Tackle spear |
+| Kasey | Rose Moonsault | Backflip splash |
+| Jaylen | Cyan Fang | Tiger-uppercut homage |
+| Amiyr | Void Step | Blink strike |
+| Shaun | Iron Driver | Piledriver homage |
+| Ryan | Red Cutter | Jumping cutter homage |
+| Austin | Tornado Kick | Spinning kick barrage (locked) |
+| Sensei Moose | Figure-Four Lock | Figure-4 leglock (locked) |
+
+Names are stylized homages — no licensed move names, logos, or VFX.
 
 ## Top 10 leaderboard
 

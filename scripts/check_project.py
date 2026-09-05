@@ -19,6 +19,7 @@ REQUIRED_SWIFT = [
     "Game/BossRoster.swift",
     "Game/UnlockStore.swift",
     "Game/ArcadeLadder.swift",
+    "Game/UltimateMove.swift",
     "Game/Stage.swift",
     "Game/Art.swift",
     "Game/SceneRouter.swift",
@@ -54,12 +55,13 @@ SCENE_TOKENS = {
     "Game/ArcadeLadder.swift": ["BossID.ladder", "lionsBridge"],
     "Game/BossRoster.swift": ["case misty", "case johnk", "case jaylen", "case senseiMoose", "boss_", "batch1", "batch2", "batch3", "ladder"],
     "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb", "PlayableFighter"],
-    "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score", "UnlockStore.unlock", "NEXT:"],
+    "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score", "UnlockStore.unlock", "NEXT:", "tryUltimate", "setMeter"],
     "Scenes/LeaderboardScene.swift": ["TOP 10", "LeaderboardService"],
     "Game/LeaderboardService.swift": ["com.sensiemoose.dojo.top10", "GKLocalPlayer", "UserDefaults"],
     "Game/Art.swift": ["moose_title_idle", "moose_title_body", "moose_title_head"],
     "Game/Stage.swift": ["lionsBridge", "hiltonElementary", "axsomDojo", "stage1", "catalog"],
-    "Game/VirtualControls.swift": ["PUNCH", "KICK", "JUMP"],
+    "Game/VirtualControls.swift": ["PUNCH", "KICK", "JUMP", "ULT"],
+    "Game/UltimateMove.swift": ["Tornado Kick", "Figure-Four Lock", "hitsToFill", "0.30"],
 }
 
 

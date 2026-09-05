@@ -112,6 +112,11 @@ enum Art {
         return node
     }
 
+    /// Optional ultimate frame: `ult_<assetKey>_00`. Missing art uses colorized idle + motion.
+    static func ultimateFrameName(for fighter: PlayableFighter) -> String {
+        "ult_\(fighter.assetKey)_00"
+    }
+
     static func idle(_ fighter: PlayableFighter, height: CGFloat) -> SKSpriteNode {
         let node = sprite(named: fighter.idleName, fallbackColor: fighter.accent, fallbackSize: CGSize(width: height * 0.65, height: height))
         scaleToHeight(node, height)
