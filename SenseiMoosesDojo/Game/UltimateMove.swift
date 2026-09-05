@@ -53,36 +53,36 @@ struct UltimateMove {
         case .starter(.jb):
             return UltimateMove(name: "Gold Rush", summary: "Full-sprint clothesline.", flavor: .clothesline, frameName: frame)
         case .boss(.misty):
-            return UltimateMove(name: "Pink Mist Dive", summary: "Dash-through afterimage cross.", flavor: .dashThrough, frameName: frame)
+            return UltimateMove(name: "Rising Heel Flash", summary: "Rising heel kick flash.", flavor: .flipKick, frameName: frame)
         case .boss(.lucas):
-            return UltimateMove(name: "Blue Barrage", summary: "Rapid-fire fist storm.", flavor: .rapidFists, frameName: frame)
+            return UltimateMove(name: "Rapid Palm Barrage", summary: "Rapid-fire palm strikes.", flavor: .rapidFists, frameName: frame)
         case .boss(.chris):
-            return UltimateMove(name: "Redwood Lariat", summary: "Spinning clothesline sweep.", flavor: .spinningLariat, frameName: frame)
+            return UltimateMove(name: "Diving Elbow Drop", summary: "Top-rope style diving elbow.", flavor: .elbowDrop, frameName: frame)
         case .boss(.christiano):
-            return UltimateMove(name: "Emerald Spear", summary: "Flying dropkick through the midsection.", flavor: .dropkick, frameName: frame)
+            return UltimateMove(name: "Wheel Kick Spiral", summary: "Spinning wheel-kick spiral.", flavor: .spinningLariat, frameName: frame)
         case .boss(.dakota):
-            return UltimateMove(name: "Prairie Suplex", summary: "Waist-lock snap suplex.", flavor: .suplex, frameName: frame)
+            return UltimateMove(name: "Charge Spear", summary: "Full-sprint spear tackle.", flavor: .spear, frameName: frame)
         case .boss(.johnk):
-            return UltimateMove(name: "K-Bomb", summary: "Sit-out powerbomb.", flavor: .powerbomb, frameName: frame)
+            return UltimateMove(name: "Power Slam", summary: "Sit-out power slam.", flavor: .powerbomb, frameName: frame)
         case .boss(.finley):
-            return UltimateMove(name: "Clover Rana", summary: "Headscissors takeover flip.", flavor: .rana, frameName: frame)
+            return UltimateMove(name: "Vertical Suplex", summary: "Vertical snap-suplex.", flavor: .suplex, frameName: frame)
         case .boss(.hudson):
-            return UltimateMove(name: "Timber Elbow", summary: "Top-rope style elbow drop.", flavor: .elbowDrop, frameName: frame)
+            return UltimateMove(name: "Running Clothesline", summary: "Full-sprint clothesline.", flavor: .clothesline, frameName: frame)
         case .boss(.michael):
-            return UltimateMove(name: "Tide Spear", summary: "Football-style tackle spear.", flavor: .spear, frameName: frame)
+            return UltimateMove(name: "Sharpshooter Lock", summary: "Figure-four style leg submission homage.", flavor: .figure4, frameName: frame)
         case .boss(.kasey):
-            return UltimateMove(name: "Rose Moonsault", summary: "Backflip splash.", flavor: .moonsault, frameName: frame)
+            return UltimateMove(name: "Moonsault Splash", summary: "Backflip moonsault splash.", flavor: .moonsault, frameName: frame)
         case .boss(.jaylen):
-            return UltimateMove(name: "Cyan Fang", summary: "Tiger-uppercut homage.", flavor: .tigerUpper, frameName: frame)
+            return UltimateMove(name: "Hurricane Kick", summary: "Spinning hurricane kick barrage.", flavor: .tornadoKick, frameName: frame)
         case .boss(.amiyr):
-            return UltimateMove(name: "Void Step", summary: "Blink strike behind the opponent.", flavor: .teleport, frameName: frame)
+            return UltimateMove(name: "Axe Kick Crash", summary: "Overhead axe-kick crash.", flavor: .dropkick, frameName: frame)
         case .boss(.shaun):
-            return UltimateMove(name: "Iron Driver", summary: "Piledriver homage.", flavor: .piledriver, frameName: frame)
+            return UltimateMove(name: "Rising Fist Upper", summary: "Rising uppercut fist.", flavor: .risingDragon, frameName: frame)
         case .boss(.ryan):
-            return UltimateMove(name: "Red Cutter", summary: "Jumping ace-cutter homage.", flavor: .cutter, frameName: frame)
+            return UltimateMove(name: "Running Knee Strike", summary: "Sprint into a jumping knee.", flavor: .cutter, frameName: frame)
         case .boss(.austin):
             return UltimateMove(
-                name: "Tornado Kick",
+                name: "Tornado Kick Barrage",
                 summary: "Spinning kick barrage — Chun-Li–style homage (no licensed name/VFX).",
                 flavor: .tornadoKick,
                 frameName: frame
