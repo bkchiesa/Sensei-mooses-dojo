@@ -37,10 +37,12 @@ export class SelectScene extends Phaser.Scene {
     this.phase = data.phase ?? "player";
     this.playerPick = data.player ?? null;
     this.opponentPick = data.opponent ?? null;
-    this.selected = this.phase === "opponent" ? null : (data.player ?? null);
+    this.selected = this.phase === "player" ? (data.player ?? STARTERS[0]) : this.phase === "opponent" ? null : (data.player ?? null);
     this.selectedStage = null;
     this.cards.clear();
     this.map = undefined;
+    this.fightLabel = undefined as unknown as Phaser.GameObjects.Text;
+    this.goTimer = undefined;
   }
 
   create(): void {
