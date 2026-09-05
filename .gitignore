@@ -1,0 +1,22 @@
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift PM
+.build/
+.swiftpm/
+
+# Python
+__pycache__/
+*.pyc
