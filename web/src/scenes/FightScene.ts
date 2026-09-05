@@ -181,17 +181,22 @@ export class FightScene extends Phaser.Scene {
     this.cpuCooldown -= dt;
     const gap = this.cpu.x - this.player.x;
     const distance = Math.abs(gap);
+    const dummy = Boolean(this.arcade && this.arcade.step === null);
     if (this.cpu.isMeterFull && distance < 220 && this.cpuCooldown <= 0 && this.cpu.onGround) {
       this.cpu.setWalk(false, false);
       this.tryUltimate(this.cpu, this.player);
-      this.cpuCooldown = 1.1;
-    } else if (distance > 95) {
+      this.cpuCooldown = dummy ? 1.6 : 1.1;
+    } else if (distance > (dummy ? 120 : 95)) {
       this.cpu.setWalk(gap > 0, gap < 0);
     } else {
       this.cpu.setWalk(false, false);
       if (this.cpuCooldown <= 0 && this.cpu.onGround) {
-        this.cpu.startAttack(distance < 70 ? "punch" : "kick");
-        this.cpuCooldown = 0.55 + Math.floor(Math.random() * 21) / 100;
+        if (dummy && Math.random() < 0.4) {
+          this.cpuCooldown = 0.45;
+        } else {
+          this.cpu.startAttack(distance < 70 ? "punch" : "kick");
+          this.cpuCooldown = (dummy ? 1.05 : 0.7) + Math.floor(Math.random() * 21) / 100;
+        }
       }
     }
     if (this.cpuCooldown < -1 && Math.floor(Math.random() * 121) === 0) {
@@ -383,18 +388,19 @@ class HealthBar {
   ) {
     this.width = width;
     this.alignLeft = alignLeft;
-    const back = scene.add.rectangle(x, y, width + 6, 28, 0x141414, 0.75).setOrigin(0, 0.5).setDepth(50);
-    void back;
+    const back = scene.add.rectangle(x, y, width + 6, 28, 0x141414, 0.82).setOrigin(0, 0.5).setDepth(50);
+    back.setStrokeStyle(1, 0xffffff, 0.2);
     this.fillX = alignLeft ? x + 3 : x + width - 3;
     this.fill = scene.add.rectangle(this.fillX, y, width, 22, fighter.accent).setOrigin(alignLeft ? 0 : 1, 0.5).setDepth(51);
-    scene.add.rectangle(x + 3, y + 20, width, 10, 0x1a1a1a, 0.8).setOrigin(0, 0.5).setDepth(50);
+    const meterBack = scene.add.rectangle(x + 3, y + 22, width, 12, 0x120818, 0.92).setOrigin(0, 0.5).setDepth(50);
+    meterBack.setStrokeStyle(1, 0x8c66f2, 0.7);
     this.meterX = this.fillX;
-    this.meter = scene.add.rectangle(this.meterX, y + 20, 0, 8, 0x7359e6).setOrigin(alignLeft ? 0 : 1, 0.5).setDepth(51);
+    this.meter = scene.add.rectangle(this.meterX, y + 22, 4, 8, 0x8c66f2).setOrigin(alignLeft ? 0 : 1, 0.5).setDepth(51);
     scene.add
-      .text(alignLeft ? x + 8 : x + width - 8, y + 32, "ULT", {
+      .text(alignLeft ? x + 8 : x + width - 8, y + 36, "ULT", {
         fontFamily: FONT,
-        fontSize: "9px",
-        color: "#d9d9d9",
+        fontSize: "11px",
+        color: "#c4b4ff",
         fontStyle: "bold",
       })
       .setOrigin(alignLeft ? 0 : 1, 0)

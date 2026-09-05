@@ -35,8 +35,8 @@ export class TitleScene extends Phaser.Scene {
 
   private buildMoose(): void {
     const key = this.has("moose_title_idle") ? "moose_title_idle" : null;
-    const h = DESIGN_HEIGHT * 0.5;
-    const y = DESIGN_HEIGHT * 0.42;
+    const h = DESIGN_HEIGHT * 0.4;
+    const y = DESIGN_HEIGHT * 0.54;
     if (key) {
       const moose = this.add.image(DESIGN_WIDTH / 2, y, key);
       const scale = h / moose.height;
@@ -69,7 +69,7 @@ export class TitleScene extends Phaser.Scene {
       this.titleTaps += 1;
       if (this.titleTaps >= 8) {
         unlockAllBosses();
-        this.add.text(DESIGN_WIDTH / 2, y + 48, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
+        this.add.text(DESIGN_WIDTH / 2, y + 96, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
       }
     });
     this.tweens.add({
@@ -81,10 +81,17 @@ export class TitleScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
     this.add
-      .text(DESIGN_WIDTH / 2, y + 48, "Street-fight  ·  play in the browser  ·  Stage 1 Lions Bridge", {
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 48, "Street-fight  ·  play in the browser  ·  Stage 1 Lions Bridge", {
         fontFamily: FONT,
         fontSize: "18px",
         color: "#d8d0dc",
+      })
+      .setOrigin(0.5);
+    this.add
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 72, "Keyboard  ·  arrows move  ·  J punch  ·  K kick  ·  U ult", {
+        fontFamily: FONT,
+        fontSize: "14px",
+        color: "#9a90a8",
       })
       .setOrigin(0.5);
   }
@@ -123,7 +130,7 @@ export class TitleScene extends Phaser.Scene {
   private menuButton(label: string, x: number, y: number, onClick: () => void): void {
     const bg = this.add.rectangle(x, y, 168, 44, 0x1f1f1f, 0.9).setStrokeStyle(2, 0xffd651);
     bg.setData("menu", true);
-    const text = this.add.text(x, y, label, textStyle(16)).setOrigin(0.5);
+    const text = this.add.text(x, y, label, textStyle(16, GOLD)).setOrigin(0.5);
     text.setData("menu", true);
     bg.setInteractive({ useHandCursor: true });
     text.setInteractive({ useHandCursor: true });
