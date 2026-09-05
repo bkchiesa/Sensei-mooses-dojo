@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
-import { BOSSES, STARTERS } from "../data/catalog";
+import { BOSSES, fighterById, STARTERS } from "../data/catalog";
 import { fighterAnimUrl, parseAnimIndex, registerAnimPack, type FighterAnimName } from "../game/anims";
 import { applyQueryUnlocks } from "../game/storage";
 
@@ -68,13 +68,32 @@ export class BootScene extends Phaser.Scene {
       this.ensurePlaceholder(f.portrait, f.accent);
       this.ensurePlaceholder(f.idle, f.accent);
     }
-    this.loadFighterAnimsThen("Title");
+    this.loadFighterAnimsThen();
   }
 
-  private loadFighterAnimsThen(next: string): void {
+  private startAfterBoot(): void {
+    applyQueryUnlocks();
+    const vs = new URLSearchParams(window.location.search).get("vs");
+    if (vs) {
+      try {
+        const opponent = fighterById(vs);
+        this.scene.start("Fight", {
+          playerId: "matt",
+          opponentId: opponent.id,
+          stageId: opponent.stageId,
+        });
+        return;
+      } catch {
+        /* fall through to title */
+      }
+    }
+    this.scene.start("Title");
+  }
+
+  private loadFighterAnimsThen(): void {
     const index = parseAnimIndex(this.cache.json.get("fighter-anims"));
     if (!index) {
-      this.scene.start(next);
+      this.startAfterBoot();
       return;
     }
     const pending: { key: string; url: string }[] = [];
@@ -94,11 +113,11 @@ export class BootScene extends Phaser.Scene {
     }
     const missing = pending.filter((p) => !this.textures.exists(p.key));
     if (!missing.length) {
-      this.scene.start(next);
+      this.startAfterBoot();
       return;
     }
     for (const file of missing) this.load.image(file.key, file.url);
-    this.load.once("complete", () => this.scene.start(next));
+    this.load.once("complete", () => this.startAfterBoot());
     this.load.start();
   }
 
