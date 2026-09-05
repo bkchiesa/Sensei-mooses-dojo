@@ -55,6 +55,15 @@ Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stag
 | Newport News Park | `nnpark` | `stage_nnpark_*` |
 | James River Bridge | `jrbridge` | `stage_jrbridge_*` |
 
+### Extra stages Batch C partial (art parked)
+
+| Stage | id | Prefix |
+| --- | --- | --- |
+| Colonial Capitol | `colonial` | `stage_colonial_*` |
+| Local Stadium | `stadium` | `stage_stadium_*` |
+
+Busch / alley / rooftop not locked yet.
+
 ## Unlock on defeat (design)
 
 Clearing a boss unlocks them as a **playable** character on Character Select.

@@ -16,6 +16,8 @@ struct StageID: Hashable {
     static let subwaywarwick = StageID(rawValue: "subwaywarwick")
     static let nnpark = StageID(rawValue: "nnpark")
     static let jrbridge = StageID(rawValue: "jrbridge")
+    static let colonial = StageID(rawValue: "colonial")
+    static let stadium = StageID(rawValue: "stadium")
 }
 
 /// Table-driven stage row. Asset names are `\(assetPrefix)_master` / `_sky` / `_far` / `_mid` / `_near`.
@@ -55,6 +57,9 @@ struct StageConfig {
         StageConfig(id: .subwaywarwick, displayName: "Warwick Blvd", assetPrefix: "stage_subwaywarwick", number: 9, mood: "B", wired: true),
         StageConfig(id: .nnpark, displayName: "Newport News Park", assetPrefix: "stage_nnpark", number: 10, mood: "B", wired: true),
         StageConfig(id: .jrbridge, displayName: "James River Bridge", assetPrefix: "stage_jrbridge", number: 11, mood: "B", wired: true),
+        // Batch C partial (Busch/alley/rooftop not locked)
+        StageConfig(id: .colonial, displayName: "Colonial Capitol", assetPrefix: "stage_colonial", number: 12, mood: "B", wired: true),
+        StageConfig(id: .stadium, displayName: "Local Stadium", assetPrefix: "stage_stadium", number: 13, mood: "B", wired: true),
     ]
 
     static func config(for id: StageID) -> StageConfig {
