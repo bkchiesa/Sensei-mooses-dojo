@@ -1,10 +1,75 @@
 # Sensei Moose’s Dojo
 
-iPhone street-fighter prototype. Native **Swift + SpriteKit** — no Unity, no Godot, no paid dependencies.
+Browser street-fighter. **The playable product is the web game** — open it on iPad/iPhone Safari (landscape) or any desktop browser. No Mac, Xcode, or App Store required.
 
-Playable loop: **Title → Arcade or Free Play select → Fight**. Arcade auto-advances the boss ladder after each win.
+Playable loop: **Title → Arcade or Free Play select → Fight**. Arcade auto-advances the boss ladder after each win. Health bars, ULT meters (landed hits), and a **★ ULT** button.
 
-## Open in Xcode
+Native **Swift + SpriteKit** stays in the repo as a deferred prototype. Do **not** App Store submit it.
+
+## Play in the browser (main)
+
+### Live URL (GitHub Pages)
+
+After Pages is enabled (once):
+
+**https://bkchiesa.github.io/Sensei-mooses-dojo/**
+
+Until that deploy exists, run locally (below) or use **Actions → Deploy web game to GitHub Pages → Run workflow**.
+
+### Run locally
+
+Needs Node 20+ (no Mac):
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Then open the URL Vite prints (typically `http://localhost:5173`). On a phone/iPad on the same Wi‑Fi, use the LAN URL Vite prints (`Network: http://<your-ip>:5173`).
+
+```bash
+cd web
+npm run build          # static files → web/dist
+npm run preview        # serve the production build
+```
+
+`npm run build` also copies art from `SenseiMoosesDojo/Assets.xcassets` into `web/public/assets` (see `web/ASSETS.md`).
+
+### Enable GitHub Pages so Brandon can tap a URL
+
+1. Merge this repo’s default branch (`main`) once the web app is in.
+2. GitHub → **Settings → Pages**.
+3. **Build and deployment → Source:** *GitHub Actions* (not “Deploy from a branch”).
+4. Push to `main` or run the **Deploy web game to GitHub Pages** workflow (**Actions** tab → Run workflow).
+5. The live URL is `https://bkchiesa.github.io/Sensei-mooses-dojo/`.
+
+The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci && npm run build` and publishes `web/dist`.
+
+### Controls (iPad Safari + keyboard)
+
+| | Touch | Keyboard |
+| --- | --- | --- |
+| Move | **◀ ▶** | A/D or arrows |
+| Jump | **JUMP** | W / ↑ / Space |
+| Punch / Kick | **PUNCH** / **KICK** | J/Z · K/X |
+| Ultimate | **★ ULT** (lights up when meter is full) | U / Enter |
+
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same.
+
+### Ported vs still stubbed
+
+| Ported | Still stubbed / native-only |
+| --- | --- |
+| Title, Arcade, Free Play (pick you, then opponent), Fight | Game Center (web uses this-browser Top 10) |
+| Starters Matt/Simon/Rich/Amanda/JB | Extra NN landmark stages (art parked, not in the web export) |
+| Boss ladder Misty → … → Austin → Sensei Moose | Native SpriteKit project (kept, not the play path) |
+| Unlock-on-win → Free Play roster | `boss_senseiMoose_*` art (falls back to title moose) |
+| Unique ultimates, 30% HP, meter from landed hits (~6) | App Store / signing |
+| Arcade stage mapping (Lions Bridge / Hilton / Axsom Dojo) | Pixel extra ult frames beyond `_00` except Austin + Moose |
+| Touch + keyboard, static GitHub Pages build | |
+
+## Native Xcode prototype (deferred)
 
 1. On a Mac, clone this repo and open **`SenseiMoosesDojo.xcodeproj`**.
 2. Select the **SenseiMoosesDojo** scheme (shared).
@@ -224,14 +289,17 @@ python3 scripts/generate_placeholders.py
 ## Project layout
 
 ```
-SenseiMoosesDojo.xcodeproj/     native iPhone project + shared scheme
+web/                            MAIN playable game (Phaser 3 + TypeScript + Vite)
+  src/scenes/                   Title, Select, Fight, Leaderboard
+  src/game/                     fighter, controls, arcade, local unlocks / Top 10
+  scripts/export-assets.mjs     copy PNGs from Assets.xcassets
+  ASSETS.md                     where web art comes from
+.github/workflows/deploy-pages.yml
+SenseiMoosesDojo.xcodeproj/     native iPhone project (deferred)
 SenseiMoosesDojo/
-  AppDelegate.swift
-  SceneDelegate.swift
-  GameViewController.swift      SKView, landscape, TitleScene
-  Game/                         roster, bosses, arcade ladder, unlocks, art, fight, leaderboard
+  Game/                         roster, bosses, arcade ladder, unlocks, art, fight
   Scenes/                       Title, Select, Fight, Leaderboard
-  Assets.xcassets/              named drop-in imagesets
+  Assets.xcassets/              named drop-in imagesets (source of web art)
 scripts/                        placeholder + project generators, structural check
 ```
 

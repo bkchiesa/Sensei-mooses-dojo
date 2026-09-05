@@ -1,0 +1,107 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0610;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+#game {
+  width: 100%;
+  height: 100%;
+}
+
+#game canvas {
+  display: block;
+  touch-action: none;
+}
+
+#rotate-hint {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 10px 16px;
+  background: rgba(10, 6, 16, 0.88);
+  color: #ffd651;
+  text-align: center;
+  font-size: 15px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+#rotate-hint p {
+  margin: 0;
+}
+
+#rotate-hint button,
+#name-modal button {
+  background: #1f1728;
+  color: #fff;
+  border: 2px solid #ffd651;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (orientation: portrait) and (max-height: 1100px) {
+  #rotate-hint:not(.hidden) {
+    display: flex;
+  }
+}
+
+#name-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#name-modal[hidden] {
+  display: none;
+}
+
+#name-form {
+  width: min(420px, 90vw);
+  background: #1a1324;
+  border: 2px solid #ffd651;
+  border-radius: 14px;
+  padding: 22px;
+  color: #fff;
+}
+
+#name-form h2 {
+  margin: 0 0 8px;
+  color: #ffd651;
+}
+
+#name-form input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 10px 0 16px;
+  padding: 10px;
+  font-size: 18px;
+  border-radius: 8px;
+  border: 1px solid #665;
+  background: #0e0a14;
+  color: #fff;
+}
+
+#name-form .row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

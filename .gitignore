@@ -20,3 +20,9 @@ DerivedData/
 # Python
 __pycache__/
 *.pyc
+
+# Web (Phaser build)
+web/node_modules/
+web/dist/
+web/public/assets/*.png
+web/public/assets/manifest.json
