@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD, GOLD_NUM, GROUND_Y } from "../config";
+import { COUNTDOWN_BEAT_MS, DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD, GOLD_NUM, GROUND_Y, ROUNDS_TO_WIN } from "../config";
 import { dummyOpponent, fighterById, stageById, stageCaption, type FighterDef, type StageDef } from "../data/catalog";
 import {
   arcadeCurrentBoss,
@@ -9,9 +9,11 @@ import {
   arcadeStageId,
   type ArcadeProgress,
 } from "../game/arcade";
+import { layerDrift, startStageAmbient } from "../game/ambient";
 import { VirtualControls } from "../game/controls";
+import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
-import { submitScore, unlockBoss } from "../game/storage";
+import { debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
 import { promptName, textStyle } from "../game/ui";
 
 export interface FightData {
@@ -26,15 +28,24 @@ export class FightScene extends Phaser.Scene {
   private opponentFighter!: FighterDef;
   private stage!: StageDef;
   private arcade: ArcadeProgress | null = null;
+  private difficulty!: Difficulty;
 
   private player!: Fighter;
   private cpu!: Fighter;
   private pad!: VirtualControls;
   private playerBar!: HealthBar;
   private cpuBar!: HealthBar;
+  private roundLabel!: Phaser.GameObjects.Text;
   private overlay?: Phaser.GameObjects.Container;
   private ultBanner?: Phaser.GameObjects.Text;
+  private countdownLabel?: Phaser.GameObjects.Text;
+
   private roundOver = false;
+  private matchOver = false;
+  private controlsLive = false;
+  private playerRounds = 0;
+  private cpuRounds = 0;
+  private roundNumber = 1;
   private cpuCooldown = 0.6;
   private cameraX = 0;
   private layers: Partial<Record<"sky" | "far" | "mid" | "master" | "near", Phaser.GameObjects.Image>> = {};
@@ -55,12 +66,19 @@ export class FightScene extends Phaser.Scene {
       this.opponentFighter = data.opponentId ? fighterById(data.opponentId) : dummyOpponent(this.playerFighter);
       this.stage = stageById(data.stageId ?? this.opponentFighter.stageId);
     }
+    this.difficulty = difficultyForFight(this.arcade, this.opponentFighter.id);
     this.roundOver = false;
-    this.cpuCooldown = 0.6;
+    this.matchOver = false;
+    this.controlsLive = false;
+    this.playerRounds = 0;
+    this.cpuRounds = 0;
+    this.roundNumber = 1;
+    this.cpuCooldown = this.difficulty.attackCooldown;
     this.cameraX = 0;
     this.built = false;
     this.layers = {};
     this.overlay = undefined;
+    this.countdownLabel = undefined;
   }
 
   create(): void {
@@ -94,9 +112,11 @@ export class FightScene extends Phaser.Scene {
   private buildFight(): void {
     if (this.built) return;
     this.built = true;
+    this.scene.stop("Title");
     this.buildStage();
     this.player = new Fighter(this, this.playerFighter, true, DESIGN_WIDTH * 0.28, GROUND_Y);
     this.cpu = new Fighter(this, this.opponentFighter, false, DESIGN_WIDTH * 0.72, GROUND_Y);
+    this.applyDifficulty();
     this.player.resetRound(DESIGN_WIDTH * 0.28, GROUND_Y, true);
     this.cpu.resetRound(DESIGN_WIDTH * 0.72, GROUND_Y, false);
 
@@ -107,17 +127,45 @@ export class FightScene extends Phaser.Scene {
         : `CPU · ${this.opponentFighter.displayName}`;
     this.cpuBar = new HealthBar(this, this.opponentFighter, DESIGN_WIDTH - 48 - 400, 64, 400, false, cpuTitle);
 
+    this.roundLabel = this.add
+      .text(DESIGN_WIDTH / 2, 48, this.roundHudText(), {
+        fontFamily: FONT,
+        fontSize: "16px",
+        color: GOLD,
+        fontStyle: "bold",
+        stroke: "#1a0a08",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(60);
+
     this.pad = new VirtualControls(this);
-    this.pad.onJump = () => this.player.jump();
-    this.pad.onPunch = () => this.player.startAttack("punch");
-    this.pad.onKick = () => this.player.startAttack("kick");
-    this.pad.onUltimate = () => this.tryUltimate(this.player, this.cpu);
+    this.pad.onJump = () => {
+      if (this.controlsLive) this.player.jump();
+    };
+    this.pad.onPunch = () => {
+      if (this.controlsLive) this.player.startAttack("punch");
+    };
+    this.pad.onKick = () => {
+      if (this.controlsLive) this.player.startAttack(this.pad.downHeld ? "sweep" : "kick");
+    };
+    this.pad.onUltimate = () => {
+      if (this.controlsLive) this.tryUltimate(this.player, this.cpu);
+    };
+    this.pad.setEnabled(false);
+    this.startRoundIntro();
+  }
+
+  private applyDifficulty(): void {
+    this.cpu.incomingMul = this.difficulty.cpuDamageTaken;
+    this.player.incomingMul = this.difficulty.cpuDamageDealt;
   }
 
   private buildStage(): void {
     const p = this.stage.assetPrefix;
     const names = { sky: `${p}_sky`, far: `${p}_far`, mid: `${p}_mid`, master: `${p}_master`, near: `${p}_near` };
-    const hasParallax = (["sky", "far", "mid", "near"] as const).some((k) => this.has(names[k]));
+    const hasBg = (["sky", "far", "mid"] as const).some((k) => this.has(names[k]));
+    const hasFloor = this.has(names.near) || this.has(names.master);
     const add = (key: keyof typeof names, z: number, required: boolean) => {
       const asset = names[key];
       if (!required && !this.has(asset)) return;
@@ -131,15 +179,21 @@ export class FightScene extends Phaser.Scene {
       img.setDepth(z);
       this.layers[key] = img;
     };
-    if (hasParallax) {
+
+    if (hasBg) {
       add("sky", -50, false);
       add("far", -40, false);
       add("mid", -25, false);
-      add("master", -15, this.has(names.master));
-      add("near", 8, false);
+      // Floor / foreground stays locked. Prefer the near plate; use master only if near is missing.
+      if (this.has(names.near)) add("near", 8, false);
+      else add("master", -15, this.has(names.master));
     } else {
       add("master", -20, true);
     }
+    if (!hasFloor && !hasBg) {
+      this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x8c5238).setDepth(-20);
+    }
+
     this.add
       .text(DESIGN_WIDTH / 2, 22, stageCaption(this.stage), {
         fontFamily: FONT,
@@ -149,14 +203,25 @@ export class FightScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(40);
+
+    startStageAmbient(this, this.stage, this.layers);
   }
 
   update(_t: number, delta: number): void {
-    if (!this.built || this.roundOver) return;
+    if (!this.built) return;
     const dt = Math.min(delta / 1000, 1 / 20);
-    this.pad.pollKeyboard();
-    this.player.setWalk(this.pad.leftHeld, this.pad.rightHeld);
-    this.updateCPU(dt);
+    this.updateParallax();
+    if (this.matchOver) return;
+
+    if (this.controlsLive && !this.roundOver) {
+      this.pad.pollKeyboard();
+      this.player.setCrouch(this.pad.downHeld);
+      this.player.setWalk(this.pad.leftHeld, this.pad.rightHeld);
+      this.updateCPU(dt);
+    } else {
+      this.player.setWalk(false, false);
+      this.cpu.setWalk(false, false);
+    }
 
     const minX = 70;
     const maxX = DESIGN_WIDTH - 70;
@@ -164,16 +229,19 @@ export class FightScene extends Phaser.Scene {
     this.cpu.update(dt, GROUND_Y, minX, maxX);
     this.player.faceToward(this.cpu.x);
     this.cpu.faceToward(this.player.x);
-    this.resolveHits();
+
+    if (this.controlsLive && !this.roundOver) {
+      this.resolveHits();
+    }
+
     this.playerBar.set(this.player.hp, this.player.maxHP);
     this.playerBar.setMeter(this.player.ultimateMeter);
     this.cpuBar.set(this.cpu.hp, this.cpu.maxHP);
     this.cpuBar.setMeter(this.cpu.ultimateMeter);
-    this.pad.setUltimateReady(this.player.isMeterFull && !this.player.isUltimate && !this.roundOver);
-    this.updateParallax();
+    this.pad.setUltimateReady(this.controlsLive && this.player.isMeterFull && !this.player.isUltimate && !this.roundOver);
 
-    if (this.player.hp <= 0 || this.cpu.hp <= 0) {
-      this.endRound(this.cpu.hp <= 0 && this.player.hp > 0);
+    if (this.controlsLive && !this.roundOver && (this.player.hp <= 0 || this.cpu.hp <= 0)) {
+      this.finishRound(this.cpu.hp <= 0 && this.player.hp > 0);
     }
   }
 
@@ -182,24 +250,32 @@ export class FightScene extends Phaser.Scene {
     const gap = this.cpu.x - this.player.x;
     const distance = Math.abs(gap);
     const dummy = Boolean(this.arcade && this.arcade.step === null);
-    if (this.cpu.isMeterFull && distance < 220 && this.cpuCooldown <= 0 && this.cpu.onGround) {
+    const d = this.difficulty;
+
+    if (this.player.isAttacking && distance < 160 && !this.cpu.isBlocking && this.cpu.onGround && Math.random() < d.blockRate) {
+      this.cpu.startBlock(0.36 + d.blockRate * 0.2);
+      this.cpuCooldown = 0.2;
+      return;
+    }
+
+    if (this.cpu.isMeterFull && distance < 220 && this.cpuCooldown <= 0 && this.cpu.onGround && Math.random() < d.ultAggressiveness) {
       this.cpu.setWalk(false, false);
       this.tryUltimate(this.cpu, this.player);
-      this.cpuCooldown = dummy ? 1.6 : 1.1;
-    } else if (distance > (dummy ? 120 : 95)) {
+      this.cpuCooldown = dummy ? 1.6 : 0.55 + d.attackCooldown;
+    } else if (distance > d.approachDistance) {
       this.cpu.setWalk(gap > 0, gap < 0);
     } else {
       this.cpu.setWalk(false, false);
       if (this.cpuCooldown <= 0 && this.cpu.onGround) {
-        if (dummy && Math.random() < 0.4) {
+        if (dummy && Math.random() < 0.62) {
           this.cpuCooldown = 0.45;
         } else {
-          this.cpu.startAttack(distance < 70 ? "punch" : "kick");
-          this.cpuCooldown = (dummy ? 1.05 : 0.7) + Math.floor(Math.random() * 21) / 100;
+          this.cpu.startAttack(distance < 90 ? "punch" : Math.random() < 0.4 ? "sweep" : "kick");
+          this.cpuCooldown = d.attackCooldown + Math.floor(Math.random() * 21) / 100;
         }
       }
     }
-    if (this.cpuCooldown < -1 && Math.floor(Math.random() * 121) === 0) {
+    if (this.cpuCooldown < -0.4 && Math.random() < d.jumpChance * 0.02) {
       this.cpu.jump();
     }
   }
@@ -209,19 +285,20 @@ export class FightScene extends Phaser.Scene {
     this.resolveUltimate(this.cpu, this.player);
     const pBox = this.player.attackHitbox();
     if (pBox && Phaser.Geom.Intersects.RectangleToRectangle(this.cpu.hurtbox(), pBox)) {
-      this.cpu.applyHit(this.player.activeAttack === "kick" ? 14 : 8, this.player.x);
+      const debugMul = debugHeavyHits() ? 8 : 1;
+      this.cpu.applyHit(this.player.attackDamage() * debugMul, this.player.x);
       this.player.markConnected();
     }
     const cBox = this.cpu.attackHitbox();
     if (cBox && Phaser.Geom.Intersects.RectangleToRectangle(this.player.hurtbox(), cBox)) {
-      this.player.applyHit(this.cpu.activeAttack === "kick" ? 14 : 8, this.cpu.x);
+      this.player.applyHit(this.cpu.attackDamage(), this.cpu.x);
       this.cpu.markConnected();
     }
   }
 
   private resolveUltimate(attacker: Fighter, defender: Fighter): void {
     if (!attacker.ultimateShouldConnect) return;
-    const reach = Math.abs(attacker.x - defender.x) < 220;
+    const reach = Math.abs(attacker.x - defender.x) < 220 * (attacker.bodyHeight / 210);
     const flavor = attacker.fighter.ultimate.flavor;
     if (!reach && flavor !== "figure4" && flavor !== "teleport") return;
     defender.applyHit(ultimateDamage(defender), attacker.x);
@@ -258,37 +335,196 @@ export class FightScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Background plates track the fighters. Master / near (the fight floor) stay pinned
+   * so the ground never slides under their feet.
+   */
   private updateParallax(): void {
     const midX = (this.player.x + this.cpu.x) * 0.5;
     this.cameraX += (midX - DESIGN_WIDTH * 0.5 - this.cameraX) * 0.08;
     const c = this.cameraX;
     const cx = DESIGN_WIDTH / 2;
-    if (this.layers.sky) this.layers.sky.x = cx - c * 0.08;
-    if (this.layers.far) this.layers.far.x = cx - c * 0.18;
-    if (this.layers.master) this.layers.master.x = cx - c * 0.32;
-    if (this.layers.mid) this.layers.mid.x = cx - c * 0.42;
-    if (this.layers.near) this.layers.near.x = cx - c * 0.7;
+    const cy = DESIGN_HEIGHT / 2;
+    const place = (img: Phaser.GameObjects.Image | undefined, factor: number, locked: boolean) => {
+      if (!img) return;
+      const d = layerDrift(img);
+      img.x = cx - (locked ? 0 : c * factor) + d.x;
+      img.y = cy + d.y;
+    };
+    place(this.layers.sky, 0.1, false);
+    place(this.layers.far, 0.2, false);
+    place(this.layers.mid, 0.32, false);
+    place(this.layers.master, 0, true);
+    place(this.layers.near, 0, true);
+  }
+
+  private roundHudText(): string {
+    return `ROUND ${this.roundNumber}  ·  ${this.playerRounds} – ${this.cpuRounds}  ·  BEST OF 3`;
+  }
+
+  private startRoundIntro(): void {
+    this.controlsLive = false;
+    this.roundOver = false;
+    this.pad.setEnabled(false);
+    this.pad.reset();
+    this.roundLabel.setText(this.roundHudText());
+    const beats: { text: string; size: string; color: string; hold: number }[] = [
+      { text: `ROUND ${this.roundNumber}`, size: "64px", color: GOLD, hold: COUNTDOWN_BEAT_MS },
+      { text: "3", size: "140px", color: "#fff6d8", hold: COUNTDOWN_BEAT_MS },
+      { text: "2", size: "140px", color: "#fff6d8", hold: COUNTDOWN_BEAT_MS },
+      { text: "1", size: "140px", color: "#fff6d8", hold: COUNTDOWN_BEAT_MS },
+      { text: "FIGHT!", size: "96px", color: GOLD, hold: 420 },
+    ];
+    const play = (i: number) => {
+      if (!this.scene.isActive()) return;
+      const beat = beats[i];
+      this.countdownLabel?.destroy();
+      const label = this.add
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.42, beat.text, {
+          fontFamily: FONT,
+          fontSize: beat.size,
+          color: beat.color,
+          fontStyle: "bold",
+          stroke: "#14080a",
+          strokeThickness: 12,
+          shadow: { offsetX: 0, offsetY: 6, color: "#00000088", blur: 8, fill: true },
+        })
+        .setOrigin(0.5)
+        .setDepth(90)
+        .setScale(0.35)
+        .setAlpha(0);
+      this.countdownLabel = label;
+      this.tweens.add({
+        targets: label,
+        scale: 1.12,
+        alpha: 1,
+        duration: 140,
+        ease: "Back.easeOut",
+        onComplete: () => {
+          this.tweens.add({
+            targets: label,
+            scale: 1.28,
+            alpha: 0,
+            delay: Math.max(40, beat.hold - 180),
+            duration: 160,
+            onComplete: () => {
+              label.destroy();
+              if (this.countdownLabel === label) this.countdownLabel = undefined;
+              if (i + 1 < beats.length) play(i + 1);
+              else this.enableFighting();
+            },
+          });
+        },
+      });
+    };
+    play(0);
+  }
+
+  private enableFighting(): void {
+    this.controlsLive = true;
+    this.roundOver = false;
+    this.pad.setEnabled(true);
+    this.cpuCooldown = this.difficulty.attackCooldown * 0.7;
   }
 
   private fightScore(): number {
-    return Math.floor(this.player.hp) * 10;
+    const sweep = this.playerRounds === ROUNDS_TO_WIN && this.cpuRounds === 0 ? 50 : 0;
+    return Math.floor(Math.max(this.player.hp, 0)) * 10 + sweep;
   }
 
-  private endRound(playerWon: boolean): void {
+  private finishRound(playerWon: boolean): void {
     this.roundOver = true;
+    this.controlsLive = false;
+    this.pad.setEnabled(false);
     this.pad.reset();
-    this.pad.setVisible(true);
     this.playerBar.set(this.player.hp, this.player.maxHP);
     this.cpuBar.set(this.cpu.hp, this.cpu.maxHP);
+
+    if (playerWon) this.playerRounds += 1;
+    else this.cpuRounds += 1;
+    this.playerBar.setRounds(this.playerRounds);
+    this.cpuBar.setRounds(this.cpuRounds);
+    this.roundLabel.setText(this.roundHudText());
+
+    const matchDone = this.playerRounds >= ROUNDS_TO_WIN || this.cpuRounds >= ROUNDS_TO_WIN;
+    const banner = matchDone
+      ? playerWon
+        ? "YOU WIN"
+        : "YOU LOSE"
+      : playerWon
+        ? "ROUND WIN"
+        : "ROUND LOSE";
+    this.flashCenter(banner, playerWon ? GOLD : "#ff5947", matchDone ? 52 : 44);
+
+    if (matchDone) {
+      this.time.delayedCall(900, () => this.endMatch(playerWon));
+    } else {
+      this.time.delayedCall(1100, () => this.beginNextRound());
+    }
+  }
+
+  private flashCenter(text: string, color: string, size: number): void {
+    const label = this.add
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.4, text, {
+        fontFamily: FONT,
+        fontSize: `${size}px`,
+        color,
+        fontStyle: "bold",
+        stroke: "#100808",
+        strokeThickness: 10,
+      })
+      .setOrigin(0.5)
+      .setDepth(88)
+      .setScale(0.7);
+    this.tweens.add({
+      targets: label,
+      scale: 1.08,
+      duration: 180,
+      onComplete: () => {
+        this.tweens.add({
+          targets: label,
+          alpha: 0,
+          delay: 620,
+          duration: 220,
+          onComplete: () => label.destroy(),
+        });
+      },
+    });
+  }
+
+  private beginNextRound(): void {
+    if (this.matchOver) return;
+    this.roundNumber += 1;
+    this.player.resetRound(DESIGN_WIDTH * 0.28, GROUND_Y, true, { preserveMeter: true });
+    this.cpu.resetRound(DESIGN_WIDTH * 0.72, GROUND_Y, false, { preserveMeter: true });
+    this.applyDifficulty();
+    this.playerBar.set(this.player.hp, this.player.maxHP);
+    this.cpuBar.set(this.cpu.hp, this.cpu.maxHP);
+    this.startRoundIntro();
+  }
+
+  private endMatch(playerWon: boolean): void {
+    this.matchOver = true;
+    this.controlsLive = false;
+    this.pad.setEnabled(false);
+    this.pad.reset();
 
     const boss = this.arcade ? arcadeCurrentBoss(this.arcade) : null;
     if (playerWon && boss) unlockBoss(boss.id);
 
-    const panel = this.add.container(0, 0).setDepth(100);
-    panel.add(this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x000000, 0.55));
+    const panel = this.add.container(0, 0).setDepth(200);
+    const dimmer = this.add
+      .rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x000000, 0.55)
+      .setInteractive();
+    panel.add(dimmer);
     panel.add(
       this.add
-        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.28, playerWon ? "YOU WIN" : "YOU LOSE", textStyle(52, playerWon ? GOLD : "#ff5947"))
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.24, playerWon ? "YOU WIN" : "YOU LOSE", textStyle(52, playerWon ? GOLD : "#ff5947"))
+        .setOrigin(0.5),
+    );
+    panel.add(
+      this.add
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.34, `${this.playerRounds}  –  ${this.cpuRounds}`, textStyle(28, GOLD))
         .setOrigin(0.5),
     );
 
@@ -296,7 +532,7 @@ export class FightScene extends Phaser.Scene {
     if (playerWon && boss) {
       panel.add(
         this.add
-          .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.38, `UNLOCKED  ${boss.displayName.toUpperCase()}`, textStyle(18, "#b3ffb3"))
+          .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.42, `UNLOCKED  ${boss.displayName.toUpperCase()}`, textStyle(18, "#b3ffb3"))
           .setOrigin(0.5),
       );
     }
@@ -304,44 +540,62 @@ export class FightScene extends Phaser.Scene {
     if (playerWon && this.arcade && next) {
       panel.add(
         this.add
-          .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.46, `NEXT:  ${arcadeOpponent(next).displayName.toUpperCase()}`, textStyle(22))
+          .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.5, `NEXT:  ${arcadeOpponent(next).displayName.toUpperCase()}`, textStyle(22))
           .setOrigin(0.5),
       );
-      this.addOverlayButton(panel, "NEXT FIGHT", DESIGN_HEIGHT * 0.56, () => this.advanceArcade());
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.66, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.76, () => this.toSelect());
-      this.time.delayedCall(1350, () => this.advanceArcade());
+      this.addOverlayButton(panel, "NEXT FIGHT", DESIGN_HEIGHT * 0.62, () => this.advanceArcade(), true);
+      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.73, () => this.rematch());
+      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.84, () => this.toSelect());
+      this.bindOverlayConfirm(() => this.advanceArcade());
     } else if (playerWon && this.arcade && !next) {
-      panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.46, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
+      panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.48, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
+      this.addOverlayButton(panel, "SUBMIT SCORE", DESIGN_HEIGHT * 0.58, () => void this.submit());
+      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.68, () => this.rematch());
+      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.78, () => this.toSelect());
+    } else if (playerWon) {
+      panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.46, `SCORE  ${this.fightScore()}`, textStyle(22)).setOrigin(0.5));
       this.addOverlayButton(panel, "SUBMIT SCORE", DESIGN_HEIGHT * 0.56, () => void this.submit());
       this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.66, () => this.rematch());
       this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.76, () => this.toSelect());
-    } else if (playerWon) {
-      panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.44, `SCORE  ${this.fightScore()}`, textStyle(22)).setOrigin(0.5));
-      this.addOverlayButton(panel, "SUBMIT SCORE", DESIGN_HEIGHT * 0.54, () => void this.submit());
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.64, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.74, () => this.toSelect());
     } else {
-      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.5, () => this.rematch());
-      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.62, () => this.toSelect());
+      this.addOverlayButton(panel, "REMATCH", DESIGN_HEIGHT * 0.52, () => this.rematch());
+      this.addOverlayButton(panel, "CHARACTER SELECT", DESIGN_HEIGHT * 0.64, () => this.toSelect());
     }
     this.overlay = panel;
   }
 
-  private addOverlayButton(panel: Phaser.GameObjects.Container, title: string, y: number, onClick: () => void): void {
-    const bg = this.add.rectangle(DESIGN_WIDTH / 2, y, 360, 52, 0x1f1f1f, 0.95).setStrokeStyle(2, GOLD_NUM);
-    const label = this.add.text(DESIGN_WIDTH / 2, y, title, textStyle(20)).setOrigin(0.5);
+  private bindOverlayConfirm(onConfirm: () => void): void {
+    const fire = (event?: KeyboardEvent) => {
+      event?.preventDefault();
+      onConfirm();
+    };
+    this.input.keyboard?.once("keydown-ENTER", () => fire());
+    this.input.keyboard?.once("keydown-SPACE", () => fire());
+    this.input.keyboard?.once("keydown-N", () => fire());
+  }
+
+  private addOverlayButton(
+    panel: Phaser.GameObjects.Container,
+    title: string,
+    y: number,
+    onClick: () => void,
+    primary = false,
+  ): void {
+    const bg = this.add
+      .rectangle(DESIGN_WIDTH / 2, y, primary ? 420 : 360, primary ? 64 : 52, 0x1f1f1f, 0.95)
+      .setStrokeStyle(primary ? 3 : 2, GOLD_NUM);
+    const label = this.add.text(DESIGN_WIDTH / 2, y, title, textStyle(primary ? 24 : 20)).setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerup", onClick);
     label.setInteractive({ useHandCursor: true });
-    label.on("pointerup", onClick);
+    bg.on("pointerdown", onClick);
+    label.on("pointerdown", onClick);
     panel.add([bg, label]);
   }
 
   private rematch(): void {
-    if (this.arcade) this.scene.start("Fight", { arcade: this.arcade });
+    if (this.arcade) this.restartFight({ arcade: this.arcade });
     else {
-      this.scene.start("Fight", {
+      this.restartFight({
         playerId: this.playerFighter.id,
         opponentId: this.opponentFighter.id,
         stageId: this.stage.id,
@@ -353,7 +607,13 @@ export class FightScene extends Phaser.Scene {
     if (!this.arcade) return;
     const next = arcadeNext(this.arcade);
     if (!next) return;
-    this.scene.start("Fight", { arcade: next });
+    this.restartFight({ arcade: next });
+  }
+
+  private restartFight(data: FightData): void {
+    this.scene.stop("Title");
+    this.scene.stop("Select");
+    this.scene.restart(data);
   }
 
   private toSelect(): void {
@@ -372,6 +632,7 @@ export class FightScene extends Phaser.Scene {
 class HealthBar {
   private readonly fill: Phaser.GameObjects.Rectangle;
   private readonly meter: Phaser.GameObjects.Rectangle;
+  private readonly pips: Phaser.GameObjects.Arc[] = [];
   private readonly width: number;
   private readonly alignLeft: boolean;
 
@@ -402,6 +663,12 @@ class HealthBar {
     const ult = scene.add.text(8, 34, "ULT", textStyle(12, "#c4b4ff")).setOrigin(this.alignLeft ? 0 : 1, 0.5);
     if (!this.alignLeft) ult.setX(width + 2);
     root.add([plate, hpBack, this.fill, meterBack, this.meter, name, ult]);
+    for (let i = 0; i < ROUNDS_TO_WIN; i++) {
+      const px = this.alignLeft ? width - 10 - i * 20 : 14 + i * 20;
+      const pip = scene.add.circle(px, 34, 6, 0x2a2a2a).setStrokeStyle(2, GOLD_NUM, 0.9);
+      this.pips.push(pip);
+      root.add(pip);
+    }
     if (scene.textures.exists(fighter.portrait)) {
       const portrait = scene.add.image(this.alignLeft ? -22 : width + 32, 4, fighter.portrait);
       portrait.setDisplaySize(44, 44);
@@ -419,5 +686,9 @@ class HealthBar {
     const clamped = Phaser.Math.Clamp(t, 0, 1);
     this.meter.setSize(Math.max(clamped > 0 ? 6 : 0, this.width * clamped), 12);
     this.meter.setFillStyle(clamped >= 1 ? GOLD_NUM : 0x8c66f2);
+  }
+
+  setRounds(won: number): void {
+    this.pips.forEach((pip, i) => pip.setFillStyle(i < won ? GOLD_NUM : 0x2a2a2a));
   }
 }

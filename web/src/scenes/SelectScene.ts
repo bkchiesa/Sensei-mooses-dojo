@@ -1,8 +1,10 @@
 import Phaser from "phaser";
-import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
-import { ARCADE_STAGE_IDS, slotName, STARTERS, STAGES, type FighterDef, type StageDef } from "../data/catalog";
+import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD, GOLD_NUM } from "../config";
+import { dummyOpponent, slotName, STARTERS, STAGES, stageById, type FighterDef, type StageDef } from "../data/catalog";
+import { PIXEL_PLATE_PX, SELECT_MAP_CHROME } from "../data/peninsula";
 import { arcadeStart } from "../game/arcade";
-import { selectRoster } from "../game/storage";
+import { PeninsulaMap } from "../game/peninsulaMap";
+import { applyQueryUnlocks, selectRoster } from "../game/storage";
 import { hexColor, textStyle } from "../game/ui";
 
 export type SelectMode = "arcade" | "freePlay";
@@ -23,6 +25,7 @@ export class SelectScene extends Phaser.Scene {
   private selected: FighterDef | null = null;
   private selectedStage: StageDef | null = null;
   private cards = new Map<string, Phaser.GameObjects.Container>();
+  private map?: PeninsulaMap;
   private fightLabel!: Phaser.GameObjects.Text;
   private goTimer?: Phaser.Time.TimerEvent;
 
@@ -35,31 +38,245 @@ export class SelectScene extends Phaser.Scene {
     this.phase = data.phase ?? "player";
     this.playerPick = data.player ?? null;
     this.opponentPick = data.opponent ?? null;
-    this.selected = null;
+    this.selected = this.phase === "player" ? (data.player ?? STARTERS[0]) : this.phase === "opponent" ? null : (data.player ?? null);
     this.selectedStage = null;
     this.cards.clear();
+    this.map = undefined;
+    this.fightLabel = undefined as unknown as Phaser.GameObjects.Text;
+    this.goTimer = undefined;
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(0x120f1a);
-    this.buildHeader();
-    if (this.phase === "stage") this.buildStageSlots();
-    else this.buildSlots();
-    const idle =
-      this.phase === "stage" ? "SELECT A STAGE" : this.phase === "opponent" ? "SELECT OPPONENT" : "SELECT A FIGHTER";
+    applyQueryUnlocks();
+    this.cameras.main.setBackgroundColor(0x2c2a58);
+    this.maybeLoadMapArt(() => this.buildLayout());
+  }
+
+  private maybeLoadMapArt(then: () => void): void {
+    if (this.textures.exists("ui-select-map") || this.textures.exists("ui-select-screen")) {
+      then();
+      return;
+    }
+    const fallback = () => {
+      if (this.sys.isActive() && !this.fightLabel) then();
+    };
+    void fetch("assets/ui/select/plate.json")
+      .then((res) => (res.ok ? res.json() : { file: "hampton-roads-map.svg" }))
+      .catch(() => ({ file: "hampton-roads-map.svg" }))
+      .then((meta: { file?: string | null; screen?: string | null }) => {
+        if (!this.sys.isActive() || this.fightLabel) return;
+        let queued = 0;
+        const enqueue = (key: string, file: string) => {
+          const url = `assets/ui/select/${file}`;
+          if (file.endsWith(".svg")) this.load.svg(key, url, PIXEL_PLATE_PX);
+          else this.load.image(key, url);
+          queued += 1;
+        };
+        if (meta.file) enqueue("ui-select-map", meta.file);
+        if (meta.screen) enqueue("ui-select-screen", meta.screen);
+        if (!queued) {
+          then();
+          return;
+        }
+        this.load.once("complete", () => then());
+        this.load.once("loaderror", () => then());
+        this.load.start();
+      });
+    this.time.delayedCall(800, fallback);
+  }
+
+  private buildLayout(): void {
+    if (!this.sys.isActive() || this.fightLabel) return;
+    this.buildWash();
+    this.buildNav();
+    this.buildPortraits();
+    this.buildMap();
+    this.buildPlayerSelectLabel();
+    if (this.phase === "stage") this.buildStageHint();
+    else this.buildGrid();
     this.fightLabel = this.add
-      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 36, idle, {
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 22, this.idlePrompt(), {
         fontFamily: FONT,
-        fontSize: "22px",
-        color: "#8c8c8c",
+        fontSize: "16px",
+        color: "#b8b0c8",
         fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    this.fightLabel.on("pointerup", () => {
-      if (this.phase === "stage" && this.selectedStage) this.startOnStage(this.selectedStage);
-      else if (this.selected) this.advance(this.selected);
-    });
+    this.fightLabel.on("pointerup", () => this.confirm());
+    this.syncMapHighlight();
+  }
+
+  private idlePrompt(): string {
+    if (this.phase === "stage") return "TAP A MAP DOT  ·  CHOOSE STAGE";
+    if (this.phase === "opponent") return "SELECT OPPONENT";
+    return "SELECT A FIGHTER";
+  }
+
+  private buildWash(): void {
+    const g = this.add.graphics();
+    g.fillStyle(0x2c2a58, 1);
+    g.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
+    if (this.textures.exists("ui-select-screen")) {
+      const src = this.textures.get("ui-select-screen").getSourceImage() as { width?: number };
+      if (src?.width && src.width >= 8) {
+        const art = this.add.image(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "ui-select-screen");
+        art.setDisplaySize(DESIGN_WIDTH, DESIGN_HEIGHT);
+        art.setAlpha(0.28);
+        this.add.rectangle(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, DESIGN_WIDTH, DESIGN_HEIGHT, 0x140d1f, 0.45);
+      }
+    }
+    for (let i = 0; i < 7; i++) {
+      const label = this.add
+        .text(-80 + i * 220, 40 + (i % 2) * 80, "SENSEI MOOSE'S DOJO", {
+          fontFamily: FONT,
+          fontSize: "22px",
+          color: "#ffffff",
+          fontStyle: "bold",
+        })
+        .setAlpha(0.045)
+        .setAngle(-18);
+      void label;
+    }
+  }
+
+  private buildNav(): void {
+    const heading =
+      this.phase === "stage"
+        ? "FREE PLAY"
+        : this.phase === "opponent"
+          ? "FREE PLAY"
+          : this.mode === "arcade"
+            ? "ARCADE"
+            : "FREE PLAY";
+    this.add.text(DESIGN_WIDTH / 2, 22, heading, textStyle(18, GOLD)).setOrigin(0.5);
+
+    const back = this.add.text(28, 14, "← TITLE", textStyle(14, "#d9d9d9")).setInteractive({ useHandCursor: true });
+    back.on("pointerup", () => this.scene.start("Title"));
+
+    if (this.mode === "arcade") {
+      const free = this.add
+        .text(DESIGN_WIDTH - 28, 14, "FREE PLAY →", textStyle(14, "#d9d9d9"))
+        .setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true });
+      free.on("pointerup", () => this.scene.start("Select", { mode: "freePlay" }));
+    } else if (this.phase === "stage") {
+      const backOpp = this.add
+        .text(DESIGN_WIDTH - 28, 14, "← OPPONENT", textStyle(14, "#d9d9d9"))
+        .setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true });
+      backOpp.on("pointerup", () =>
+        this.scene.start("Select", { mode: "freePlay", phase: "opponent", player: this.playerPick }),
+      );
+    } else if (this.phase === "opponent") {
+      const backPick = this.add
+        .text(DESIGN_WIDTH - 28, 14, "← FIGHTER", textStyle(14, "#d9d9d9"))
+        .setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true });
+      backPick.on("pointerup", () => this.scene.start("Select", { mode: "freePlay" }));
+    } else {
+      const arcade = this.add
+        .text(DESIGN_WIDTH - 28, 14, "← ARCADE", textStyle(14, "#d9d9d9"))
+        .setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true });
+      arcade.on("pointerup", () => this.scene.start("Select", { mode: "arcade" }));
+    }
+  }
+
+  private buildPortraits(): void {
+    const left = this.selected ?? this.playerPick;
+    const right =
+      this.phase === "player"
+        ? this.mode === "arcade"
+          ? dummyOpponent(left ?? STARTERS[0])
+          : this.opponentPick
+        : this.phase === "opponent"
+          ? this.selected
+          : this.opponentPick;
+    this.drawBust(160, 210, left, true, this.phase === "player" ? "1P  ·  YOU" : "1P  ·  YOU");
+    this.drawBust(
+      DESIGN_WIDTH - 160,
+      210,
+      right,
+      false,
+      this.phase === "player" && this.mode === "arcade" ? "CPU" : "2P  ·  CPU",
+    );
+  }
+
+  private drawBust(x: number, y: number, fighter: FighterDef | null | undefined, isP1: boolean, tag: string): void {
+    const color = isP1 ? 0xd43c3c : GOLD_NUM;
+    const frame = this.add.rectangle(x, y, 220, 300, 0x141028, 0.92).setStrokeStyle(4, color);
+    void frame;
+    if (fighter && this.hasTex(fighter.portrait)) {
+      const img = this.add.image(x, y - 18, fighter.portrait);
+      const s = Math.min(200 / img.width, 210 / img.height);
+      img.setScale(s);
+    } else if (fighter && this.hasTex(fighter.idle)) {
+      const img = this.add.image(x, y - 10, fighter.idle);
+      const s = Math.min(180 / img.width, 200 / img.height);
+      img.setScale(s);
+    } else {
+      this.add.rectangle(x, y - 20, 160, 190, 0x2a2438);
+      this.add.text(x, y - 20, "?", textStyle(64, "#666")).setOrigin(0.5);
+    }
+    const name = fighter?.displayName.toUpperCase() ?? "…";
+    this.add
+      .text(x, y + 118, name, {
+        fontFamily: FONT,
+        fontSize: name.length > 12 ? "18px" : "22px",
+        color: isP1 ? "#ff8a7a" : GOLD,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    this.add.text(x, y + 142, tag, textStyle(13, isP1 ? "#ffb0a4" : "#ffe7a0")).setOrigin(0.5);
+    if (fighter) {
+      this.add.text(x, y + 160, stageById(fighter.stageId).displayName.toUpperCase(), textStyle(11, "#c8c0d4")).setOrigin(0.5);
+    }
+  }
+
+  private buildMap(): void {
+    const interactive = this.phase === "stage";
+    this.map = new PeninsulaMap(
+      this,
+      { x: DESIGN_WIDTH / 2, y: 205, w: SELECT_MAP_CHROME.w, h: SELECT_MAP_CHROME.h },
+      (id) => this.onMapDot(id),
+      interactive,
+    );
+  }
+
+  private buildPlayerSelectLabel(): void {
+    this.add
+      .text(DESIGN_WIDTH / 2, 400, "PLAYER SELECT", {
+        fontFamily: FONT,
+        fontSize: "28px",
+        color: GOLD,
+        fontStyle: "bold",
+        stroke: "#1a1020",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5);
+    const sub =
+      this.phase === "stage"
+        ? "HAMPTON ROADS  ·  TAP A LANDMARK"
+        : this.phase === "opponent"
+          ? "CHOOSE OPPONENT"
+          : this.mode === "arcade"
+            ? "CHOOSE YOUR FIGHTER"
+            : "CHOOSE YOUR FIGHTER";
+    this.add.text(DESIGN_WIDTH / 2, 426, sub, textStyle(13, "#c8c0d4")).setOrigin(0.5);
+  }
+
+  private buildStageHint(): void {
+    this.add
+      .text(DESIGN_WIDTH / 2, 468, `${this.playerPick?.displayName ?? "You"}  vs  ${this.opponentPick?.displayName ?? "CPU"}`, textStyle(16))
+      .setOrigin(0.5);
+    this.add
+      .text(DESIGN_WIDTH / 2, 494, "Tap a landmark. Map plate is a swap-in — dots stay on real lon/lat.", {
+        fontFamily: FONT,
+        fontSize: "12px",
+        color: "#9aa0c8",
+      })
+      .setOrigin(0.5);
   }
 
   private roster(): FighterDef[] {
@@ -68,162 +285,54 @@ export class SelectScene extends Phaser.Scene {
     return [...starters, ...unlockedBosses];
   }
 
-  private buildHeader(): void {
-    const heading =
-      this.phase === "stage"
-        ? "FREE PLAY  ·  CHOOSE STAGE"
-        : this.phase === "opponent"
-          ? "FREE PLAY  ·  CHOOSE OPPONENT"
-          : this.mode === "arcade"
-            ? "ARCADE  ·  CHOOSE YOUR FIGHTER"
-            : "FREE PLAY  ·  CHOOSE YOUR FIGHTER";
-    this.add.text(DESIGN_WIDTH / 2, 42, heading, textStyle(26, GOLD)).setOrigin(0.5);
-
-    const hint =
-      this.phase === "stage"
-        ? `${this.playerPick?.displayName ?? "You"} vs ${this.opponentPick?.displayName ?? "CPU"}  ·  Arcade + NN landmarks`
-        : this.phase === "opponent"
-          ? `${this.playerPick?.displayName ?? "You"} vs …`
-          : this.mode === "arcade"
-            ? "Starters always available  ·  Beat the dummy, then the boss ladder"
-            : "Starters + unlocked bosses  ·  then opponent  ·  then a stage";
-    this.add
-      .text(DESIGN_WIDTH / 2, 72, hint, { fontFamily: FONT, fontSize: "14px", color: "#bfbfbf" })
-      .setOrigin(0.5);
-
-    const back = this.add.text(36, 28, "← TITLE", textStyle(16, "#d9d9d9")).setInteractive({ useHandCursor: true });
-    back.on("pointerup", () => this.scene.start("Title"));
-
-    if (this.mode === "arcade") {
-      const free = this.add
-        .text(DESIGN_WIDTH - 36, 28, "FREE PLAY →", textStyle(16, "#d9d9d9"))
-        .setOrigin(1, 0)
-        .setInteractive({ useHandCursor: true });
-      free.on("pointerup", () => this.scene.start("Select", { mode: "freePlay" }));
-    } else if (this.phase === "stage") {
-      const backOpp = this.add
-        .text(DESIGN_WIDTH - 36, 28, "← CHANGE OPPONENT", textStyle(16, "#d9d9d9"))
-        .setOrigin(1, 0)
-        .setInteractive({ useHandCursor: true });
-      backOpp.on("pointerup", () =>
-        this.scene.start("Select", { mode: "freePlay", phase: "opponent", player: this.playerPick }),
-      );
-    } else if (this.phase === "opponent") {
-      const backPick = this.add
-        .text(DESIGN_WIDTH - 36, 28, "← CHANGE FIGHTER", textStyle(16, "#d9d9d9"))
-        .setOrigin(1, 0)
-        .setInteractive({ useHandCursor: true });
-      backPick.on("pointerup", () => this.scene.start("Select", { mode: "freePlay" }));
-    } else {
-      const arcade = this.add
-        .text(DESIGN_WIDTH - 36, 28, "← ARCADE", textStyle(16, "#d9d9d9"))
-        .setOrigin(1, 0)
-        .setInteractive({ useHandCursor: true });
-      arcade.on("pointerup", () => this.scene.start("Select", { mode: "arcade" }));
-    }
-  }
-
-  private buildSlots(): void {
+  private buildGrid(): void {
     const fighters = this.roster().filter((f) => !(this.phase === "opponent" && this.playerPick && f.id === this.playerPick.id));
-    const columns = Math.min(7, Math.max(fighters.length, 1));
-    const many = fighters.length > 5;
-    const slotW = many ? 150 : 200;
-    const slotH = many ? 200 : 260;
-    const gap = 12;
-    const gridW = Math.min(columns, fighters.length) * slotW + Math.max(Math.min(columns, fighters.length) - 1, 0) * gap;
-    const startX = (DESIGN_WIDTH - gridW) / 2 + slotW / 2;
-    const startY = DESIGN_HEIGHT * (many ? 0.38 : 0.46);
+    const columns = Math.min(10, Math.max(fighters.length, 1));
+    const slot = fighters.length > 8 ? 72 : 88;
+    const gap = 8;
+    const rows = Math.ceil(fighters.length / columns);
+    const gridW = Math.min(columns, fighters.length) * slot + Math.max(Math.min(columns, fighters.length) - 1, 0) * gap;
+    const startX = (DESIGN_WIDTH - gridW) / 2 + slot / 2;
+    const startY = 490;
 
     fighters.forEach((fighter, index) => {
       const col = index % columns;
       const row = Math.floor(index / columns);
-      const card = this.makeCard(fighter, slotW, slotH);
-      card.setPosition(startX + col * (slotW + gap), startY + row * (slotH + 16));
+      const card = this.makeHead(fighter, slot);
+      card.setPosition(startX + col * (slot + gap), startY + row * (slot + 10));
       this.cards.set(slotName(fighter), card);
     });
 
     if (this.mode === "freePlay" && selectRoster().unlockedBosses.length === 0 && this.phase === "player") {
       this.add
-        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 88, "Win arcade fights to unlock bosses here.", {
+        .text(DESIGN_WIDTH / 2, 640, "Win arcade fights to unlock bosses on this grid.", {
           fontFamily: FONT,
-          fontSize: "14px",
+          fontSize: "13px",
           color: "#999",
         })
         .setOrigin(0.5);
+    } else if (this.mode === "freePlay" && this.phase === "player" && selectRoster().unlockedBosses.length > 0) {
+      this.add
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 44, `${selectRoster().unlockedBosses.length} BOSSES UNLOCKED`, textStyle(12, "#9fff9f"))
+        .setOrigin(0.5);
     }
+    void rows;
   }
 
-  private buildStageSlots(): void {
-    const columns = 4;
-    const slotW = 300;
-    const slotH = 86;
-    const gapX = 14;
-    const gapY = 12;
-    const gridW = columns * slotW + (columns - 1) * gapX;
-    const startX = (DESIGN_WIDTH - gridW) / 2 + slotW / 2;
-    const startY = 130;
-
-    STAGES.forEach((stage, index) => {
-      const col = index % columns;
-      const row = Math.floor(index / columns);
-      const card = this.makeStageCard(stage, slotW, slotH);
-      card.setPosition(startX + col * (slotW + gapX), startY + row * (slotH + gapY));
-      this.cards.set(stage.id, card);
-    });
-  }
-
-  private makeStageCard(stage: StageDef, width: number, height: number): Phaser.GameObjects.Container {
+  private makeHead(fighter: FighterDef, size: number): Phaser.GameObjects.Container {
     const root = this.add.container(0, 0);
-    const arcade = ARCADE_STAGE_IDS.includes(stage.id);
-    const panel = this.add.rectangle(0, 0, width, height, 0x1f1f1f, 0.92).setStrokeStyle(2, arcade ? 0xffd651 : 0x6a5a88);
-    const num = this.add.text(-width / 2 + 14, 0, String(stage.number).padStart(2, "0"), textStyle(22, GOLD)).setOrigin(0, 0.5);
-    const name = this.add.text(-width / 2 + 52, -10, stage.displayName, textStyle(16)).setOrigin(0, 0.5);
-    const tag = this.add
-      .text(-width / 2 + 52, 12, arcade ? "ARCADE" : "LANDMARK", {
-        fontFamily: FONT,
-        fontSize: "11px",
-        color: arcade ? GOLD : "#9aa0c8",
-      })
-      .setOrigin(0, 0.5);
-    root.add([panel, num, name, tag]);
-    const hit = this.add.rectangle(0, 0, width, height, 0x000000, 0.001);
-    hit.setInteractive({ useHandCursor: true });
-    hit.on("pointerup", () => this.selectStage(stage));
-    root.add(hit);
-    return root;
-  }
-
-  private makeCard(fighter: FighterDef, width: number, height: number): Phaser.GameObjects.Container {
-    const root = this.add.container(0, 0);
-    const panel = this.add.rectangle(0, 0, width, height, 0x1f1f1f, 0.92).setStrokeStyle(3, fighter.accent);
-    const portraitKey = this.textures.exists(fighter.portrait) ? fighter.portrait : null;
-    const idleKey = this.textures.exists(fighter.idle) ? fighter.idle : portraitKey;
-    const portraitH = height > 230 ? 110 : 80;
+    const panel = this.add.rectangle(0, 0, size, size, 0x1a1528, 0.95).setStrokeStyle(2, fighter.accent);
     root.add(panel);
-    if (portraitKey) {
-      const portrait = this.add.image(0, -height * 0.12, portraitKey);
-      const s = portraitH / portrait.height;
-      portrait.setScale(s);
-      root.add(portrait);
+    const key = this.hasTex(fighter.portrait) ? fighter.portrait : this.hasTex(fighter.idle) ? fighter.idle : null;
+    if (key) {
+      const img = this.add.image(0, -4, key);
+      img.setDisplaySize(size - 14, size - 22);
+      root.add(img);
     } else {
-      root.add(this.add.rectangle(0, -height * 0.12, portraitH, portraitH, fighter.accent));
+      root.add(this.add.rectangle(0, -4, size - 16, size - 22, fighter.accent));
     }
-    if (idleKey) {
-      const idle = this.add.image(0, height * 0.22, idleKey);
-      const ih = height > 230 ? 70 : 50;
-      idle.setScale(ih / idle.height);
-      root.add(idle);
-    }
-    const name = this.add.text(0, height * 0.42, fighter.displayName, textStyle(width > 180 ? 18 : 13)).setOrigin(0.5);
-    const ult = this.add
-      .text(0, height * 0.42 + 18, fighter.ultimate.name, {
-        fontFamily: FONT,
-        fontSize: "11px",
-        color: hexColor(fighter.accent),
-      })
-      .setOrigin(0.5);
-    root.add([name, ult]);
-    const hit = this.add.rectangle(0, 0, width, height, 0x000000, 0.001);
+    root.add(this.add.text(0, size / 2 - 9, fighter.displayName, textStyle(10)).setOrigin(0.5));
+    const hit = this.add.rectangle(0, 0, size, size, 0x000000, 0.001);
     hit.setInteractive({ useHandCursor: true });
     hit.on("pointerup", () => this.selectFighter(fighter));
     root.add(hit);
@@ -233,28 +342,47 @@ export class SelectScene extends Phaser.Scene {
   private selectFighter(fighter: FighterDef): void {
     this.selected = fighter;
     for (const [key, node] of this.cards) {
-      const highlight = key === slotName(fighter);
-      node.setScale(highlight ? 1.06 : 1);
-      node.setAlpha(highlight ? 1 : 0.72);
+      const on = key === slotName(fighter);
+      node.setScale(on ? 1.08 : 1);
+      node.setAlpha(on ? 1 : 0.7);
     }
+    this.syncMapHighlight();
     const verb = this.phase === "opponent" ? "NEXT" : this.mode === "arcade" ? "ARCADE" : "NEXT";
     this.fightLabel.setText(`${verb}  —  ${fighter.displayName.toUpperCase()}`);
     this.fightLabel.setColor(GOLD);
     this.goTimer?.remove(false);
-    this.goTimer = this.time.delayedCall(220, () => this.advance(fighter));
+    this.goTimer = this.time.delayedCall(280, () => this.advance(fighter));
+  }
+
+  private onMapDot(id: string): void {
+    const stage = STAGES.find((s) => s.id === id);
+    if (!stage) return;
+    this.selectStage(stage);
   }
 
   private selectStage(stage: StageDef): void {
     this.selectedStage = stage;
-    for (const [key, node] of this.cards) {
-      const highlight = key === stage.id;
-      node.setScale(highlight ? 1.04 : 1);
-      node.setAlpha(highlight ? 1 : 0.7);
-    }
+    this.map?.highlight(stage.id);
     this.fightLabel.setText(`FIGHT  —  ${stage.displayName.toUpperCase()}`);
     this.fightLabel.setColor(GOLD);
     this.goTimer?.remove(false);
-    this.goTimer = this.time.delayedCall(220, () => this.startOnStage(stage));
+    this.goTimer = this.time.delayedCall(280, () => this.startOnStage(stage));
+  }
+
+  private syncMapHighlight(): void {
+    if (this.phase === "stage") {
+      this.map?.highlight(this.selectedStage?.id ?? this.opponentPick?.stageId ?? null);
+      return;
+    }
+    const fighter = this.selected ?? this.playerPick;
+    const stageId =
+      this.mode === "arcade" && this.phase === "player" ? "lionsBridge" : (fighter?.stageId ?? null);
+    this.map?.highlight(stageId);
+  }
+
+  private confirm(): void {
+    if (this.phase === "stage" && this.selectedStage) this.startOnStage(this.selectedStage);
+    else if (this.selected) this.advance(this.selected);
   }
 
   private advance(fighter: FighterDef): void {
@@ -284,5 +412,9 @@ export class SelectScene extends Phaser.Scene {
       opponentId: opponent.id,
       stageId: stage.id,
     });
+  }
+
+  private hasTex(key: string): boolean {
+    return this.textures.exists(key) && this.textures.get(key).getSourceImage().width > 1;
   }
 }

@@ -5,6 +5,7 @@ import { textStyle } from "../game/ui";
 
 export class TitleScene extends Phaser.Scene {
   private titleTaps = 0;
+  private menuConsumed = false;
 
   constructor() {
     super("Title");
@@ -81,7 +82,7 @@ export class TitleScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
     this.add
-      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 48, "Street-fight  ·  play in the browser  ·  Stage 1 Lions Bridge", {
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.18 + 48, "Street-fight  ·  best of 3  ·  play in the browser", {
         fontFamily: FONT,
         fontSize: "18px",
         color: "#d8d0dc",
@@ -99,7 +100,10 @@ export class TitleScene extends Phaser.Scene {
   private buildPrompt(): void {
     const prompt = this.add
       .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 148, "TAP FOR ARCADE", textStyle(22, "#f2f2f2"))
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    prompt.setData("menu", true);
+    prompt.on("pointerdown", () => this.scene.start("Select", { mode: "arcade" }));
     this.tweens.add({
       targets: prompt,
       alpha: 0.25,
@@ -120,25 +124,21 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start("Leaderboard");
     });
 
-    this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
-      const hits = this.input.hitTestPointer(p);
-      if (hits.some((obj) => Boolean(obj.getData("menu")))) return;
-      this.scene.start("Select", { mode: "arcade" });
-    });
   }
 
   private menuButton(label: string, x: number, y: number, onClick: () => void): void {
-    const bg = this.add.rectangle(x, y, 168, 44, 0x1f1f1f, 0.9).setStrokeStyle(2, 0xffd651);
+    const bg = this.add.rectangle(x, y, 200, 52, 0x1f1f1f, 0.9).setStrokeStyle(2, 0xffd651);
     bg.setData("menu", true);
     const text = this.add.text(x, y, label, textStyle(16, GOLD)).setOrigin(0.5);
     text.setData("menu", true);
     bg.setInteractive({ useHandCursor: true });
     text.setInteractive({ useHandCursor: true });
     const go = (e: Phaser.Input.Pointer) => {
+      this.menuConsumed = true;
       e.event?.stopPropagation?.();
       onClick();
     };
-    bg.on("pointerup", go);
-    text.on("pointerup", go);
+    bg.on("pointerdown", go);
+    text.on("pointerdown", go);
   }
 }

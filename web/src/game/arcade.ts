@@ -1,4 +1,4 @@
-import { dummyOpponent, fighterById, LADDER_IDS, type FighterDef } from "../data/catalog";
+import { dummyOpponent, fighterById, LADDER_IDS, opponentHomeStageId, type FighterDef } from "../data/catalog";
 
 /** Arcade chain after the Stage 1 starter dummy: Boss ladder in order. */
 export interface ArcadeProgress {
@@ -21,8 +21,7 @@ export function arcadeOpponent(progress: ArcadeProgress): FighterDef {
 }
 
 export function arcadeStageId(progress: ArcadeProgress): string {
-  if (progress.step !== null) return fighterById(LADDER_IDS[progress.step]).stageId;
-  return "lionsBridge";
+  return opponentHomeStageId(arcadeOpponent(progress), progress.step === null);
 }
 
 export function arcadeCurrentBoss(progress: ArcadeProgress): FighterDef | null {

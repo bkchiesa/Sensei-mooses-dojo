@@ -2,7 +2,7 @@
 
 Browser street-fighter. **The playable product is the web game** — open it on iPad/iPhone Safari (landscape) or any desktop browser. No Mac, Xcode, or App Store required.
 
-Playable loop: **Title → Arcade or Free Play select → Fight**. Arcade auto-advances the boss ladder after each win. Health bars, ULT meters (landed hits), and a **★ ULT** button.
+Playable loop: **Title → Arcade or Free Play select → Fight**. Fights are **best of 3** (first to 2 rounds) with a **3 → 2 → 1 → FIGHT!** countdown. Arcade shows **Next Fight** after a match win — it does not auto-advance. Health bars, round pips, ULT meters (landed hits), and a **★ ULT** button.
 
 Native **Swift + SpriteKit** stays in the repo as a deferred prototype. Do **not** App Store submit it.
 
@@ -55,7 +55,7 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Punch / Kick | **PUNCH** / **KICK** | J/Z · K/X |
 | Ultimate | **★ ULT** (lights up when meter is full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same.
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and **Next Fight** quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage).
 
 ### Ported vs still stubbed
 
@@ -63,10 +63,11 @@ Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug)
 | --- | --- |
 | Title, Arcade, Free Play (you → opponent → stage), Fight | Game Center (web uses this-browser Top 10) |
 | Starters Matt/Simon/Rich/Amanda/JB | Alley / rooftop stages (not locked yet) |
-| Boss ladder Misty → … → Austin → Sensei Moose | Native SpriteKit project (kept, not the play path) |
-| Unlock-on-win → Free Play roster | `boss_senseiMoose_*` art (falls back to title moose) |
-| Unique ultimates, 30% HP, meter from landed hits (~6) | App Store / signing |
-| Arcade stages 1–3 + Free Play landmarks (Batch A–C incl. Busch / Hampton / Poquoson) | Pixel extra ult frames beyond `_00` except Austin + Moose |
+| Best of 3, countdown, Next Fight (no auto-advance) | Native SpriteKit project (kept, not the play path) |
+| Unique arcade stage per boss (all locked landmarks) | `boss_senseiMoose_*` art (falls back to title moose) |
+| Progressive arcade difficulty + 2× roster / Moose +30% | App Store / signing |
+| Unique ultimates, 30% HP, meter from landed hits (~6) | Pixel **full anim sheets** (punch/kick/jump/block/crouch/sweep) |
+| Parallax BG + locked floor + light ambient loops | Pixel extra ult frames beyond `_00` except Austin + Moose |
 | Touch + keyboard, static GitHub Pages build | |
 
 ## Native Xcode prototype (deferred)
@@ -83,9 +84,9 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 
 | Scene | What happens |
 | --- | --- |
-| **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. Tap elsewhere starts Arcade. |
-| **CharacterSelectScene** | Arcade: starters only (Matt / Simon / Rich / Amanda / JB). Free Play: starters plus unlocked bosses, then a stage (arcade + NN landmarks). |
-| **FightScene** | Health bars + **ULT** meters, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK** / **★ ULT**. Arcade ladder unchanged. Landed hits fill the ultimate meter (~6 hits). |
+| **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
+| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): 1P/2P busts, Hampton Roads peninsula map with landmark dots, bottom headshot grid. Arcade: starters. Free Play: unlocked bosses, then tap a map dot for the stage. |
+| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **◀ ▶** / **JUMP** / **PUNCH** / **KICK** / **★ ULT**. Arcade does **not** auto-advance — tap **Next Fight**. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster
@@ -100,9 +101,9 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 
 
 
-### Extra stages Batch A (art parked; optional)
+### Extra stages Batch A (now on the arcade home-stage map)
 
-Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stage_<id>_`.
+Asset prefix `stage_<id>_`. Used as unique boss homes (see Stage mapping) and still pickable in Free Play.
 
 | Stage | id | Prefix |
 | --- | --- | --- |
@@ -130,7 +131,7 @@ Not on the arcade ladder yet — Free Play / future rotation. Asset prefix `stag
 | Hampton Waterfront | `hampton` | `stage_hampton_*` |
 | Poquoson Waterfront | `poquoson` | `stage_poquoson_*` |
 
-Alley / rooftop still not locked. Web Free Play exports the **master** plate for these landmarks (`web/ASSETS.md`). Arcade still uses Stage 1–3.
+Alley / rooftop still not locked. Web exports **full parallax** for arcade + landmark stages (`web/ASSETS.md`). Arcade assigns a unique home landmark to each boss (see Stage mapping).
 
 ## Unlock on defeat (design)
 
@@ -150,15 +151,33 @@ Arcade order (after the Stage 1 starter dummy fight):
 
 A win unlocks that boss on Free Play Select (`UserDefaults` via `UnlockStore`). `boss_senseiMoose_*` is not in-tree yet; Fight/Select fall back to `moose_title_idle` for Sensei Moose.
 
-### Stage mapping
+### Stage mapping (one landmark per opponent)
 
-| Stage | Mood | Who fights here |
+Arcade intro dummy stays on **Lions Bridge**. Each boss has a **unique** home stage from the locked landmark set (arcade 1–3 + Batch A/B/C). Free Play can still pick any stage; if you skip that pick, the opponent’s home stage is the default.
+
+| Opponent | Stage | Asset prefix |
 | --- | --- | --- |
-| Stage 1 Lions Bridge (`stage1_*`) | B | Intro starter dummy + batch 1 (Misty–Dakota) |
-| Stage 2 Hilton Elementary (`stage2_*`) | B waterfront + building | Batch 2 (John K.–Kasey) |
-| Stage 3 Axsom Martial Arts Dojo (`stage3_*`) | B exterior dusk | Batch 3 (Jaylen–Austin) + Sensei Moose |
+| Intro dummy | Lions Bridge | `stage1_*` |
+| Misty | Lions Bridge | `stage1_*` |
+| Lucas | Hilton Village | `stage_hiltonvillage_*` |
+| Chris | Oyster Point | `stage_oysterpoint_*` |
+| Christiano | Patrick Henry Mall | `stage_phmall_*` |
+| Dakota | Newport News Shipyard | `stage_shipyard_*` |
+| John K. | Hilton Elementary | `stage2_*` |
+| Finley | Mariners' Museum | `stage_mariners_*` |
+| Hudson | Warwick Blvd | `stage_subwaywarwick_*` |
+| Michael | Newport News Park | `stage_nnpark_*` |
+| Kasey | James River Bridge | `stage_jrbridge_*` |
+| Jaylen | Colonial Capitol | `stage_colonial_*` |
+| Amiyr | Busch Gardens | `stage_busch_*` |
+| Shaun | Hampton Waterfront | `stage_hampton_*` |
+| Ryan | Poquoson Waterfront | `stage_poquoson_*` |
+| Austin | Local Stadium | `stage_stadium_*` |
+| Sensei Moose | Axsom Martial Arts Dojo | `stage3_*` |
 
-Pixel finals for Stage 1 / title / starter roster / Hilton / Dojo / boss batches 1–3 are in `SenseiMoosesDojo/Assets.xcassets/`.
+Ids live on `FighterDef.stageId` in `web/src/data/catalog.ts`. Background `sky` / `far` / `mid` keep parallax; **the fight floor (`master` / `near`) does not move**. Stages also run a light ambient loop (clouds, water shimmer, boat rock) when the plate supports it.
+
+Pixel finals for Stage 1 / title / starter roster / Hilton / Dojo / boss batches 1–3 / Batch A–C landmarks are in `SenseiMoosesDojo/Assets.xcassets/`.
 
 ### Boss batch 1 (art parked)
 
@@ -208,9 +227,66 @@ Catalog root: **`SenseiMoosesDojo/Assets.xcassets/`**
 | Parallax near | `stage1_near` | `SenseiMoosesDojo/Assets.xcassets/stage1_near.imageset/stage1_near.png` |
 | Fighter portrait / idle | `fighter_<id>_portrait` / `fighter_<id>_idle_00` | matching `.imageset` folders for each roster id |
 
-FightScene loads `stage1_master` plus any of `stage1_sky` / `far` / `mid` / `near` that exist, and shifts them for a light parallax. Title prefers `moose_title_idle`; if that is missing it composes `moose_title_body` + `moose_title_head`.
+FightScene loads the current stage’s `sky` / `far` / `mid` / `master` / `near` on demand. Background layers parallax; the floor (`master` / `near`) stays pinned. Title prefers `moose_title_idle`; if that is missing it composes `moose_title_body` + `moose_title_head`.
 
 ### Stages
+
+Web fight systems live in `web/src/` (Phaser). Native `Game/Stage.swift` is deferred.
+
+### Best of 3 + countdown
+
+- Each fight is **first to 2 round wins**. Round pips sit on each health plate; the center HUD shows `ROUND N · P – C · BEST OF 3`.
+- **3 → 2 → 1 → FIGHT!** locks the pad until the last beat. The same countdown plays before every round.
+- Arcade **does not** auto-advance after a win. Tap **Next Fight** to climb the ladder.
+
+### Character scale
+
+Previous body height was 210px. All fighters are **2×** (`FIGHTER_HEIGHT = 420`). **Sensei Moose is 30% bigger than the other characters** (`420 × 1.3`). Hitboxes scale with body height.
+
+### Progressive difficulty
+
+`web/src/game/difficulty.ts` — index **-1** is the intro dummy; **0…15** follow the boss ladder (Misty → Sensei Moose). Each step is strictly harder. Free Play uses the opponent’s ladder index when they are a boss.
+
+| Index | Who | Attack CD | Approach | Block | CPU dmg dealt | CPU dmg taken | ULT use |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| -1 | Intro dummy | 1.45s | 140px | 2% | 0.55× | 1.35× | low |
+| 0 | Misty | 0.92s | 118px | 8% | 0.82× | 1.08× | 0.45 |
+| 7 | Hudson (mid) | ~0.60s | ~93px | ~27% | ~1.10× | ~0.88× | ~0.70 |
+| 15 | Sensei Moose | 0.28s | 68px | 46% | 1.38× | 0.68× | 0.95 |
+
+Curves lerp monotonically on `t = index / 15`. Dummy is a fixed easy profile below Misty.
+
+### PLAYER SELECT (SF2 homage, no Capcom IP)
+
+Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
+
+- Large **1P / 2P** busts left and right
+- Center **Virginia Lower Peninsula / Hampton Roads** map (SF2 oval chrome; plate is a swap-in)
+- Dots on real landmark lon/lat (`web/src/data/peninsula.ts`) — no stretch/inset. Close pairs (Lions Bridge / Mariners, Hilton) stay where they are.
+- **PLAYER SELECT** label
+- Bottom fighter headshot grid
+
+Pixel map plate: drop locked `select_map_plate.png` (or `hampton-roads-map.png`) in `dojo-art/finals/ui/select/` using the lon/lat box in that README. Optional `select_screen.png` is a wash behind the live chrome. Concepts may sit in `dojo-art/concepts/ui/select/` until finals copy. Placeholder SVG matches the same UV so the plate can replace it without moving dots. Free Play stage pick is a map-dot tap.
+
+### Fighter anim sheets (Pixel)
+
+**Starters** (`matt`, `simon`, `rich`, `amanda`, `jb`) have full action sets in `dojo-art/finals/fighters/<id>/` (`fighter_<id>_idle_00` … `sweep_03`). Export copies them into `web/public/assets/fighters/<id>/` so punch/kick/jump/block/crouch/sweep play in Phaser. Display height stays `FIGHTER_HEIGHT` 420 (2×).
+
+**Sensei Moose pose-bar FINALS** drop in `web/fighter-sheets/senseiMoose/` (`idle_00` … `sweep_03`). Export prefers that idle over `moose_title_idle` and writes `boss_senseiMoose_idle_00` for fight/select. Height stays `MOOSE_HEIGHT_SCALE` 1.3. Ultimates unchanged.
+
+Bosses still **stretch each idle** until their folders land. Overlay more sheets here and re-export:
+
+```
+web/fighter-sheets/<id>/idle_00.png
+web/fighter-sheets/<id>/punch_00.png
+web/fighter-sheets/<id>/kick_00.png
+web/fighter-sheets/<id>/jump_00.png
+web/fighter-sheets/<id>/block_00.png
+web/fighter-sheets/<id>/crouch_00.png
+web/fighter-sheets/<id>/sweep_00.png
+```
+
+See `web/ASSETS.md` and `web/src/game/anims.ts`. Extra frames: `_01`, `_02`, …
 
 `Game/Stage.swift` is a **catalog table** (`StageConfig.catalog`). Add later NN landmarks / generics as a new row (`assetPrefix` `stage4+`); do not assume only three stages. Current arcade rows:
 

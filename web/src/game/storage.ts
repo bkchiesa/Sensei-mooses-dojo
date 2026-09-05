@@ -81,6 +81,11 @@ export function applyQueryUnlocks(): void {
   if (params.get("unlock") === "all") unlockAllBosses();
 }
 
+/** `?debug=1` — heavy player hits so Brandon can check round / Next Fight flow quickly. */
+export function debugHeavyHits(): boolean {
+  return new URLSearchParams(window.location.search).get("debug") === "1";
+}
+
 export function fighterFromQuery(): FighterDef | null {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("fighter");

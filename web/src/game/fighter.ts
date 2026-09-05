@@ -1,19 +1,25 @@
 import Phaser from "phaser";
-import { CHARGE_PER_HIT, FIGHTER_HEIGHT, ULT_DAMAGE_FRACTION } from "../config";
-import type { FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
+import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
+import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
+import { animPackFor, hasDedicatedFrames } from "./anims";
 
-export type AttackKind = "punch" | "kick";
+export type AttackKind = "punch" | "kick" | "sweep";
 
 const ATTACK = {
   punch: { damage: 8, range: 78, duration: 0.28, activeStart: 0.07, activeEnd: 0.18 },
   kick: { damage: 14, range: 102, duration: 0.4, activeStart: 0.12, activeEnd: 0.26 },
+  sweep: { damage: 12, range: 118, duration: 0.42, activeStart: 0.14, activeEnd: 0.3 },
 } as const;
+
+function isMooseId(id: string): boolean {
+  return id === "senseiMoose" || id === "moose";
+}
 
 export class Fighter {
   readonly fighter: FighterDef;
   readonly isPlayer: boolean;
   readonly maxHP = 100;
-  readonly bodyHeight = FIGHTER_HEIGHT;
+  readonly bodyHeight: number;
 
   hp = 100;
   facing = 1;
@@ -24,8 +30,12 @@ export class Fighter {
   isHit = false;
   isKO = false;
   isUltimate = false;
+  isBlocking = false;
+  isCrouching = false;
   activeAttack: AttackKind | null = null;
   ultimateMeter = 0;
+  /** Incoming damage scale (CPU tankiness / player fragility). */
+  incomingMul = 1;
 
   readonly root: Phaser.GameObjects.Container;
   readonly body: Phaser.GameObjects.Image;
@@ -41,13 +51,20 @@ export class Fighter {
   private ultTween: Phaser.Tweens.TweenChain | null = null;
 
   private readonly moveSpeed = 280;
-  private readonly jumpVelocity = 920;
+  private readonly jumpVelocity: number;
   private readonly gravity = -2600;
+  private currentAnim: FighterAnimName = "idle";
+  private animFrame = 0;
+  private animElapsed = 0;
+  private blockElapsed = 0;
+  private blockDuration = 0.38;
 
   constructor(scene: Phaser.Scene, fighter: FighterDef, isPlayer: boolean, x: number, y: number) {
     this.scene = scene;
     this.fighter = fighter;
     this.isPlayer = isPlayer;
+    this.bodyHeight = isMooseId(fighter.id) ? Math.round(FIGHTER_HEIGHT * MOOSE_HEIGHT_SCALE) : FIGHTER_HEIGHT;
+    this.jumpVelocity = 920 * Math.sqrt(this.bodyHeight / 210);
     this.idleKey = scene.textures.exists(fighter.idle) ? fighter.idle : this.fallbackKey();
 
     this.root = scene.add.container(x, y);
@@ -58,6 +75,7 @@ export class Fighter {
     this.strike.setOrigin(0.5, 0.5);
     this.root.add([this.body, this.strike]);
     this.root.setDepth(10);
+    this.playAnim("idle", true);
   }
 
   private fallbackKey(): string {
@@ -67,7 +85,26 @@ export class Fighter {
 
   private fitBody(): void {
     if (this.body.height <= 0) return;
-    this.body.setDisplaySize((this.body.width / this.body.height) * FIGHTER_HEIGHT, FIGHTER_HEIGHT);
+    this.body.setDisplaySize((this.body.width / this.body.height) * this.bodyHeight, this.bodyHeight);
+  }
+
+  private poseKey(anim: FighterAnimName, frame = 0): string | null {
+    const frames = animPackFor(this.fighter.id).frames[anim];
+    if (frames && frames[frame] && this.scene.textures.exists(frames[frame])) return frames[frame];
+    if (anim === "idle" && this.scene.textures.exists(this.idleKey)) return this.idleKey;
+    return null;
+  }
+
+  playAnim(anim: FighterAnimName, force = false): void {
+    if (!force && this.currentAnim === anim) return;
+    this.currentAnim = anim;
+    this.animFrame = 0;
+    this.animElapsed = 0;
+    const key = this.poseKey(anim, 0) ?? this.idleKey;
+    if (this.scene.textures.exists(key)) {
+      this.body.setTexture(key);
+      this.fitBody();
+    }
   }
 
   get x(): number {
@@ -98,7 +135,7 @@ export class Fighter {
   }
 
   setWalk(left: boolean, right: boolean): void {
-    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO) {
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || this.isBlocking || this.isCrouching) {
       if (this.onGround) this.vx = 0;
       return;
     }
@@ -116,33 +153,71 @@ export class Fighter {
   }
 
   jump(): void {
-    if (!this.onGround || this.isHit || this.isKO || this.isUltimate) return;
+    if (!this.onGround || this.isHit || this.isKO || this.isUltimate || this.isBlocking || this.isCrouching) return;
     this.vy = this.jumpVelocity;
     this.onGround = false;
+    this.playAnim("jump");
+  }
+
+  startBlock(duration = 0.38): boolean {
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || !this.onGround) return false;
+    this.isBlocking = true;
+    this.isCrouching = false;
+    this.blockElapsed = 0;
+    this.blockDuration = duration;
+    this.vx = 0;
+    this.playAnim("block");
+    if (!hasDedicatedFrames(this.fighter.id, "block")) {
+      this.body.setScale(1, 0.92);
+    }
+    return true;
+  }
+
+  setCrouch(held: boolean): void {
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || this.isBlocking || !this.onGround) {
+      if (!held) this.isCrouching = false;
+      return;
+    }
+    if (held === this.isCrouching) {
+      if (held) this.vx = 0;
+      return;
+    }
+    this.isCrouching = held;
+    this.vx = 0;
+    this.playAnim(held ? "crouch" : "idle");
   }
 
   startAttack(kind: AttackKind): boolean {
-    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || !this.onGround) return false;
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || this.isBlocking || !this.onGround) return false;
+    if (this.isCrouching && kind === "kick") kind = "sweep";
+    if (kind !== "sweep") this.isCrouching = false;
     this.isAttacking = true;
     this.activeAttack = kind;
     this.attackElapsed = 0;
     this.didConnect = false;
     this.vx = 0;
-    const lift = kind === "punch" ? 8 : -4;
-    this.scene.tweens.add({
-      targets: this.body,
-      x: 10,
-      y: -lift,
-      duration: ATTACK[kind].activeStart * 1000,
-      yoyo: true,
-      hold: (ATTACK[kind].activeEnd - ATTACK[kind].activeStart) * 1000,
-    });
+    this.playAnim(kind);
+    if (!hasDedicatedFrames(this.fighter.id, kind)) {
+      const lift = kind === "punch" ? 8 : kind === "sweep" ? 14 : -4;
+      this.scene.tweens.add({
+        targets: this.body,
+        x: 10,
+        y: -lift,
+        duration: ATTACK[kind].activeStart * 1000,
+        yoyo: true,
+        hold: (ATTACK[kind].activeEnd - ATTACK[kind].activeStart) * 1000,
+      });
+    }
     return true;
   }
 
   applyHit(damage: number, fromX: number): void {
     if (this.isKO) return;
-    this.hp = Math.max(0, this.hp - damage);
+    let incoming = damage * this.incomingMul;
+    if (this.isBlocking) incoming *= 0.28;
+    this.hp = Math.max(0, this.hp - incoming);
+    this.isBlocking = false;
+    this.isCrouching = false;
     this.isHit = true;
     this.hitElapsed = 0;
     this.isAttacking = false;
@@ -176,15 +251,24 @@ export class Fighter {
     if (!this.isAttacking || !this.activeAttack || this.didConnect) return null;
     const kind = ATTACK[this.activeAttack];
     if (this.attackElapsed < kind.activeStart || this.attackElapsed > kind.activeEnd) return null;
-    const w = kind.range;
-    const h = this.activeAttack === "kick" ? 36 : 28;
+    const reach = this.bodyHeight / 210;
+    const w = kind.range * reach;
+    const h = (this.activeAttack === "sweep" ? 22 : this.activeAttack === "kick" ? 36 : 28) * reach;
     const originX = this.facing > 0 ? this.x + 10 : this.x - 10 - w;
-    const originY = this.y - this.bodyHeight * 0.55;
+    const yFactor = this.activeAttack === "sweep" ? 0.28 : 0.55;
+    const originY = this.y - this.bodyHeight * yFactor;
     return new Phaser.Geom.Rectangle(originX, originY, w, h);
   }
 
   hurtbox(): Phaser.Geom.Rectangle {
-    return new Phaser.Geom.Rectangle(this.x - 32, this.y - this.bodyHeight * 0.9, 64, this.bodyHeight * 0.9);
+    const w = 64 * (this.bodyHeight / 210);
+    const crouched = this.isCrouching || this.activeAttack === "sweep";
+    const hFactor = crouched ? 0.52 : 0.9;
+    return new Phaser.Geom.Rectangle(this.x - w / 2, this.y - this.bodyHeight * hFactor, w, this.bodyHeight * hFactor);
+  }
+
+  attackDamage(): number {
+    return this.activeAttack ? ATTACK[this.activeAttack].damage : 0;
   }
 
   markConnected(): void {
@@ -203,6 +287,8 @@ export class Fighter {
     }
     this.ultimateMeter = 0;
     this.isUltimate = true;
+    this.isBlocking = false;
+    this.isCrouching = false;
     this.ultimateElapsed = 0;
     this.ultimateDidConnect = false;
     this.vx = 0;
@@ -375,10 +461,7 @@ export class Fighter {
     this.body.setAlpha(1);
     this.body.setPosition(0, 0);
     this.body.clearTint();
-    if (this.scene.textures.exists(this.idleKey)) {
-      this.body.setTexture(this.idleKey);
-      this.fitBody();
-    }
+    this.playAnim("idle", true);
   }
 
   update(dt: number, groundY: number, minX: number, maxX: number): void {
@@ -394,14 +477,30 @@ export class Fighter {
       this.attackElapsed += dt;
       const kind = ATTACK[this.activeAttack];
       const active = this.attackElapsed >= kind.activeStart && this.attackElapsed <= kind.activeEnd;
-      this.strike.setFillStyle(this.activeAttack === "kick" ? 0xffd94d : 0xffffff, active ? 0.85 : 0);
-      this.strike.setPosition(kind.range * 0.35, this.activeAttack === "kick" ? -this.bodyHeight * 0.38 : -this.bodyHeight * 0.62);
-      this.strike.setSize(this.activeAttack === "kick" ? 34 : 22, this.activeAttack === "kick" ? 16 : 14);
+      this.strike.setFillStyle(this.activeAttack === "punch" ? 0xffffff : 0xffd94d, active ? 0.85 : 0);
+      this.strike.setPosition(
+        kind.range * 0.35,
+        this.activeAttack === "sweep" ? -this.bodyHeight * 0.16 : this.activeAttack === "kick" ? -this.bodyHeight * 0.38 : -this.bodyHeight * 0.62,
+      );
+      this.strike.setSize(
+        this.activeAttack === "sweep" ? 40 : this.activeAttack === "kick" ? 34 : 22,
+        this.activeAttack === "sweep" ? 12 : this.activeAttack === "kick" ? 16 : 14,
+      );
       if (this.attackElapsed >= kind.duration) {
         this.isAttacking = false;
         this.activeAttack = null;
         this.strike.setFillStyle(0xffffff, 0);
         this.body.setPosition(0, 0);
+        this.playAnim(this.onGround ? (this.isCrouching ? "crouch" : "idle") : "jump");
+      }
+    }
+
+    if (this.isBlocking) {
+      this.blockElapsed += dt;
+      if (this.blockElapsed >= this.blockDuration) {
+        this.isBlocking = false;
+        this.body.setScale(1);
+        this.playAnim("idle");
       }
     }
 
@@ -426,9 +525,43 @@ export class Fighter {
     }
 
     this.x = Phaser.Math.Clamp(this.x, minX, maxX);
+
+    if (!this.onGround && !this.isAttacking && !this.isUltimate && !this.isHit && !this.isKO) {
+      this.isCrouching = false;
+      this.playAnim("jump");
+    } else if (this.onGround && this.currentAnim === "jump" && !this.isAttacking && !this.isUltimate) {
+      this.playAnim(this.isCrouching ? "crouch" : "idle");
+    } else if (
+      this.onGround &&
+      this.isCrouching &&
+      !this.isAttacking &&
+      !this.isUltimate &&
+      !this.isHit &&
+      !this.isKO &&
+      this.currentAnim !== "crouch"
+    ) {
+      this.playAnim("crouch");
+    }
+
+    this.cycleAnimFrames(dt);
   }
 
-  resetRound(x: number, y: number, facingRight: boolean): void {
+  private cycleAnimFrames(dt: number): void {
+    const frames = animPackFor(this.fighter.id).frames[this.currentAnim];
+    if (!frames || frames.length <= 1) return;
+    this.animElapsed += dt;
+    const fps = this.currentAnim === "idle" ? 8 : 12;
+    if (this.animElapsed < 1 / fps) return;
+    this.animElapsed = 0;
+    this.animFrame = (this.animFrame + 1) % frames.length;
+    const key = frames[this.animFrame];
+    if (this.scene.textures.exists(key)) {
+      this.body.setTexture(key);
+      this.fitBody();
+    }
+  }
+
+  resetRound(x: number, y: number, facingRight: boolean, opts?: { preserveMeter?: boolean }): void {
     this.stopUltTween();
     this.root.setRotation(0);
     this.hp = this.maxHP;
@@ -436,8 +569,10 @@ export class Fighter {
     this.isHit = false;
     this.isAttacking = false;
     this.isUltimate = false;
+    this.isBlocking = false;
+    this.isCrouching = false;
     this.activeAttack = null;
-    this.ultimateMeter = 0;
+    if (!opts?.preserveMeter) this.ultimateMeter = 0;
     this.ultimateDidConnect = false;
     this.vx = 0;
     this.vy = 0;
