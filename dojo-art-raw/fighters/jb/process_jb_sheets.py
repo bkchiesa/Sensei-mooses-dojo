@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from pathlib import Path
 
 import numpy as np
@@ -22,7 +23,7 @@ ANIMS: list[tuple[str, int]] = [
 CANVAS_H = 512
 CONTENT_H = 500
 BOTTOM_MARGIN = 12
-OVERLAP_FRAC = 0.06
+OVERLAP_FRAC = 0.04
 CONTACT_CELL_W = 300
 CONTACT_LABEL_H = 44
 CONTACT_BG = (22, 22, 26, 255)
@@ -63,35 +64,87 @@ def chroma_key_rgba(im: Image.Image) -> Image.Image:
     return Image.fromarray(out, "RGBA")
 
 
-def trim_rgba(arr: np.ndarray, pad: int = 4) -> tuple[np.ndarray, tuple[int, int, int, int]]:
-    a = arr[:, :, 3]
-    ys, xs = np.where(a > 8)
-    if len(xs) < 40:
-        raise RuntimeError(f"Panel has too few opaque pixels ({len(xs)})")
-    h, w = a.shape
-    x0, x1 = max(0, int(xs.min()) - pad), min(w, int(xs.max()) + 1 + pad)
-    y0, y1 = max(0, int(ys.min()) - pad), min(h, int(ys.max()) + 1 + pad)
-    return arr[y0:y1, x0:x1].copy(), (x0, y0, x1, y1)
+def core_flood_owners(opaque: np.ndarray, count: int) -> np.ndarray:
+    """Assign overflowed limbs to the character whose column-core they connect to."""
+    h, w = opaque.shape
+    pw = w // count
+    margin = max(8, int(pw * 0.22))
+    owned = np.zeros((h, w), dtype=np.int16)
+    seeds: list[list[tuple[int, int]]] = [[] for _ in range(count)]
+    for i in range(count):
+        x0 = i * pw + margin
+        x1 = (i + 1) * pw - margin
+        ys, xs = np.where(opaque[:, x0:x1])
+        if len(xs) == 0:
+            ys, xs = np.where(opaque[:, i * pw : (i + 1) * pw])
+            x0 = i * pw
+        owned[ys, xs + x0] = i + 1
+        if len(xs) > 0:
+            step = max(1, len(xs) // 400)
+            for y, x in zip(ys[::step], xs[::step]):
+                seeds[i].append((int(y), int(x + x0)))
+
+    neigh = ((-1, 0), (1, 0), (0, -1), (0, 1))
+    for i, seed_list in enumerate(seeds):
+        q = deque(seed_list)
+        cid = i + 1
+        while q:
+            y, x = q.popleft()
+            for dy, dx in neigh:
+                ny, nx = y + dy, x + dx
+                if ny < 0 or ny >= h or nx < 0 or nx >= w:
+                    continue
+                if not opaque[ny, nx] or owned[ny, nx] != 0:
+                    continue
+                owned[ny, nx] = cid
+                q.append((ny, nx))
+    return owned
 
 
 def extract_panel_images(sheet: Image.Image, count: int) -> list[dict]:
     keyed = chroma_key_rgba(sheet)
     arr = np.asarray(keyed)
-    h, w = arr.shape[:2]
+    opaque = arr[:, :, 3] > 8
+    owned = core_flood_owners(opaque, count)
+    h, w = opaque.shape
     pw = w / count
     overlap = int(pw * OVERLAP_FRAC)
     rows = []
     for i in range(count):
-        x0 = max(0, int(round(i * pw)) - overlap)
-        x1 = min(w, int(round((i + 1) * pw)) + overlap)
-        crop, (cx0, cy0, cx1, cy1) = trim_rgba(arr[:, x0:x1])
+        mask = owned == (i + 1)
+        ys, xs = np.where(mask)
+        if len(xs) < 80:
+            raise RuntimeError(f"Panel {i} has too few owned pixels ({len(xs)})")
+        x0, x1 = int(xs.min()), int(xs.max()) + 1
+        y0, y1 = int(ys.min()), int(ys.max()) + 1
+        # Keep a slight overlap pad, then re-trim.
+        x0 = max(0, x0 - overlap)
+        x1 = min(w, x1 + overlap)
+        y0 = max(0, y0 - 6)
+        y1 = min(h, y1 + 6)
+        crop = arr[y0:y1, x0:x1].copy()
+        crop_mask = mask[y0:y1, x0:x1]
+        # Dilate 2px so staff tips that sit a pixel off the torso stay attached.
+        m = crop_mask.astype(np.uint8)
+        padded = np.pad(m, 2, mode="constant")
+        dilated = np.zeros_like(m, dtype=bool)
+        for dy in range(5):
+            for dx in range(5):
+                dilated |= padded[dy : dy + m.shape[0], dx : dx + m.shape[1]].astype(bool)
+        crop_mask = dilated & (crop[:, :, 3] > 8)
+        crop[:, :, 3] = np.where(crop_mask, crop[:, :, 3], 0)
+        a = crop[:, :, 3]
+        ys2, xs2 = np.where(a > 8)
+        x0b, x1b = int(xs2.min()), int(xs2.max()) + 1
+        y0b, y1b = int(ys2.min()), int(ys2.max()) + 1
+        crop = crop[y0b:y1b, x0b:x1b]
         rows.append(
             {
                 "image": Image.fromarray(crop, "RGBA"),
                 "cw": crop.shape[1],
                 "ch": crop.shape[0],
-                "top": cy0,
-                "bottom": cy1,
+                "top": y0 + y0b,
+                "bottom": y0 + y1b,
                 "sheet_h": h,
             }
         )
@@ -145,9 +198,8 @@ def main() -> None:
         print(f"{anim}: heights {[r['ch'] for r in measured[anim]]} widths {[r['cw'] for r in measured[anim]]}")
 
     idle_h = measured["idle"][0]["ch"]
-    max_ch = max(r["ch"] for rows in measured.values() for r in rows)
-    scale = min(CONTENT_H / idle_h, (CANVAS_H - BOTTOM_MARGIN - 2) / max_ch)
-    print(f"idle_h={idle_h} max_ch={max_ch} scale={scale:.4f}")
+    scale = CONTENT_H / idle_h
+    print(f"idle_h={idle_h} scale={scale:.4f} (idle content -> {CONTENT_H}px)")
 
     max_scaled_w = max(int(round(r["cw"] * scale)) for rows in measured.values() for r in rows)
     canvas_w = max(512, max_scaled_w + 48)
