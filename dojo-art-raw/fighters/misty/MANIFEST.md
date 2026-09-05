@@ -4,7 +4,7 @@ Fighter: `misty`
 Style: Street Fighter II arcade sprites + 64-bit N64 low-poly 3D (Virtua Fighter facets)  
 Facing: RIGHT  
 Background: solid flat magenta `#FF00FF` chroma  
-Likeness refs: `boss_misty_portrait.png`, `boss_misty_idle_00.png`  
+Likeness refs: attached `boss_misty_portrait.png`, `boss_misty_idle_00.png`, `fighter_misty_portrait.png`  
 Generator: Cursor native `GenerateImage` (no PIL / code-drawn sprites)
 
 | File | Animation | Panels |
