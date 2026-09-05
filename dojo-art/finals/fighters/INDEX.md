@@ -31,4 +31,5 @@ Optional overlay that wins on re-export: `web/fighter-sheets/<id>/<anim>_NN.png`
 | lucas | incoming — drop-in `web/fighter-sheets/lucas/<anim>_NN.png` (overlay wins) |
 | chris | incoming — drop-in `web/fighter-sheets/chris/<anim>_NN.png` (overlay wins) |
 | dakota | incoming — drop-in `web/fighter-sheets/dakota/<anim>_NN.png` (overlay wins) |
+| christiano | incoming — drop-in `web/fighter-sheets/christiano/<anim>_NN.png` (overlay wins) |
 | other bosses | incoming — catalog idle fallback until their folders land |
