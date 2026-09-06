@@ -468,7 +468,7 @@ export class FightScene extends Phaser.Scene {
     this.controlsLive = true;
     this.roundOver = false;
     this.pad.setEnabled(true);
-    this.cpuCooldown = this.difficulty.attackCooldown * 0.7;
+    this.cpuCooldown = debugFullUlt() ? 4 : this.difficulty.attackCooldown * 0.7;
   }
 
   private fightScore(): number {
