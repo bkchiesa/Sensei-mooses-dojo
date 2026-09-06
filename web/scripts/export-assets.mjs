@@ -661,4 +661,12 @@ fs.writeFileSync(
   ),
 );
 
+const hitIds = Object.entries(fighters)
+  .filter(([, listed]) => (listed.hit?.length ?? 0) > 0)
+  .map(([id]) => id);
+const defeatIds = Object.entries(fighters)
+  .filter(([, listed]) => (listed.defeat?.length ?? 0) > 0 || (listed.defeated?.length ?? 0) > 0)
+  .map(([id]) => id);
+console.log(`Optional hit frames → ${hitIds.length ? hitIds.join(", ") : "none"}`);
+console.log(`Optional defeat frames → ${defeatIds.length ? defeatIds.join(", ") : "none (hooks only)"}`);
 console.log(`Exported ${copied.length} PNGs + ${Object.keys(fighters).length} fighter folders → web/public/assets`);

@@ -105,6 +105,8 @@ export class BootScene extends Phaser.Scene {
         "ui-select-plate",
       ]);
       if (optional.has(file.key)) return;
+      // Optional drop-ins — never speculate, and never treat a missing hit/defeat as fatal.
+      if (/^fanim-.+-(hit|defeat|defeated)-\d+$/.test(file.key)) return;
       console.warn("Missing art (placeholder will be used):", file.key);
     });
   }

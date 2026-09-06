@@ -1,7 +1,7 @@
 import type { FighterAnimName } from "../data/catalog";
 import { DEFEAT_ANIM_ALIASES, FIGHTER_ANIM_NAMES, OPTIONAL_FIGHTER_ANIM_NAMES } from "../data/catalog";
 
-/** Pose-bar FINALS: 4 / 4 / 4 / 4 / 2 / 2 / 4. Hit/defeat counts are hooks until Pixel lands sheets. */
+/** Pose-bar FINALS: 4 / 4 / 4 / 4 / 2 / 2 / 4. Hit is a single overlay frame; defeat stays a hook. */
 export const FIGHTER_ANIM_FRAME_COUNTS: Record<FighterAnimName, number> = {
   idle: 4,
   punch: 4,
@@ -10,8 +10,8 @@ export const FIGHTER_ANIM_FRAME_COUNTS: Record<FighterAnimName, number> = {
   block: 2,
   crouch: 2,
   sweep: 4,
-  // TODO(Pixel): confirm frame counts when hit / defeat sheets land.
-  hit: 2,
+  // Pixel Batch1–2 landed `hit_00` only. Defeat sheets are still held.
+  hit: 1,
   defeat: 2,
 };
 
