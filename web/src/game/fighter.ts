@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
 import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
 import { animPackFor, hasDedicatedFrames } from "./anims";
+import { readyUltFrames, splashDisplayHeight, ultDurationFor, ULT_SPLASH_FPS } from "./ultArt";
 
 export type AttackKind = "punch" | "kick" | "sweep";
 
@@ -48,7 +49,10 @@ export class Fighter {
   private ultimateDidConnect = false;
   private readonly scene: Phaser.Scene;
   private readonly idleKey: string;
-  private ultTween: Phaser.Tweens.TweenChain | null = null;
+  private ultTween: Phaser.Tweens.Tween | Phaser.Tweens.TweenChain | null = null;
+  private splashKeys: string[] = [];
+  private splashFrame = 0;
+  private splashElapsed = 0;
 
   private readonly moveSpeed = 280;
   private readonly jumpVelocity: number;
@@ -124,8 +128,14 @@ export class Fighter {
     return this.ultimateMeter >= 1;
   }
 
+  get ultimateDuration(): number {
+    return ultDurationFor(this.splashKeys.length);
+  }
+
   get ultimateShouldConnect(): boolean {
-    return this.isUltimate && !this.ultimateDidConnect && this.ultimateElapsed >= 0.28 && this.ultimateElapsed <= 0.62;
+    if (!this.isUltimate || this.ultimateDidConnect) return false;
+    const duration = this.ultimateDuration;
+    return this.ultimateElapsed >= duration * 0.28 && this.ultimateElapsed <= duration * 0.65;
   }
 
   faceToward(otherX: number): void {
@@ -303,6 +313,23 @@ export class Fighter {
 
   private playUltimateMotion(move: UltimateMove, closeX: number): void {
     this.stopUltTween();
+    this.splashKeys = readyUltFrames(this.scene, this.fighter.id);
+    this.splashFrame = 0;
+    this.splashElapsed = 0;
+
+    if (this.splashKeys.length) {
+      this.body.setTexture(this.splashKeys[0]);
+      this.fitSplashBody();
+      // Splash sheets already carry the motion — only ease toward the opponent.
+      this.ultTween = this.scene.tweens.add({
+        targets: this.body,
+        x: closeX * 0.4,
+        duration: this.ultimateDuration * 1000,
+        ease: "Sine.easeOut",
+      });
+      return;
+    }
+
     if (this.scene.textures.exists(move.frameName)) {
       this.body.setTexture(move.frameName);
       this.fitBody();
@@ -317,6 +344,25 @@ export class Fighter {
       tweens: chain as Phaser.Types.Tweens.TweenBuilderConfig[],
       onComplete: () => this.finishUltimate(),
     });
+  }
+
+  private fitSplashBody(): void {
+    if (this.body.height <= 0) return;
+    const h = splashDisplayHeight(this.bodyHeight);
+    this.body.setDisplaySize((this.body.width / this.body.height) * h, h);
+  }
+
+  private cycleSplashFrames(dt: number): void {
+    if (this.splashKeys.length <= 1) return;
+    this.splashElapsed += dt;
+    const idx = Math.min(this.splashKeys.length - 1, Math.floor(this.splashElapsed * ULT_SPLASH_FPS));
+    if (idx === this.splashFrame) return;
+    this.splashFrame = idx;
+    const key = this.splashKeys[idx];
+    if (this.scene.textures.exists(key)) {
+      this.body.setTexture(key);
+      this.fitSplashBody();
+    }
   }
 
   private flavorChain(flavor: UltimateFlavor, closeX: number, f: number): object[] {
@@ -456,6 +502,9 @@ export class Fighter {
 
   private restoreIdlePose(): void {
     this.stopUltTween();
+    this.splashKeys = [];
+    this.splashFrame = 0;
+    this.splashElapsed = 0;
     this.body.setRotation(0);
     this.body.setScale(1);
     this.body.setAlpha(1);
@@ -467,10 +516,11 @@ export class Fighter {
   update(dt: number, groundY: number, minX: number, maxX: number): void {
     if (this.isUltimate) {
       this.ultimateElapsed += dt;
+      this.cycleSplashFrames(dt);
       this.strike.setFillStyle(this.fighter.accent, this.ultimateShouldConnect ? 0.95 : 0);
       this.strike.setSize(50, 40);
       this.strike.setPosition(36, -this.bodyHeight * 0.45);
-      if (this.ultimateElapsed >= 0.95) this.finishUltimate();
+      if (this.ultimateElapsed >= this.ultimateDuration) this.finishUltimate();
     }
 
     if (this.isAttacking && this.activeAttack) {
@@ -543,7 +593,7 @@ export class Fighter {
       this.playAnim("crouch");
     }
 
-    this.cycleAnimFrames(dt);
+    if (!this.isUltimate) this.cycleAnimFrames(dt);
   }
 
   private cycleAnimFrames(dt: number): void {

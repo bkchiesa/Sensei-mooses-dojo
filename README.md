@@ -66,8 +66,8 @@ Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug)
 | Best of 3, countdown, Next Fight (auto-continues after a short beat) | Native SpriteKit project (kept, not the play path) |
 | Unique arcade stage per boss (all locked landmarks) | `boss_senseiMoose_*` art (falls back to title moose) |
 | Progressive arcade difficulty + 2× roster / Moose +30% | App Store / signing |
-| Unique ultimates, 30% HP, meter from landed hits (~6) | Pixel **full anim sheets** (punch/kick/jump/block/crouch/sweep) |
-| Parallax BG + locked floor + light ambient loops | Pixel extra ult frames beyond `_00` except Austin + Moose |
+| Unique ultimates, 30% HP, meter from landed hits (~6), locked 12f splash + Austin/Moose FX | Pixel **full anim sheets** (punch/kick/jump/block/crouch/sweep) |
+| Parallax BG + locked floor + light ambient loops | Air punch / kick (separate) |
 | Touch + keyboard, static GitHub Pages build | |
 
 ## Native Xcode prototype (deferred)
@@ -307,7 +307,7 @@ Every playable (starters, unlocked bosses, Sensei Moose) has a unique ultimate i
 | Charge | **6** successful hits fill the meter (`UltimateMove.hitsToFill`, range 4–8) |
 | Damage | **30%** of the opponent’s max HP, applied once |
 | After use | Meter empties; charge again from hits |
-| Art | Optional `ult_<id>_00` imageset; otherwise colorized idle + motion |
+| Art | Locked 12-frame splash `ult_<id>_00`…`11` (FightScene). Austin + Sensei Moose also play fullscreen `ult_*_fx_*` overlays. Missing sheets fall back to colorized idle + flavor motion |
 
 Locked signatures: **Austin — Tornado Kick** (spinning kick barrage homage). **Sensei Moose — Figure-Four Lock** (figure-4 leglock homage).
 
@@ -337,9 +337,9 @@ Locked signatures: **Austin — Tornado Kick** (spinning kick barrage homage). *
 
 Names are stylized homages — no licensed move names, logos, or VFX.
 
-### Ultimate art (placeholders parked)
+### Ultimate art (locked splash)
 
-Catalog: `ult_<id>_00` (+ extra frames where provided). Austin sheet `ult_austin_00`…`14`; Sensei Moose `ult_senseiMoose_00`/`01` (from Pixel `moose/`). Other roster ids have pose or idle stand-in placeholders — not final likeness. Brandon still votes Austin/Moose pose concepts before polish swap.
+`dojo-art/finals/ultimates/<id>/` — 12 frames @~512h for starters and bosses. Austin and Sensei Moose also ship 10-frame fullscreen FX under `fx/`. `export-assets` copies them to `web/public/assets/ultimates/` and overwrites catalog `ult_<id>_00`. FightScene plays the sheet (not the old single-frame stand-in); Austin / Moose add the FX overlay.
 
 
 ## Top 10 leaderboard

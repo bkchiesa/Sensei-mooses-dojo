@@ -6,6 +6,8 @@ Playable sprites are **copied** from the native catalog. Do not hand-edit files 
 | --- | --- |
 | `web/public/assets/<name>.png` | `SenseiMoosesDojo/Assets.xcassets/<name>.imageset/<name>.png` |
 | `web/public/assets/fighters/<id>/<anim>_NN.png` | Pixel frames from `dojo-art/finals/fighters/<id>/` (and `web/fighter-sheets/<id>/` overlay) |
+| `web/public/assets/ultimates/<id>/ult_<id>_NN.png` | Locked splash from `dojo-art/finals/ultimates/<id>/` (overwrites catalog `ult_<id>_00`) |
+| `web/public/assets/ultimates/<id>/fx/ult_<id>_fx_NN.png` | Austin / Sensei Moose fullscreen FX |
 
 `npm run export-assets` (also run by `dev` / `build`) copies:
 
@@ -13,7 +15,8 @@ Playable sprites are **copied** from the native catalog. Do not hand-edit files 
 - Starter portraits / idles: `fighter_<id>_portrait`, `fighter_<id>_idle_00`
 - Boss portraits / idles: `boss_<id>_portrait`, `boss_<id>_idle_00`
 - **All wired stages, full parallax:** `stage1_*`, `stage2_*`, `stage3_*`, and `stage_<landmark>_*` (`sky` / `far` / `mid` / `master` / `near`) for Batch A–C (Oyster Point … Poquoson, including Busch / Hampton / Poquoson)
-- Ultimate frames: `ult_<id>_00`, plus Austin `ult_austin_00`…`14` and Sensei Moose extras
+- Ultimate splash: `ultimates/<id>/ult_<id>_00`… (12f where present) + `ultimates/index.json`. `ult_<id>_00` is also copied to the assets root so Boot’s existing key resolves
+- Austin / Sensei Moose fullscreen FX: `ultimates/<id>/fx/ult_<id>_fx_00`…
 - Fighter anim folders + `fighters/index.json` (starters have full punch/kick/jump/block/crouch/sweep; bosses/Moose still idle-fallback)
 
 FightScene loads the current stage’s layers on demand (not the whole catalog). Background `sky` / `far` / `mid` parallax with the camera; **`master` / `near` stay pinned** so the fight floor does not slide.
@@ -54,6 +57,16 @@ Locked files in `dojo-art/finals/ui/title/` (copied to `web/public/assets/ui/tit
 - `title_logo_hero.png` → static fallback / first-frame stand-in
 
 `export-assets` writes `title.json` listing files that exist. Boot only preloads those URLs so iPad Safari does not 404 on missing frames. Legacy `dojo-interior.png` / `logo.png` load only if the locked names are absent and those files are present.
+
+## Ultimate splash (locked)
+
+Locked 12-frame sheets in `dojo-art/finals/ultimates/<id>/` (copied to `web/public/assets/ultimates/<id>/`):
+
+- `ult_<id>_00.png` … `ult_<id>_11.png` → FightScene splash playback (~512h)
+- Austin / Sensei Moose: `fx/ult_austin_fx_00`… / `fx/ult_senseiMoose_fx_00`… fullscreen overlays (1280×800)
+- Moose folder is an alias for `senseiMoose`
+
+`export-assets` writes `ultimates/index.json` listing frames that exist. Boot preloads each roster `_00`. FightScene loads the remaining splash (+ FX) for the two combatants only.
 
 ## Audio hook
 
