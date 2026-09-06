@@ -22,7 +22,7 @@ import {
   audioQueueFromManifest,
   optionalAudioKeys,
 } from "../game/audio";
-import { arcadeCompleteProgress } from "../game/arcade";
+import { arcadeAtStage, arcadeCompleteProgress, arcadeStart } from "../game/arcade";
 import { applyQueryUnlocks, fighterFromQuery } from "../game/storage";
 import { optionalTitleKeys, TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL, titleQueueFromManifest } from "../game/titleArt";
 import { optionalVictoryKeys, VICTORY_MANIFEST_KEY, VICTORY_MANIFEST_URL, victoryQueueFromManifest } from "../game/victoryArt";
@@ -139,6 +139,18 @@ export class BootScene extends Phaser.Scene {
         score: 999,
         preview: true,
       });
+      return;
+    }
+    const arcade = params.get("arcade");
+    if (arcade) {
+      const player = fighterFromQuery() ?? defaultFighter();
+      if (arcade === "victory") {
+        this.scene.start("Victory", { arcade: arcadeCompleteProgress(player), score: 999, preview: true });
+        return;
+      }
+      const stage = Number.parseInt(arcade, 10);
+      const progress = Number.isFinite(stage) && stage > 0 ? arcadeAtStage(player, stage) : arcadeStart(player);
+      this.scene.start("Fight", { arcade: progress });
       return;
     }
     const vs = params.get("vs");

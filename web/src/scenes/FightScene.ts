@@ -1,13 +1,15 @@
 import Phaser from "phaser";
 import { COUNTDOWN_BEAT_MS, DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD, GOLD_NUM, GROUND_Y, ROUNDS_TO_WIN } from "../config";
-import { dummyOpponent, fighterById, isLockedUntilDefeat, stageById, stageCaption, type FighterDef, type StageDef } from "../data/catalog";
+import { dummyOpponent, fighterById, isLockedUntilDefeat, stageById, stageCaption, tryFighterById, type FighterDef, type StageDef } from "../data/catalog";
 import {
   arcadeCurrentBoss,
   arcadeNext,
   arcadeOpponent,
   arcadePlayer,
   arcadeRecordWin,
+  arcadeStageHud,
   arcadeStageId,
+  normalizeArcade,
   type ArcadeProgress,
 } from "../game/arcade";
 import { layerDrift, startStageAmbient } from "../game/ambient";
@@ -69,15 +71,22 @@ export class FightScene extends Phaser.Scene {
     applyQueryUnlocks();
     this.input.enabled = true;
     this.overlayBusy = false;
-    this.arcade = data.arcade ? { ...data.arcade, defeatedIds: [...(data.arcade.defeatedIds ?? [])] } : null;
-    if (this.arcade) {
-      this.playerFighter = arcadePlayer(this.arcade);
-      this.opponentFighter = arcadeOpponent(this.arcade);
-      this.stage = stageById(arcadeStageId(this.arcade));
-    } else {
-      this.playerFighter = fighterById(data.playerId ?? "misty");
-      this.opponentFighter = data.opponentId ? fighterById(data.opponentId) : dummyOpponent(this.playerFighter);
-      this.stage = stageById(data.stageId ?? this.opponentFighter.stageId);
+    this.arcade = data.arcade ? normalizeArcade({ ...data.arcade, defeatedIds: [...(data.arcade.defeatedIds ?? [])] }) : null;
+    try {
+      if (this.arcade) {
+        this.playerFighter = arcadePlayer(this.arcade);
+        this.opponentFighter = arcadeOpponent(this.arcade);
+        this.stage = stageById(arcadeStageId(this.arcade));
+      } else {
+        this.playerFighter = tryFighterById(data.playerId) ?? fighterById("misty");
+        this.opponentFighter = tryFighterById(data.opponentId) ?? dummyOpponent(this.playerFighter);
+        this.stage = stageById(data.stageId ?? this.opponentFighter.stageId);
+      }
+    } catch (err) {
+      console.warn("Fight roster fallback", err);
+      this.playerFighter = fighterById("misty");
+      this.opponentFighter = dummyOpponent(this.playerFighter);
+      this.stage = stageById(this.opponentFighter.stageId);
     }
     this.difficulty = difficultyForFight(this.arcade, this.opponentFighter.id);
     this.roundOver = false;
@@ -103,24 +112,38 @@ export class FightScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(0x733848);
+    this.evictStaleFightTextures();
     const missing = this.fightLoadQueue();
-    if (missing.length) {
-      const label = this.add
-        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "Loading stage…", textStyle(24, GOLD))
-        .setOrigin(0.5);
-      for (const file of missing) this.load.image(file.key, file.url);
-      this.load.once("complete", () => {
-        for (const file of missing) {
-          if (this.textures.exists(file.key)) {
-            this.textures.get(file.key).setFilter(Phaser.Textures.FilterMode.LINEAR);
-          }
-        }
-        label.destroy();
-        this.buildFight();
-      });
-      this.load.start();
-    } else {
+    if (!missing.length) {
+      this.ensureStagePlates();
       this.buildFight();
+      return;
+    }
+    const label = this.add
+      .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "Loading stage…", textStyle(24, GOLD))
+      .setOrigin(0.5);
+    let settled = false;
+    const finish = () => {
+      if (settled || !this.sys.isActive()) return;
+      settled = true;
+      this.load.off("complete", finish);
+      for (const file of missing) {
+        if (this.textures.exists(file.key)) {
+          this.textures.get(file.key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+        }
+      }
+      label.destroy();
+      this.ensureStagePlates();
+      this.buildFight();
+    };
+    for (const file of missing) this.load.image(file.key, file.url);
+    this.load.once("complete", finish);
+    this.time.delayedCall(4000, finish);
+    try {
+      this.load.start();
+    } catch (err) {
+      console.warn("Fight asset load failed; using fallbacks", err);
+      finish();
     }
   }
 
@@ -133,13 +156,34 @@ export class FightScene extends Phaser.Scene {
     return queue;
   }
 
-  private stageKeys(): string[] {
-    const p = this.stage.assetPrefix;
-    return [`${p}_sky`, `${p}_far`, `${p}_mid`, `${p}_master`, `${p}_near`];
+  private stageKeys(prefix = this.stage.assetPrefix): string[] {
+    return [`${prefix}_sky`, `${prefix}_far`, `${prefix}_mid`, `${prefix}_master`, `${prefix}_near`];
   }
 
   private has(key: string): boolean {
     return this.textures.exists(key) && this.textures.get(key).getSourceImage().width > 1;
+  }
+
+  /** Drop leftover stage plates so long Arcade runs do not OOM into Austin / Moose. */
+  private evictStaleFightTextures(): void {
+    const keep = new Set<string>([...this.stageKeys(), "stage1_sky", "stage1_master", "stage1_far", "stage1_mid", "stage1_near"]);
+    for (const key of this.textures.getTextureKeys()) {
+      if (!key.startsWith("stage") || keep.has(key) || key.startsWith("stage1_")) continue;
+      try {
+        this.textures.remove(key);
+      } catch {
+        /* keep going */
+      }
+    }
+  }
+
+  /** If the opponent home plates 404 (parked Batch C), fall back to Lions Bridge. */
+  private ensureStagePlates(): void {
+    if (this.stageKeys().some((key) => this.has(key))) return;
+    const fallback = stageById("lionsBridge");
+    if (fallback.id === this.stage.id) return;
+    console.warn(`Missing ${this.stage.assetPrefix}_* plates; falling back to ${fallback.displayName}`);
+    this.stage = fallback;
   }
 
   private buildFight(): void {
@@ -243,7 +287,7 @@ export class FightScene extends Phaser.Scene {
     }
 
     this.add
-      .text(DESIGN_WIDTH / 2, 22, stageCaption(this.stage), {
+      .text(DESIGN_WIDTH / 2, 22, this.fightCaption(), {
         fontFamily: FONT,
         fontSize: "13px",
         color: "#ffffffb3",
@@ -299,7 +343,6 @@ export class FightScene extends Phaser.Scene {
     this.cpuCooldown -= dt;
     const gap = this.cpu.x - this.player.x;
     const distance = Math.abs(gap);
-    const dummy = Boolean(this.arcade && this.arcade.step === null);
     const d = this.difficulty;
 
     if (this.player.isAttacking && distance < 160 && !this.cpu.isBlocking && this.cpu.onGround && Math.random() < d.blockRate) {
@@ -311,18 +354,14 @@ export class FightScene extends Phaser.Scene {
     if (this.cpu.isMeterFull && distance < 220 && this.cpuCooldown <= 0 && this.cpu.onGround && Math.random() < d.ultAggressiveness) {
       this.cpu.setWalk(false, false);
       this.tryUltimate(this.cpu, this.player);
-      this.cpuCooldown = dummy ? 1.6 : 0.55 + d.attackCooldown;
+      this.cpuCooldown = 0.55 + d.attackCooldown;
     } else if (distance > d.approachDistance) {
       this.cpu.setWalk(gap > 0, gap < 0);
     } else {
       this.cpu.setWalk(false, false);
       if (this.cpuCooldown <= 0 && this.cpu.onGround) {
-        if (dummy && Math.random() < 0.62) {
-          this.cpuCooldown = 0.45;
-        } else {
-          this.cpu.startAttack(distance < 90 ? "punch" : Math.random() < 0.4 ? "sweep" : "kick");
-          this.cpuCooldown = d.attackCooldown + Math.floor(Math.random() * 21) / 100;
-        }
+        this.cpu.startAttack(distance < 90 ? "punch" : Math.random() < 0.4 ? "sweep" : "kick");
+        this.cpuCooldown = d.attackCooldown + Math.floor(Math.random() * 21) / 100;
       }
     }
     if (this.cpuCooldown < -0.4 && Math.random() < d.jumpChance * 0.02) {
@@ -424,8 +463,14 @@ export class FightScene extends Phaser.Scene {
     place(this.layers.near, 0, true);
   }
 
+  private fightCaption(): string {
+    if (this.arcade) return `${arcadeStageHud(this.arcade)}  ·  ${this.stage.displayName.toUpperCase()}`;
+    return stageCaption(this.stage);
+  }
+
   private roundHudText(): string {
-    return `ROUND ${this.roundNumber}  ·  ${this.playerRounds} – ${this.cpuRounds}  ·  BEST OF 3`;
+    const rounds = `ROUND ${this.roundNumber}  ·  ${this.playerRounds} – ${this.cpuRounds}  ·  BEST OF 3`;
+    return this.arcade ? `${arcadeStageHud(this.arcade)}  ·  ${rounds}` : rounds;
   }
 
   private startRoundIntro(): void {
@@ -613,6 +658,13 @@ export class FightScene extends Phaser.Scene {
         .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.34, `${this.playerRounds}  –  ${this.cpuRounds}`, textStyle(28, GOLD))
         .setOrigin(0.5),
     );
+    if (this.arcade) {
+      panel.add(
+        this.add
+          .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.395, arcadeStageHud(this.arcade), textStyle(18, GOLD))
+          .setOrigin(0.5),
+      );
+    }
 
     const next = this.arcade ? arcadeNext(this.arcade) : null;
     const canAdvance = Boolean(playerWon && this.arcade && next);
@@ -622,7 +674,7 @@ export class FightScene extends Phaser.Scene {
     if (newlyUnlocked && boss) {
       panel.add(
         this.add
-          .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.42, `UNLOCKED  ${boss.displayName.toUpperCase()}`, textStyle(18, "#b3ffb3"))
+          .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.445, `UNLOCKED  ${boss.displayName.toUpperCase()}`, textStyle(18, "#b3ffb3"))
           .setOrigin(0.5),
       );
     }

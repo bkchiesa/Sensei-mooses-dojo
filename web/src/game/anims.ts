@@ -9,6 +9,8 @@ export const FIGHTER_ANIM_FRAME_COUNTS: Record<FighterAnimName, number> = {
   jump: 4,
   block: 2,
   crouch: 2,
+  // Pixel sweep −30% (2026-09-06): same ~512h canvas, smaller figure in-frame.
+  // Phaser keeps FIGHTER_HEIGHT fit so the shrink is visible (do not upscale).
   sweep: 4,
   // Pixel Batch1–2 landed `hit_00` / `defeat_00`. Soft open-gi B2 defeats + Batch3 hits later.
   hit: 1,

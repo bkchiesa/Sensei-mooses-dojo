@@ -104,6 +104,8 @@ export class Fighter {
       this.body.setDisplaySize(w, (this.body.height / this.body.width) * w);
       return;
     }
+    // Sweep sheets are Pixel −30% in-canvas (same 512h as idle). Fitting to
+    // bodyHeight keeps that scale; do not compensate by stretching the figure.
     this.body.setDisplaySize((this.body.width / this.body.height) * this.bodyHeight, this.bodyHeight);
   }
 

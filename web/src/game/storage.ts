@@ -16,7 +16,7 @@ export function unlockedBossIDs(): Set<string> {
   return new Set();
 }
 
-/** Staff roster: default-playable bosses are open; Ryan / Austin / Moose need a stored unlock. */
+/** Staff roster: default-playable bosses are open; Ryan needs a stored unlock. */
 export function isUnlocked(fighterId: string): boolean {
   if (isLockedUntilDefeat(fighterId)) return unlockedBossIDs().has(fighterId);
   return BOSSES.some((b) => b.id === fighterId);

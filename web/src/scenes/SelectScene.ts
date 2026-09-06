@@ -284,7 +284,7 @@ export class SelectScene extends Phaser.Scene {
         ? "HAMPTON ROADS  ·  TAP A LANDMARK"
         : this.phase === "opponent"
           ? "FULL ROSTER  ·  LOCKED GREYED  ·  TAP TO PICK OPPONENT"
-          : "FULL ROSTER  ·  LOCKED GREYED  ·  TAP TO PICK";
+          : "FULL ROSTER  ·  AUSTIN + SENSEI MOOSE OPEN  ·  TAP TO PICK";
     this.add.text(DESIGN_WIDTH / 2, 416, sub, textStyle(13, "#c8c0d4")).setOrigin(0.5);
   }
 
@@ -329,7 +329,7 @@ export class SelectScene extends Phaser.Scene {
     const { locked, playable } = selectRoster();
     if (this.phase === "player" && locked.length > 0) {
       this.add
-        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 42, "BEAT RYAN · AUSTIN · SENSEI MOOSE IN ARCADE TO UNLOCK", textStyle(12, "#9aa0c8"))
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 42, "BEAT RYAN IN ARCADE TO UNLOCK", textStyle(12, "#9aa0c8"))
         .setOrigin(0.5);
     } else if (this.phase === "player" && playable.length > 0) {
       this.add

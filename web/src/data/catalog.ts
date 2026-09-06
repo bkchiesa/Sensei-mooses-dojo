@@ -115,8 +115,8 @@ export const STARTERS: FighterDef[] = [
   starter("jb", "JB", rgb(0.77, 0.6, 0.14), "Gold Rush", "Full-sprint clothesline.", "clothesline"),
 ];
 
-/** Staff finals — greyed on Select until beaten in Arcade. */
-export const LOCKED_UNTIL_DEFEAT_IDS = ["ryan", "austin", "senseiMoose"] as const;
+/** Ryan stays greyed until beaten in Arcade. Austin + Sensei Moose are open. */
+export const LOCKED_UNTIL_DEFEAT_IDS = ["ryan"] as const;
 
 export function isLockedUntilDefeat(id: string): boolean {
   return (LOCKED_UNTIL_DEFEAT_IDS as readonly string[]).includes(id);
@@ -178,8 +178,13 @@ export const ARCADE_STAGE_IDS = ["lionsBridge", "hiltonElementary", "axsomDojo"]
 const FIGHTERS_BY_ID = new Map([...STARTERS, ...BOSSES].map((f) => [f.id, f]));
 const STAGES_BY_ID = new Map(STAGES.map((s) => [s.id, s]));
 
+export function tryFighterById(id: string | undefined | null): FighterDef | null {
+  if (!id) return null;
+  return FIGHTERS_BY_ID.get(id === "moose" ? "senseiMoose" : id) ?? null;
+}
+
 export function fighterById(id: string): FighterDef {
-  const found = FIGHTERS_BY_ID.get(id);
+  const found = tryFighterById(id);
   if (!found) throw new Error(`Unknown fighter ${id}`);
   return found;
 }
