@@ -19,7 +19,7 @@ import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
 import { hideMatchOverlay, showMatchOverlay } from "../game/matchOverlay";
 import { deferSceneChange, go } from "../game/nav";
-import { applyQueryUnlocks, debugFullUlt, debugHeavyHits, isUnlocked, submitScore, unlockBoss } from "../game/storage";
+import { applyQueryUnlocks, debugAutoWin, debugFullUlt, debugHeavyHits, isUnlocked, submitScore, unlockBoss } from "../game/storage";
 import { playUltFxOverlay, ultLoadQueue } from "../game/ultArt";
 import { promptName, textStyle } from "../game/ui";
 
@@ -543,6 +543,12 @@ export class FightScene extends Phaser.Scene {
     this.roundOver = false;
     this.pad.setEnabled(true);
     this.cpuCooldown = debugFullUlt() ? 4 : this.difficulty.attackCooldown * 0.7;
+    if (debugAutoWin()) {
+      this.time.delayedCall(180, () => {
+        if (!this.sys.isActive() || this.roundOver || this.matchOver) return;
+        this.cpu.hp = 0;
+      });
+    }
   }
 
   private fightScore(): number {

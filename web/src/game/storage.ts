@@ -89,6 +89,11 @@ export function debugHeavyHits(): boolean {
   return new URLSearchParams(window.location.search).get("debug") === "1";
 }
 
+/** `?win=1` — auto-KO the CPU after each countdown so Arcade can be walked to Victory. */
+export function debugAutoWin(): boolean {
+  return new URLSearchParams(window.location.search).get("win") === "1";
+}
+
 /** `?ult=1` — full player meter each round (splash + charged HUD QA) and a short first-action CPU hold. */
 export function debugFullUlt(): boolean {
   return new URLSearchParams(window.location.search).get("ult") === "1";
