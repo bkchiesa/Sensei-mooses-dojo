@@ -10,7 +10,7 @@ import {
   type ArcadeProgress,
 } from "../game/arcade";
 import { layerDrift, startStageAmbient } from "../game/ambient";
-import { playFightLoop } from "../game/audio";
+import { installUnlock, playFightLoop, playSfx, playSting, unlockAudio } from "../game/audio";
 import { VirtualControls } from "../game/controls";
 import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
@@ -57,6 +57,8 @@ export class FightScene extends Phaser.Scene {
   private overlayBusy = false;
   private arcadeAdvanceTimer?: Phaser.Time.TimerEvent;
   private ultFx?: Phaser.GameObjects.Sprite;
+  private playerUltReady = false;
+  private cpuUltReady = false;
 
   constructor() {
     super("Fight");
@@ -94,6 +96,8 @@ export class FightScene extends Phaser.Scene {
     this.arcadeAdvanceTimer = undefined;
     this.ultFx?.destroy();
     this.ultFx = undefined;
+    this.playerUltReady = false;
+    this.cpuUltReady = false;
   }
 
   create(): void {
@@ -142,6 +146,7 @@ export class FightScene extends Phaser.Scene {
     this.built = true;
     this.scene.stop("Title");
     this.scene.stop("Select");
+    installUnlock(this);
     playFightLoop(this);
     this.buildStage();
     this.player = new Fighter(this, this.playerFighter, true, DESIGN_WIDTH * 0.28, GROUND_Y);
@@ -172,15 +177,19 @@ export class FightScene extends Phaser.Scene {
 
     this.pad = new VirtualControls(this);
     this.pad.onJump = () => {
+      unlockAudio(this);
       if (this.controlsLive) this.player.jump();
     };
     this.pad.onPunch = () => {
+      unlockAudio(this);
       if (this.controlsLive) this.player.startAttack("punch");
     };
     this.pad.onKick = () => {
+      unlockAudio(this);
       if (this.controlsLive) this.player.startAttack(this.pad.downHeld && this.player.onGround ? "sweep" : "kick");
     };
     this.pad.onUltimate = () => {
+      unlockAudio(this);
       if (this.controlsLive) this.tryUltimate(this.player, this.cpu);
     };
     this.pad.setEnabled(false);
@@ -276,6 +285,8 @@ export class FightScene extends Phaser.Scene {
     this.playerBar.setMeter(this.player.ultimateMeter);
     this.cpuBar.set(this.cpu.hp, this.cpu.maxHP);
     this.cpuBar.setMeter(this.cpu.ultimateMeter);
+    this.cueUltReady(this.player.isMeterFull, true);
+    this.cueUltReady(this.cpu.isMeterFull, false);
     this.pad?.setUltimateReady(this.controlsLive && this.player.isMeterFull && !this.player.isUltimate && !this.roundOver);
 
     if (this.controlsLive && !this.roundOver && (this.player.hp <= 0 || this.cpu.hp <= 0)) {
@@ -324,12 +335,12 @@ export class FightScene extends Phaser.Scene {
     const pBox = this.player.attackHitbox();
     if (pBox && Phaser.Geom.Intersects.RectangleToRectangle(this.cpu.hurtbox(), pBox)) {
       const debugMul = debugHeavyHits() ? 8 : 1;
-      this.cpu.applyHit(this.player.attackDamage() * debugMul, this.player.x);
+      this.cpu.applyHit(this.player.attackDamage() * debugMul, this.player.x, this.player.activeAttack ?? undefined);
       this.player.markConnected();
     }
     const cBox = this.cpu.attackHitbox();
     if (cBox && Phaser.Geom.Intersects.RectangleToRectangle(this.player.hurtbox(), cBox)) {
-      this.player.applyHit(this.cpu.attackDamage(), this.cpu.x);
+      this.player.applyHit(this.cpu.attackDamage(), this.cpu.x, this.cpu.activeAttack ?? undefined);
       this.cpu.markConnected();
     }
   }
@@ -339,8 +350,18 @@ export class FightScene extends Phaser.Scene {
     const reach = Math.abs(attacker.x - defender.x) < 220 * (attacker.bodyHeight / 210);
     const flavor = attacker.fighter.ultimate.flavor;
     if (!reach && flavor !== "figure4" && flavor !== "teleport") return;
-    defender.applyHit(ultimateDamage(defender), attacker.x);
+    defender.applyHit(ultimateDamage(defender), attacker.x, "ult");
     attacker.markUltimateConnected();
+  }
+
+  private cueUltReady(ready: boolean, isPlayer: boolean): void {
+    if (isPlayer) {
+      if (ready && !this.playerUltReady) playSfx(this, "ult_ready_charge");
+      this.playerUltReady = ready;
+    } else {
+      if (ready && !this.cpuUltReady) playSfx(this, "ult_ready_charge");
+      this.cpuUltReady = ready;
+    }
   }
 
   private tryUltimate(attacker: Fighter, defender: Fighter): void {
@@ -438,6 +459,13 @@ export class FightScene extends Phaser.Scene {
         .setScale(0.35)
         .setAlpha(0);
       this.countdownLabel = label;
+      if (beat.text === "FIGHT!") {
+        playSfx(this, "fight_banner");
+        playSfx(this, "announcer_fight");
+      } else if (beat.text === "3" || beat.text === "2" || beat.text === "1") {
+        playSfx(this, `fight_countdown_${beat.text}`);
+        playSfx(this, `announcer_${beat.text}`);
+      }
       this.tweens.add({
         targets: label,
         scale: 1.12,
@@ -499,6 +527,8 @@ export class FightScene extends Phaser.Scene {
         ? "ROUND WIN"
         : "ROUND LOSE";
     this.flashCenter(banner, playerWon ? GOLD : "#ff5947", matchDone ? 52 : 44);
+    if (matchDone) playSfx(this, playerWon ? "match_win" : "match_lose");
+    else playSfx(this, playerWon ? "round_win" : "round_lose");
 
     if (matchDone) {
       this.time.delayedCall(900, () => this.endMatch(playerWon));
@@ -558,7 +588,12 @@ export class FightScene extends Phaser.Scene {
     applyQueryUnlocks();
 
     const boss = this.arcade ? arcadeCurrentBoss(this.arcade) : null;
-    if (playerWon && boss) unlockBoss(boss.id);
+    if (playerWon && boss) {
+      unlockBoss(boss.id);
+      playSfx(this, "unlock_boss");
+    }
+    playSfx(this, playerWon ? "announcer_you_win" : "announcer_you_lose");
+    playSting(this, playerWon ? "victory_sting" : "defeat_sting");
 
     const panel = this.add.container(0, 0).setDepth(240);
     const dimmer = this.add
@@ -599,16 +634,16 @@ export class FightScene extends Phaser.Scene {
       this.showEndActions(
         panel,
         [
-          { label: "NEXT FIGHT", onClick: () => this.advanceArcade(), primary: true },
+          { label: "NEXT FIGHT", onClick: () => this.advanceArcade("next_fight_button"), primary: true },
           { label: "REMATCH", onClick: () => this.rematch() },
           { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
         ],
-        () => this.advanceArcade(),
+        () => this.advanceArcade("next_fight_button"),
       );
       // Native SpriteKit auto-continues after 1.35s. That timer runs on the
       // game clock — not inside a touch/click — so iPad Safari cannot drop it.
       this.arcadeAdvanceTimer?.remove(false);
-      this.arcadeAdvanceTimer = this.time.delayedCall(1350, () => this.advanceArcade());
+      this.arcadeAdvanceTimer = this.time.delayedCall(1350, () => this.advanceArcade("next_fight_button"));
     } else if (playerWon && this.arcade && !next) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.48, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
       this.showEndActions(panel, [
@@ -675,9 +710,10 @@ export class FightScene extends Phaser.Scene {
     panel.add([bg, label]);
   }
 
-  private onceOverlay(fn: () => void): void {
+  private onceOverlay(fn: () => void, cue = "menu_confirm"): void {
     if (this.overlayBusy) return;
     this.overlayBusy = true;
+    playSfx(this, cue);
     this.arcadeAdvanceTimer?.remove(false);
     this.arcadeAdvanceTimer = undefined;
     this.input.enabled = false;
@@ -698,14 +734,14 @@ export class FightScene extends Phaser.Scene {
     });
   }
 
-  private advanceArcade(): void {
+  private advanceArcade(cue = "next_fight_button"): void {
     this.onceOverlay(() => {
       if (!this.arcade) return;
       applyQueryUnlocks();
       const next = arcadeNext(this.arcade);
       if (!next) return;
       this.restartFight({ arcade: next });
-    });
+    }, cue);
   }
 
   private restartFight(data: FightData): void {

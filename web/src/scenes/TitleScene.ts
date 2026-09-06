@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
+import { installUnlock, playSfx, playTitleLoop, unlockAudio } from "../game/audio";
 import { unlockAllBosses } from "../game/storage";
 import { drawTitleInterior, drawTitleLogo, hasTitleLogo, textureReady, TITLE_ART } from "../game/titleArt";
 import { textStyle } from "../game/ui";
@@ -22,6 +23,15 @@ export class TitleScene extends Phaser.Scene {
     this.buildTitle();
     this.buildPrompt();
     this.buildMenuButtons();
+    installUnlock(this);
+    this.input.on("pointerdown", () => {
+      unlockAudio(this);
+      playTitleLoop(this);
+    });
+    playTitleLoop(this);
+    const welcome = () => playSfx(this, "splash_welcome");
+    if (this.sound.locked) this.sound.once("unlocked", welcome);
+    else welcome();
   }
 
   shutdown(): void {
@@ -88,6 +98,7 @@ export class TitleScene extends Phaser.Scene {
       this.titleTaps += 1;
       if (this.titleTaps >= 8) {
         unlockAllBosses();
+        playSfx(this, "unlock_boss");
         this.add.text(DESIGN_WIDTH / 2, tagY + 52, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
       }
     };
@@ -141,7 +152,7 @@ export class TitleScene extends Phaser.Scene {
       .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 148, "TAP FOR ARCADE", textStyle(22, "#f2f2f2"))
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    prompt.on("pointerdown", () => this.scene.start("Select", { mode: "arcade" }));
+    prompt.on("pointerdown", () => this.open("arcade"));
     this.tweens.add({
       targets: prompt,
       alpha: 0.25,
@@ -160,6 +171,8 @@ export class TitleScene extends Phaser.Scene {
   private open(which: "arcade" | "freePlay" | "board"): void {
     if (this.menuConsumed) return;
     this.menuConsumed = true;
+    unlockAudio(this);
+    playSfx(this, "menu_confirm");
     this.input.enabled = false;
     this.scene.start(which === "board" ? "Leaderboard" : "Select", which === "board" ? undefined : { mode: which });
   }
