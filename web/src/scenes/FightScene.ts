@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { COUNTDOWN_BEAT_MS, DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD, GOLD_NUM, GROUND_Y, ROUNDS_TO_WIN } from "../config";
-import { dummyOpponent, fighterById, stageById, stageCaption, type FighterDef, type StageDef } from "../data/catalog";
+import { dummyOpponent, fighterById, isLockedUntilDefeat, stageById, stageCaption, type FighterDef, type StageDef } from "../data/catalog";
 import {
   arcadeCurrentBoss,
   arcadeNext,
@@ -16,7 +16,7 @@ import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
 import { hideMatchOverlay, showMatchOverlay } from "../game/matchOverlay";
 import { deferSceneChange, go } from "../game/nav";
-import { applyQueryUnlocks, debugFullUlt, debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
+import { applyQueryUnlocks, debugFullUlt, debugHeavyHits, isUnlocked, submitScore, unlockBoss } from "../game/storage";
 import { playUltFxOverlay, ultLoadQueue } from "../game/ultArt";
 import { promptName, textStyle } from "../game/ui";
 
@@ -74,7 +74,7 @@ export class FightScene extends Phaser.Scene {
       this.opponentFighter = arcadeOpponent(this.arcade);
       this.stage = stageById(arcadeStageId(this.arcade));
     } else {
-      this.playerFighter = fighterById(data.playerId ?? "matt");
+      this.playerFighter = fighterById(data.playerId ?? "misty");
       this.opponentFighter = data.opponentId ? fighterById(data.opponentId) : dummyOpponent(this.playerFighter);
       this.stage = stageById(data.stageId ?? this.opponentFighter.stageId);
     }
@@ -588,9 +588,10 @@ export class FightScene extends Phaser.Scene {
     applyQueryUnlocks();
 
     const boss = this.arcade ? arcadeCurrentBoss(this.arcade) : null;
+    const newlyUnlocked = Boolean(playerWon && boss && isLockedUntilDefeat(boss.id) && !isUnlocked(boss.id));
     if (playerWon && boss) {
       unlockBoss(boss.id);
-      playSfx(this, "unlock_boss");
+      if (newlyUnlocked) playSfx(this, "unlock_boss");
     }
     playSfx(this, playerWon ? "announcer_you_win" : "announcer_you_lose");
     playSting(this, playerWon ? "victory_sting" : "defeat_sting");
@@ -617,7 +618,7 @@ export class FightScene extends Phaser.Scene {
     if (canAdvance) {
       dimmer.on("pointerup", () => this.advanceArcade());
     }
-    if (playerWon && boss) {
+    if (newlyUnlocked && boss) {
       panel.add(
         this.add
           .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.42, `UNLOCKED  ${boss.displayName.toUpperCase()}`, textStyle(18, "#b3ffb3"))

@@ -1,4 +1,4 @@
-import { BOSSES, LADDER_IDS, STARTERS, type FighterDef, fighterById } from "../data/catalog";
+import { BOSSES, LADDER_IDS, isLockedUntilDefeat, type FighterDef, fighterById } from "../data/catalog";
 
 const UNLOCK_KEY = "dojo.unlockedBossIDs";
 const SCORES_KEY = "smd.localTop10";
@@ -16,8 +16,10 @@ export function unlockedBossIDs(): Set<string> {
   return new Set();
 }
 
-export function isUnlocked(bossId: string): boolean {
-  return unlockedBossIDs().has(bossId);
+/** Staff roster: default-playable bosses are open; Ryan / Austin / Moose need a stored unlock. */
+export function isUnlocked(fighterId: string): boolean {
+  if (isLockedUntilDefeat(fighterId)) return unlockedBossIDs().has(fighterId);
+  return BOSSES.some((b) => b.id === fighterId);
 }
 
 export function unlockBoss(bossId: string): void {
@@ -31,11 +33,12 @@ export function unlockAllBosses(): void {
   localStorage.setItem(UNLOCK_KEY, JSON.stringify(LADDER_IDS));
 }
 
-export function selectRoster(): { starters: FighterDef[]; unlockedBosses: FighterDef[] } {
-  const unlocked = unlockedBossIDs();
+export function selectRoster(): { playable: FighterDef[]; locked: FighterDef[]; all: FighterDef[] } {
+  const all = BOSSES;
   return {
-    starters: STARTERS,
-    unlockedBosses: BOSSES.filter((b) => unlocked.has(b.id)),
+    all,
+    playable: all.filter((b) => isUnlocked(b.id)),
+    locked: all.filter((b) => !isUnlocked(b.id)),
   };
 }
 

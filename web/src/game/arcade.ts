@@ -1,14 +1,22 @@
 import { dummyOpponent, fighterById, LADDER_IDS, opponentHomeStageId, type FighterDef } from "../data/catalog";
 
-/** Arcade chain after the Stage 1 starter dummy: Boss ladder in order. */
+/** Arcade chain: boss ladder in roster order, skipping the player's own id. */
 export interface ArcadeProgress {
   playerId: string;
-  /** null = intro CPU dummy on Lions Bridge. Otherwise an index into LADDER_IDS. */
+  /** Index into LADDER_IDS. null only if the ladder is exhausted (should not start that way). */
   step: number | null;
 }
 
+function nextLadderIndex(from: number | null, playerId: string): number | null {
+  const start = (from ?? -1) + 1;
+  for (let i = start; i < LADDER_IDS.length; i++) {
+    if (LADDER_IDS[i] !== playerId) return i;
+  }
+  return null;
+}
+
 export function arcadeStart(player: FighterDef): ArcadeProgress {
-  return { playerId: player.id, step: null };
+  return { playerId: player.id, step: nextLadderIndex(-1, player.id) };
 }
 
 export function arcadePlayer(progress: ArcadeProgress): FighterDef {
@@ -30,7 +38,7 @@ export function arcadeCurrentBoss(progress: ArcadeProgress): FighterDef | null {
 }
 
 export function arcadeNext(progress: ArcadeProgress): ArcadeProgress | null {
-  const upcoming = (progress.step ?? -1) + 1;
-  if (upcoming >= LADDER_IDS.length) return null;
-  return { playerId: progress.playerId, step: upcoming };
+  const step = nextLadderIndex(progress.step, progress.playerId);
+  if (step === null) return null;
+  return { playerId: progress.playerId, step };
 }

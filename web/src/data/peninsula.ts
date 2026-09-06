@@ -5,8 +5,8 @@ import { STAGES, type StageDef } from "./catalog";
  *
  * Locked Brandon plate C (`select-map-plate-C.png`) is a framed 1920×1080
  * oval (PLAYER SELECT chrome + Lower Peninsula). Landmark dots stay in code
- * from WGS84. Select UI itself is live unlocked portraits — never the full
- * `select-screen-C` composite with baked-in heads.
+ * from WGS84. Select UI itself is the live staff roster (locked finals greyed)
+ * — never the full `select-screen-C` composite with baked-in heads.
  *
  *   lon −76.76 … −76.28
  *   lat  36.955 … 37.30

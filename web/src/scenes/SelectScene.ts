@@ -1,12 +1,12 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
-import { dummyOpponent, slotName, STARTERS, STAGES, stageById, type FighterDef, type StageDef } from "../data/catalog";
+import { defaultFighter, dummyOpponent, slotName, STAGES, stageById, type FighterDef, type StageDef } from "../data/catalog";
 import { PIXEL_PLATE_PX, isFramedSelectPlate, selectMapChrome } from "../data/peninsula";
-import { arcadeStart } from "../game/arcade";
+import { arcadeOpponent, arcadeStageId, arcadeStart } from "../game/arcade";
 import { installUnlock, playFightLoop, playSfx, unlockAudio } from "../game/audio";
 import { go } from "../game/nav";
 import { PeninsulaMap } from "../game/peninsulaMap";
-import { applyQueryUnlocks, selectRoster } from "../game/storage";
+import { applyQueryUnlocks, isUnlocked, selectRoster } from "../game/storage";
 import { textStyle } from "../game/ui";
 
 interface PlateMeta {
@@ -45,7 +45,7 @@ export class SelectScene extends Phaser.Scene {
     this.phase = data.phase ?? "player";
     this.playerPick = data.player ?? null;
     this.opponentPick = data.opponent ?? null;
-    this.selected = this.phase === "player" ? (data.player ?? STARTERS[0]) : this.phase === "opponent" ? null : (data.player ?? null);
+    this.selected = this.phase === "player" ? (data.player ?? defaultFighter()) : this.phase === "opponent" ? null : (data.player ?? null);
     this.selectedStage = null;
     this.cards.clear();
     this.map = undefined;
@@ -209,7 +209,7 @@ export class SelectScene extends Phaser.Scene {
     const right =
       this.phase === "player"
         ? this.mode === "arcade"
-          ? dummyOpponent(left ?? STARTERS[0])
+          ? arcadeOpponent(arcadeStart(left ?? defaultFighter()))
           : this.opponentPick
         : this.phase === "opponent"
           ? this.selected
@@ -279,8 +279,8 @@ export class SelectScene extends Phaser.Scene {
       this.phase === "stage"
         ? "HAMPTON ROADS  ·  TAP A LANDMARK"
         : this.phase === "opponent"
-          ? "UNLOCKED PORTRAITS  ·  TAP TO PICK OPPONENT"
-          : "UNLOCKED PORTRAITS  ·  TAP TO PICK";
+          ? "FULL ROSTER  ·  LOCKED GREYED  ·  TAP TO PICK OPPONENT"
+          : "FULL ROSTER  ·  LOCKED GREYED  ·  TAP TO PICK";
     this.add.text(DESIGN_WIDTH / 2, 412, sub, textStyle(13, "#c8c0d4")).setOrigin(0.5);
   }
 
@@ -297,12 +297,10 @@ export class SelectScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  /** Arcade: starters. Free Play: starters + bosses already unlocked. Never locked art. */
+  /** Full staff roster, including locked finals. Scratch starters are not listed. */
   private roster(): FighterDef[] {
     applyQueryUnlocks();
-    const { starters, unlockedBosses } = selectRoster();
-    if (this.mode === "arcade") return starters;
-    return [...starters, ...unlockedBosses];
+    return selectRoster().all;
   }
 
   private buildGrid(): void {
@@ -317,52 +315,65 @@ export class SelectScene extends Phaser.Scene {
     fighters.forEach((fighter, index) => {
       const col = index % columns;
       const row = Math.floor(index / columns);
-      const card = this.makeHead(fighter, slot);
+      const locked = !isUnlocked(fighter.id);
+      const card = this.makeHead(fighter, slot, locked);
       card.setPosition(startX + col * (slot + gap), startY + row * (slot + 14));
       this.cards.set(slotName(fighter), card);
     });
 
-    if (this.mode === "freePlay" && selectRoster().unlockedBosses.length === 0 && this.phase === "player") {
+    const { locked, playable } = selectRoster();
+    if (this.phase === "player" && locked.length > 0) {
       this.add
-        .text(DESIGN_WIDTH / 2, 620, "Win arcade fights to unlock bosses here.", {
-          fontFamily: FONT,
-          fontSize: "13px",
-          color: "#999",
-        })
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 42, "BEAT RYAN · AUSTIN · SENSEI MOOSE IN ARCADE TO UNLOCK", textStyle(12, "#9aa0c8"))
         .setOrigin(0.5);
-    } else if (this.mode === "freePlay" && this.phase === "player" && selectRoster().unlockedBosses.length > 0) {
+    } else if (this.phase === "player" && playable.length > 0) {
       this.add
-        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 42, `${selectRoster().unlockedBosses.length} BOSSES UNLOCKED`, textStyle(12, "#9fff9f"))
+        .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 42, "ALL FIGHTERS UNLOCKED", textStyle(12, "#9fff9f"))
         .setOrigin(0.5);
     }
   }
 
-  private makeHead(fighter: FighterDef, size: number): Phaser.GameObjects.Container {
+  private makeHead(fighter: FighterDef, size: number, locked: boolean): Phaser.GameObjects.Container {
     const root = this.add.container(0, 0);
-    const panel = this.add.rectangle(0, 0, size, size, 0x1a1528, 0.96).setStrokeStyle(3, fighter.accent);
+    root.setData("locked", locked);
+    const panel = this.add.rectangle(0, 0, size, size, locked ? 0x12101a : 0x1a1528, 0.96).setStrokeStyle(3, locked ? 0x4a4658 : fighter.accent);
     root.add(panel);
     const key = this.hasTex(fighter.portrait) ? fighter.portrait : this.hasTex(fighter.idle) ? fighter.idle : null;
     if (key) {
       const img = this.add.image(0, -6, key);
       img.setDisplaySize(size - 16, size - 28);
+      if (locked) {
+        img.setTint(0x5a5a5a);
+        img.setAlpha(0.42);
+      }
       root.add(img);
     } else {
-      root.add(this.add.rectangle(0, -6, size - 18, size - 28, fighter.accent));
+      const fill = this.add.rectangle(0, -6, size - 18, size - 28, fighter.accent);
+      if (locked) fill.setAlpha(0.28);
+      root.add(fill);
     }
-    root.add(this.add.text(0, size / 2 - 11, fighter.displayName.toUpperCase(), textStyle(11)).setOrigin(0.5));
+    root.add(this.add.text(0, size / 2 - 11, fighter.displayName.toUpperCase(), textStyle(11, locked ? "#7a7488" : "#f2f2f2")).setOrigin(0.5));
     const hit = this.add.rectangle(0, 0, size + 6, size + 6, 0x000000, 0.001);
-    hit.setInteractive({ useHandCursor: true });
-    hit.on("pointerdown", () => this.selectFighter(fighter));
-    hit.on("pointerup", () => this.selectFighter(fighter));
+    if (!locked) {
+      hit.setInteractive({ useHandCursor: true });
+      hit.on("pointerdown", () => this.selectFighter(fighter));
+      hit.on("pointerup", () => this.selectFighter(fighter));
+    }
     root.add(hit);
+    if (locked) root.setAlpha(0.78);
     return root;
   }
 
   private selectFighter(fighter: FighterDef): void {
+    if (!isUnlocked(fighter.id)) return;
     unlockAudio(this);
     playSfx(this, "character_select");
     this.selected = fighter;
     for (const [key, node] of this.cards) {
+      if (node.getData("locked")) {
+        node.setScale(1);
+        continue;
+      }
       const on = key === slotName(fighter);
       node.setScale(on ? 1.08 : 1);
       node.setAlpha(on ? 1 : 0.72);
@@ -396,8 +407,11 @@ export class SelectScene extends Phaser.Scene {
       return;
     }
     const fighter = this.selected ?? this.playerPick;
-    const stageId = this.mode === "arcade" && this.phase === "player" ? "lionsBridge" : (fighter?.stageId ?? null);
-    this.map?.highlight(stageId);
+    if (this.mode === "arcade" && this.phase === "player" && fighter) {
+      this.map?.highlight(arcadeStageId(arcadeStart(fighter)));
+      return;
+    }
+    this.map?.highlight(fighter?.stageId ?? null);
   }
 
   private confirm(): void {
@@ -409,6 +423,7 @@ export class SelectScene extends Phaser.Scene {
     this.goTimer?.remove(false);
     playSfx(this, "character_locked");
     applyQueryUnlocks();
+    if (!isUnlocked(fighter.id)) return;
     if (this.mode === "arcade") {
       go(this, "Fight", { arcade: arcadeStart(fighter) });
       return;
@@ -420,7 +435,7 @@ export class SelectScene extends Phaser.Scene {
     go(this, "Select", {
       mode: "freePlay",
       phase: "stage",
-      player: this.playerPick ?? STARTERS[0],
+      player: this.playerPick ?? defaultFighter(),
       opponent: fighter,
     });
   }
@@ -428,8 +443,8 @@ export class SelectScene extends Phaser.Scene {
   private startOnStage(stage: StageDef): void {
     this.goTimer?.remove(false);
     playSfx(this, "menu_confirm");
-    const player = this.playerPick ?? STARTERS[0];
-    const opponent = this.opponentPick ?? STARTERS[1];
+    const player = this.playerPick ?? defaultFighter();
+    const opponent = this.opponentPick ?? dummyOpponent(player);
     go(this, "Fight", {
       playerId: player.id,
       opponentId: opponent.id,

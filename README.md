@@ -55,14 +55,14 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Punch / Kick | **PUNCH** / **KICK** (stick down + kick = sweep) | J/Z · K/X |
 | Ultimate | **★ ULT** gold bolt (idle while charging; ready loop when full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and the dummy → Misty continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter so splash playback and the charged gold-bolt HUD loop can be checked immediately.
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and Arcade continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter so splash playback and the charged gold-bolt HUD loop can be checked immediately.
 
 ### Ported vs still stubbed
 
 | Ported | Still stubbed / native-only |
 | --- | --- |
 | Title, Arcade, Free Play (you → opponent → stage), Fight | Game Center (web uses this-browser Top 10) |
-| Starters Matt/Simon/Rich/Amanda/JB | Alley / rooftop stages (not locked yet) |
+| Staff roster on Select (Ryan / Austin / Moose start locked) | Alley / rooftop stages (not locked yet) |
 | Best of 3, countdown, Next Fight (auto-continues after a short beat) | Native SpriteKit project (kept, not the play path) |
 | Unique arcade stage per boss (all locked landmarks) | `boss_senseiMoose_*` art (falls back to title moose) |
 | Progressive arcade difficulty + 2× roster / Moose +30% | App Store / signing |
@@ -85,19 +85,17 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | Scene | What happens |
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
-| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): live **unlocked portraits only** (tap a slot to pick). 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade: starters. Free Play: unlocked bosses, then tap a map dot for the stage. Not the locked select-screen composite. |
+| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): full staff roster (tap an unlocked slot to pick). Locked finals are greyed and not selectable. 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade and Free Play share the same roster; Free Play then taps a map dot for the stage. Scratch starters (Matt / Simon / Rich / Amanda / JB) are not selectable. |
 | **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** / gold-bolt **★ ULT**. Arcade continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster
 
-| Display | id | Portrait asset | Idle asset |
-| --- | --- | --- | --- |
-| Matt | `matt` | `fighter_matt_portrait` | `fighter_matt_idle_00` |
-| Simon | `simon` | `fighter_simon_portrait` | `fighter_simon_idle_00` |
-| Rich | `rich` | `fighter_rich_portrait` | `fighter_rich_idle_00` |
-| Amanda | `amanda` | `fighter_amanda_portrait` | `fighter_amanda_idle_00` |
-| JB | `jb` | `fighter_jb_portrait` | `fighter_jb_idle_00` |
+Scratch starters (`matt`, `simon`, `rich`, `amanda`, `jb`) stay in the catalog for art / `?fighter=` debug. They are **not** on Select.
+
+**Default playable** (unlocked at start): Misty, Lucas, Chris, Christiano, Dakota, John K., Finley, Hudson, Michael, Kasey, Jaylen, Amiyr, Shaun.
+
+**Locked until beaten in Arcade:** Ryan (`ryan`), Austin (`austin`), Sensei Moose (`senseiMoose`).
 
 
 
@@ -135,29 +133,28 @@ Alley / rooftop still not locked. Web exports **full parallax** for arcade + lan
 
 ## Unlock on defeat (design)
 
-Clearing a boss unlocks them as a **playable** character on Character Select.
+Select shows the **full staff roster**. Scratch starters are gone. Locked finals are greyed and not tappable until unlocked.
 
 | Rule | Detail |
 | --- | --- |
-| Starters | Matt / Simon / Rich / Amanda / JB — always available |
-| Unlock | Defeat boss → unlock that boss on Select |
-| Persistence | Local `UserDefaults` via `Game/UnlockStore.swift` (Game Center sync optional later) |
-| Art | Unlocked bosses reuse `boss_<id>_portrait` / `boss_<id>_idle_00` |
-| Finals | Austin / Sensei Moose use the same unlock-on-clear rule unless Brandon changes it |
+| Default pool | All bosses except Ryan, Austin, and Sensei Moose — unlocked at start |
+| Locked | `ryan`, `austin`, `senseiMoose` — greyed until you beat that fighter in Arcade |
+| Unlock | Defeat Ryan / Austin / Moose in Arcade → persist via `localStorage` (`dojo.unlockedBossIDs`) |
+| Persistence | Same key as before; `?unlock=all` and eight title taps still grant every boss |
+| Art | Unlocked portraits reuse `boss_<id>_portrait` / `boss_<id>_idle_00` |
 
-Arcade order (after the Stage 1 starter dummy fight):
+Arcade order (skips the fighter you picked so you never fight yourself; no starter dummy):
 
 **Misty → Lucas → Chris → Christiano → Dakota → John K. (`johnk`) → Finley → Hudson → Michael → Kasey → Jaylen → Amiyr → Shaun → Ryan → Austin → Sensei Moose (`senseiMoose`)**
 
-A win unlocks that boss on Free Play Select (`UserDefaults` via `UnlockStore`). `boss_senseiMoose_*` is not in-tree yet; Fight/Select fall back to `moose_title_idle` for Sensei Moose.
+Beating a locked final writes their id into `dojo.unlockedBossIDs` and they become selectable on Select. `?fighter=` / `?vs=` still accept any catalog id (including retired starters) for playtest.
 
 ### Stage mapping (one landmark per opponent)
 
-Arcade intro dummy stays on **Lions Bridge**. Each boss has a **unique** home stage from the locked landmark set (arcade 1–3 + Batch A/B/C). Free Play can still pick any stage; if you skip that pick, the opponent’s home stage is the default.
+Each boss has a **unique** home stage from the locked landmark set (arcade 1–3 + Batch A/B/C). Free Play can still pick any stage; if you skip that pick, the opponent’s home stage is the default.
 
 | Opponent | Stage | Asset prefix |
 | --- | --- | --- |
-| Intro dummy | Lions Bridge | `stage1_*` |
 | Misty | Lions Bridge | `stage1_*` |
 | Lucas | Hilton Village | `stage_hiltonvillage_*` |
 | Chris | Oyster Point | `stage_oysterpoint_*` |
@@ -264,7 +261,7 @@ Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
 - Center **map plate C** (`select-map-plate-C.png`) with landmark dots
 - Dots on real landmark lon/lat (`web/src/data/peninsula.ts`)
 - **PLAYER SELECT** label
-- Bottom **interactive unlocked portraits only** — tap a slot to select. Locked bosses are omitted, not greyed-out plate art.
+- Bottom **full staff roster** — unlocked portraits are colored and tappable. Ryan / Austin / Sensei Moose start greyed and are not selectable until beaten in Arcade. Scratch starters are not listed.
 
 Do **not** use `select-screen-C.png` as the select UI (baked-in stand-in heads). Map plate C stays as the peninsula. Title splash uses locked `title_bg_dojo` plus the `title_logo_00`–`07` glow loop (`web/src/game/titleArt.ts`). Audio: Title plays `title_attract_loop`; Select/Fight play `fight_a_loop`. SFX/BGM load from `assets/audio/manifest.json` after the first tap unlocks iPad Safari.
 
