@@ -160,7 +160,7 @@ export class FightScene extends Phaser.Scene {
       if (this.controlsLive) this.player.startAttack("punch");
     };
     this.pad.onKick = () => {
-      if (this.controlsLive) this.player.startAttack(this.pad.downHeld ? "sweep" : "kick");
+      if (this.controlsLive) this.player.startAttack(this.pad.downHeld && this.player.onGround ? "sweep" : "kick");
     };
     this.pad.onUltimate = () => {
       if (this.controlsLive) this.tryUltimate(this.player, this.cpu);

@@ -11,6 +11,13 @@ const ATTACK = {
   sweep: { damage: 12, range: 118, duration: 0.42, activeStart: 0.14, activeEnd: 0.3 },
 } as const;
 
+/** Grounded crouch+kick → sweep. Airborne punch/kick only (sweep remaps to kick). */
+export function resolveAttackKind(kind: AttackKind, onGround: boolean, isCrouching: boolean): AttackKind {
+  if (!onGround) return kind === "sweep" ? "kick" : kind;
+  if (isCrouching && kind === "kick") return "sweep";
+  return kind;
+}
+
 function isMooseId(id: string): boolean {
   return id === "senseiMoose" || id === "moose";
 }
@@ -188,14 +195,16 @@ export class Fighter {
   }
 
   startAttack(kind: AttackKind): boolean {
-    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || this.isBlocking || !this.onGround) return false;
-    if (this.isCrouching && kind === "kick") kind = "sweep";
-    if (kind !== "sweep") this.isCrouching = false;
+    if (this.isAttacking || this.isUltimate || this.isHit || this.isKO || this.isBlocking) return false;
+    kind = resolveAttackKind(kind, this.onGround, this.isCrouching);
+    if (this.onGround) {
+      if (kind !== "sweep") this.isCrouching = false;
+      this.vx = 0;
+    }
     this.isAttacking = true;
     this.activeAttack = kind;
     this.attackElapsed = 0;
     this.didConnect = false;
-    this.vx = 0;
     this.playAnim(kind);
     if (!hasDedicatedFrames(this.fighter.id, kind)) {
       const lift = kind === "punch" ? 8 : kind === "sweep" ? 14 : -4;
@@ -454,6 +463,14 @@ export class Fighter {
     this.scene.tweens.killTweensOf(this.body);
   }
 
+  private clearAttack(resume: FighterAnimName): void {
+    this.isAttacking = false;
+    this.activeAttack = null;
+    this.strike.setFillStyle(0xffffff, 0);
+    this.body.setPosition(0, 0);
+    this.playAnim(resume);
+  }
+
   private restoreIdlePose(): void {
     this.stopUltTween();
     this.body.setRotation(0);
@@ -487,11 +504,7 @@ export class Fighter {
         this.activeAttack === "sweep" ? 12 : this.activeAttack === "kick" ? 16 : 14,
       );
       if (this.attackElapsed >= kind.duration) {
-        this.isAttacking = false;
-        this.activeAttack = null;
-        this.strike.setFillStyle(0xffffff, 0);
-        this.body.setPosition(0, 0);
-        this.playAnim(this.onGround ? (this.isCrouching ? "crouch" : "idle") : "jump");
+        this.clearAttack(this.onGround ? (this.isCrouching ? "crouch" : "idle") : "jump");
       }
     }
 
@@ -516,10 +529,15 @@ export class Fighter {
     this.y -= this.vy * dt;
 
     if (this.y >= groundY) {
+      const landed = !this.onGround;
       this.y = groundY;
       this.vy = 0;
       this.onGround = true;
       if (this.isKO) this.vx = 0;
+      if (landed && this.isAttacking) {
+        this.scene.tweens.killTweensOf(this.body);
+        this.clearAttack("idle");
+      }
     } else {
       this.onGround = false;
     }
