@@ -266,7 +266,7 @@ Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
 - **PLAYER SELECT** label
 - Bottom **interactive unlocked portraits only** — tap a slot to select. Locked bosses are omitted, not greyed-out plate art.
 
-Do **not** use `select-screen-C.png` as the select UI (baked-in stand-in heads). Map plate C stays as the peninsula. Title splash uses locked `title_bg_dojo` plus the `title_logo_00`–`07` glow loop (`web/src/game/titleArt.ts`). Select/Fight BGM uses `fight_a_loop` when `dojo-art/finals/audio/fight_a_loop.*` is present.
+Do **not** use `select-screen-C.png` as the select UI (baked-in stand-in heads). Map plate C stays as the peninsula. Title splash uses locked `title_bg_dojo` plus the `title_logo_00`–`07` glow loop (`web/src/game/titleArt.ts`). Audio: Title plays `title_attract_loop`; Select/Fight play `fight_a_loop`. SFX/BGM load from `assets/audio/manifest.json` after the first tap unlocks iPad Safari.
 
 ### Fighter anim sheets (Pixel)
 

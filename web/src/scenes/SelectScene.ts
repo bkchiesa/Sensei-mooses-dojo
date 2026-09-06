@@ -3,7 +3,7 @@ import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
 import { dummyOpponent, slotName, STARTERS, STAGES, stageById, type FighterDef, type StageDef } from "../data/catalog";
 import { PIXEL_PLATE_PX, isFramedSelectPlate, selectMapChrome } from "../data/peninsula";
 import { arcadeStart } from "../game/arcade";
-import { playFightLoop } from "../game/audio";
+import { installUnlock, playFightLoop, playSfx, unlockAudio } from "../game/audio";
 import { go } from "../game/nav";
 import { PeninsulaMap } from "../game/peninsulaMap";
 import { applyQueryUnlocks, selectRoster } from "../game/storage";
@@ -58,6 +58,7 @@ export class SelectScene extends Phaser.Scene {
     applyQueryUnlocks();
     this.input.enabled = true;
     this.cameras.main.setBackgroundColor(0x2c2a58);
+    installUnlock(this);
     playFightLoop(this);
     const hadMap = this.textureWide("ui-select-map");
     try {
@@ -159,34 +160,47 @@ export class SelectScene extends Phaser.Scene {
     this.add.text(DESIGN_WIDTH / 2, 22, heading, textStyle(18, GOLD)).setOrigin(0.5);
 
     const back = this.add.text(28, 14, "← TITLE", textStyle(14, "#d9d9d9")).setInteractive({ useHandCursor: true });
-    back.on("pointerup", () => go(this, "Title"));
+    back.on("pointerup", () => {
+      playSfx(this, "menu_confirm");
+      go(this, "Title");
+    });
 
     if (this.mode === "arcade") {
       const free = this.add
         .text(DESIGN_WIDTH - 28, 14, "FREE PLAY →", textStyle(14, "#d9d9d9"))
         .setOrigin(1, 0)
         .setInteractive({ useHandCursor: true });
-      free.on("pointerup", () => go(this, "Select", { mode: "freePlay" }));
+      free.on("pointerup", () => {
+        playSfx(this, "menu_move");
+        go(this, "Select", { mode: "freePlay" });
+      });
     } else if (this.phase === "stage") {
       const backOpp = this.add
         .text(DESIGN_WIDTH - 28, 14, "← OPPONENT", textStyle(14, "#d9d9d9"))
         .setOrigin(1, 0)
         .setInteractive({ useHandCursor: true });
-      backOpp.on("pointerup", () =>
-        go(this, "Select", { mode: "freePlay", phase: "opponent", player: this.playerPick }),
-      );
+      backOpp.on("pointerup", () => {
+        playSfx(this, "menu_move");
+        go(this, "Select", { mode: "freePlay", phase: "opponent", player: this.playerPick });
+      });
     } else if (this.phase === "opponent") {
       const backPick = this.add
         .text(DESIGN_WIDTH - 28, 14, "← FIGHTER", textStyle(14, "#d9d9d9"))
         .setOrigin(1, 0)
         .setInteractive({ useHandCursor: true });
-      backPick.on("pointerup", () => go(this, "Select", { mode: "freePlay" }));
+      backPick.on("pointerup", () => {
+        playSfx(this, "menu_move");
+        go(this, "Select", { mode: "freePlay" });
+      });
     } else {
       const arcade = this.add
         .text(DESIGN_WIDTH - 28, 14, "← ARCADE", textStyle(14, "#d9d9d9"))
         .setOrigin(1, 0)
         .setInteractive({ useHandCursor: true });
-      arcade.on("pointerup", () => go(this, "Select", { mode: "arcade" }));
+      arcade.on("pointerup", () => {
+        playSfx(this, "menu_move");
+        go(this, "Select", { mode: "arcade" });
+      });
     }
   }
 
@@ -345,6 +359,8 @@ export class SelectScene extends Phaser.Scene {
   }
 
   private selectFighter(fighter: FighterDef): void {
+    unlockAudio(this);
+    playSfx(this, "char_select");
     this.selected = fighter;
     for (const [key, node] of this.cards) {
       const on = key === slotName(fighter);
@@ -391,6 +407,7 @@ export class SelectScene extends Phaser.Scene {
 
   private advance(fighter: FighterDef): void {
     this.goTimer?.remove(false);
+    playSfx(this, "menu_confirm");
     applyQueryUnlocks();
     if (this.mode === "arcade") {
       go(this, "Fight", { arcade: arcadeStart(fighter) });
@@ -410,6 +427,7 @@ export class SelectScene extends Phaser.Scene {
 
   private startOnStage(stage: StageDef): void {
     this.goTimer?.remove(false);
+    playSfx(this, "menu_confirm");
     const player = this.playerPick ?? STARTERS[0];
     const opponent = this.opponentPick ?? STARTERS[1];
     go(this, "Fight", {

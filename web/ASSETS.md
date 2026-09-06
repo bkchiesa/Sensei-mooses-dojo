@@ -78,8 +78,18 @@ Locked files in `dojo-art/finals/ui/ult-button/` (copied to `web/public/assets/u
 
 `export-assets` writes `ult-button.json` listing files that exist. Boot only preloads those URLs so iPad Safari does not 404 on missing frames. Fight HUD falls back to the purple ★ ULT circle if the art is absent.
 
-## Audio hook
+## Audio
 
-`dojo-art/finals/audio/fight_a_loop.ogg` (or `.mp3`) plays on Select and Fight when present. Same cue for both.
+`export-assets` copies Tempo’s pack from `/workspace/dojo-audio/{sfx,bgm,vo}` when present, else `dojo-art/finals/audio/`. Each stem is written under `web/public/assets/audio/<kind>/` with `.ogg` + `.mp3` (Safari). Missing mp3s are transcoded from ogg when ffmpeg is available.
 
-A `manifest.json` listing copied filenames is written next to the PNGs (gitignored).
+`assets/audio/manifest.json` lists only files that exist. Boot preloads those keys — never speculative audio URLs (iPad Safari 404s). Cue names: `dojo-art/finals/audio/INDEX.md`.
+
+iPad unlock: first title tap / any input resumes `sound.locked` and the WebAudio context, then SFX and BGM play.
+
+| Scene | BGM |
+| --- | --- |
+| Title / Top 10 | `title_attract_loop` |
+| Select + Fight | `fight_a_loop` |
+| Match win / lose | `victory` / `defeat` stings |
+
+A `manifest.json` listing copied PNG filenames is written next to the PNGs (gitignored).

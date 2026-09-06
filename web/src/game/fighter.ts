@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
 import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
 import { animPackFor, hasDedicatedFrames } from "./anims";
+import { playSfx } from "./audio";
 import { readyUltFrames, splashDisplayHeight, ultDurationFor, ULT_SPLASH_FPS } from "./ultArt";
 
 export type AttackKind = "punch" | "kick" | "sweep";
@@ -174,6 +175,7 @@ export class Fighter {
     this.vy = this.jumpVelocity;
     this.onGround = false;
     this.playAnim("jump");
+    playSfx(this.scene, "jump");
   }
 
   startBlock(duration = 0.38): boolean {
@@ -202,6 +204,7 @@ export class Fighter {
     this.isCrouching = held;
     this.vx = 0;
     this.playAnim(held ? "crouch" : "idle");
+    if (held) playSfx(this.scene, "crouch");
   }
 
   startAttack(kind: AttackKind): boolean {
@@ -216,6 +219,7 @@ export class Fighter {
     this.attackElapsed = 0;
     this.didConnect = false;
     this.playAnim(kind);
+    playSfx(this.scene, kind === "punch" ? "punch_miss" : kind === "kick" ? "kick_miss" : "sweep");
     if (!hasDedicatedFrames(this.fighter.id, kind)) {
       const lift = kind === "punch" ? 8 : kind === "sweep" ? 14 : -4;
       this.scene.tweens.add({
@@ -230,10 +234,17 @@ export class Fighter {
     return true;
   }
 
-  applyHit(damage: number, fromX: number): void {
+  applyHit(damage: number, fromX: number, kind?: AttackKind | "ult"): void {
     if (this.isKO) return;
     let incoming = damage * this.incomingMul;
-    if (this.isBlocking) incoming *= 0.28;
+    if (this.isBlocking) {
+      playSfx(this.scene, "block");
+      incoming *= 0.28;
+    } else if (kind === "punch") playSfx(this.scene, "punch_hit");
+    else if (kind === "kick") playSfx(this.scene, "kick_hit");
+    else if (kind === "sweep") playSfx(this.scene, "hit");
+    else if (kind === "ult") playSfx(this.scene, "ult_impact");
+    else playSfx(this.scene, "hit");
     this.hp = Math.max(0, this.hp - incoming);
     this.isBlocking = false;
     this.isCrouching = false;
@@ -262,6 +273,8 @@ export class Fighter {
     });
     if (this.hp <= 0) {
       this.isKO = true;
+      playSfx(this.scene, "ko");
+      playSfx(this.scene, "vo_ko");
       this.scene.tweens.add({ targets: this.root, rotation: dir * 1.2, duration: 350 });
     }
   }
@@ -313,6 +326,7 @@ export class Fighter {
     this.vx = 0;
     const close = Math.min(96, Math.abs(towardX - this.x) * 0.55) * (towardX >= this.x ? 1 : -1);
     this.playUltimateMotion(this.fighter.ultimate, close);
+    playSfx(this.scene, "ult_activate");
     return true;
   }
 
@@ -584,6 +598,7 @@ export class Fighter {
       this.vy = 0;
       this.onGround = true;
       if (this.isKO) this.vx = 0;
+      if (landed) playSfx(this.scene, "land");
       if (landed && this.isAttacking) {
         this.scene.tweens.killTweensOf(this.body);
         this.clearAttack("idle");

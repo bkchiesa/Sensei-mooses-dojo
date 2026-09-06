@@ -11,7 +11,7 @@ document.getElementById("rotate-dismiss")?.addEventListener("click", () => {
   hint?.classList.add("hidden");
 });
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: "game",
   width: DESIGN_WIDTH,
@@ -35,3 +35,17 @@ new Phaser.Game({
   },
   scene: [BootScene, TitleScene, SelectScene, FightScene, LeaderboardScene],
 });
+
+game.sound.pauseOnBlur = false;
+const unlock = () => {
+  try {
+    if (game.sound.locked) game.sound.unlock();
+    const ctx = (game.sound as Phaser.Sound.WebAudioSoundManager).context;
+    if (ctx && ctx.state !== "running") void ctx.resume();
+  } catch {
+    /* audio optional */
+  }
+};
+for (const ev of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown"]) {
+  window.addEventListener(ev, unlock, { capture: true });
+}

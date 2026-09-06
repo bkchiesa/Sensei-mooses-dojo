@@ -6,6 +6,7 @@
  * Arcade + landmark stages copy full parallax (sky / far / mid / master / near).
  * Fighter folders: catalog idle, then dojo-art/finals/fighters, then web/fighter-sheets overlay.
  */
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +24,50 @@ const uiTitleOut = path.join(out, "ui/title");
 const uiUltSrc = path.join(root, "dojo-art/finals/ui/ult-button");
 const uiUltOut = path.join(out, "ui/ult-button");
 const audioSrc = path.join(root, "dojo-art/finals/audio");
+const audioShared = "/workspace/dojo-audio";
 const audioOut = path.join(out, "audio");
+const AUDIO_EXTS = [".ogg", ".mp3", ".wav", ".m4a"];
+const AUDIO_ALIAS = {
+  punch: "punch_miss",
+  kick: "kick_miss",
+  punch_whoosh: "punch_miss",
+  kick_whoosh: "kick_miss",
+  whoosh: "punch_miss",
+  impact: "hit",
+  smash: "hit",
+  land_thud: "land",
+  ult: "ult_activate",
+  ultimate: "ult_activate",
+  ultimate_ready: "ult_ready",
+  ultimate_activate: "ult_activate",
+  ultimate_impact: "ult_impact",
+  ko_sting: "ko",
+  announce_fight: "fight_banner",
+  announce_countdown: "countdown",
+  ui_move: "menu_move",
+  ui_confirm: "menu_confirm",
+  menu: "menu_confirm",
+  select: "char_select",
+  locked: "char_locked",
+  win: "match_win",
+  lose: "match_lose",
+  next: "next_fight",
+  fight_a: "fight_a_loop",
+  fight_b: "fight_b_loop",
+  fight_c: "fight_c_loop",
+  title: "title_attract_loop",
+  title_attract: "title_attract_loop",
+  title_loop: "title_attract_loop",
+  victory_sting: "victory",
+  defeat_sting: "defeat",
+  welcome: "vo_welcome",
+  announcer_round: "vo_round",
+  announcer_fight: "vo_fight",
+  announcer_ko: "vo_ko",
+};
+const BGM_LOOPS = new Set(["title_attract_loop", "fight_a_loop", "fight_b_loop", "fight_c_loop"]);
+const BGM_STEMS = new Set([...BGM_LOOPS, "victory", "defeat"]);
+const VO_STEMS = new Set(["vo_welcome", "vo_round", "vo_fight", "vo_ko"]);
 const dojoFightersSrc = path.join(root, "dojo-art/finals/fighters");
 const dojoUltsSrc = path.join(root, "dojo-art/finals/ultimates");
 const ultsOut = path.join(out, "ultimates");
@@ -328,14 +372,100 @@ if (fs.existsSync(uiUltOut)) {
 }
 console.log(`Ult button UI → idle=${ultIdle ?? "none"} ready=${ultReady.length} bolt=${ultBolt.length}`);
 
-fs.rmSync(audioOut, { recursive: true, force: true });
-if (fs.existsSync(audioSrc)) {
-  fs.mkdirSync(audioOut, { recursive: true });
-  for (const file of fs.readdirSync(audioSrc)) {
-    if (/\.(ogg|mp3|wav|m4a)$/i.test(file)) {
-      fs.copyFileSync(path.join(audioSrc, file), path.join(audioOut, file));
+function kindForStem(stem) {
+  if (BGM_STEMS.has(stem) || /_loop$/.test(stem) || stem === "victory" || stem === "defeat") return "bgm";
+  if (VO_STEMS.has(stem) || stem.startsWith("vo_") || stem.startsWith("grunt_")) return "vo";
+  return "sfx";
+}
+
+function collectAudioFiles(dir, into) {
+  if (!dir || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return;
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) {
+      if (name !== "__pycache__" && !name.startsWith(".")) collectAudioFiles(full, into);
+      continue;
+    }
+    const ext = path.extname(name).toLowerCase();
+    if (!AUDIO_EXTS.includes(ext)) continue;
+    const stem = path.basename(name, ext);
+    const canon = AUDIO_ALIAS[stem] ?? stem;
+    const kind = kindForStem(canon);
+    const rec = into.get(canon) ?? { kind, files: new Map() };
+    rec.kind = kind;
+    rec.files.set(ext, full);
+    into.set(canon, rec);
+    if (canon !== stem) {
+      const alias = into.get(stem) ?? { kind, files: new Map() };
+      if (!alias.files.has(ext)) alias.files.set(ext, full);
+      into.set(stem, alias);
     }
   }
+}
+
+function transcodeMp3(from, dest) {
+  try {
+    const result = spawnSync("ffmpeg", ["-y", "-i", from, "-c:a", "libmp3lame", "-b:a", "96k", dest], {
+      stdio: "ignore",
+    });
+    return result.status === 0 && fs.existsSync(dest);
+  } catch {
+    return false;
+  }
+}
+
+function ingestAudio() {
+  fs.rmSync(audioOut, { recursive: true, force: true });
+  fs.mkdirSync(audioOut, { recursive: true });
+  const collected = new Map();
+  // Tempo shared box wins, then in-repo finals (and a flat finals/audio drop).
+  collectAudioFiles(audioSrc, collected);
+  collectAudioFiles(audioShared, collected);
+  const cues = {};
+  let copiedAudio = 0;
+  let source = fs.existsSync(audioShared) ? audioShared : "dojo-art/finals/audio";
+  if (fs.existsSync(audioShared)) source = `${audioShared} overlaying dojo-art/finals/audio`;
+
+  for (const [stem, rec] of [...collected.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const destDir = path.join(audioOut, rec.kind);
+    fs.mkdirSync(destDir, { recursive: true });
+    const urls = [];
+    for (const [ext, from] of rec.files) {
+      const destName = `${stem}${ext}`;
+      fs.copyFileSync(from, path.join(destDir, destName));
+      copiedAudio += 1;
+      urls.push(`assets/audio/${rec.kind}/${destName}`);
+    }
+    if (!rec.files.has(".mp3")) {
+      const src = rec.files.get(".ogg") ?? rec.files.get(".wav") ?? rec.files.get(".m4a");
+      if (src) {
+        const dest = path.join(destDir, `${stem}.mp3`);
+        if (transcodeMp3(src, dest)) {
+          copiedAudio += 1;
+          urls.push(`assets/audio/${rec.kind}/${stem}.mp3`);
+        }
+      }
+    }
+    urls.sort((a, b) => {
+      const rank = (u) => (u.endsWith(".ogg") ? 0 : u.endsWith(".mp3") ? 1 : 2);
+      return rank(a) - rank(b);
+    });
+    cues[stem] = { kind: rec.kind, loop: BGM_LOOPS.has(stem), urls };
+  }
+
+  fs.writeFileSync(
+    path.join(audioOut, "manifest.json"),
+    JSON.stringify(
+      {
+        source,
+        note: "Boot only preloads cues listed here. Safari uses mp3 when ogg is unavailable.",
+        cues,
+      },
+      null,
+      2,
+    ),
+  );
+  console.log(`Audio → ${Object.keys(cues).length} cues (${copiedAudio} files) from ${source}`);
 }
 
 function ingestUltimates() {
@@ -424,6 +554,7 @@ Generated from \`dojo-art/finals/ultimates/<id>/\`.
   console.log(`Ultimates → ${splashCount} splash + ${fxCount} fx across ${Object.keys(listed).length} ids`);
 }
 
+ingestAudio();
 ingestUltimates();
 
 copied.sort();

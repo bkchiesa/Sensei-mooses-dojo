@@ -9,7 +9,12 @@ import {
   registerAnimPack,
   type FighterAnimName,
 } from "../game/anims";
-import { FIGHT_LOOP_KEY } from "../game/audio";
+import {
+  AUDIO_MANIFEST_KEY,
+  AUDIO_MANIFEST_URL,
+  audioQueueFromManifest,
+  optionalAudioKeys,
+} from "../game/audio";
 import { applyQueryUnlocks, fighterFromQuery } from "../game/storage";
 import { optionalTitleKeys, TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL, titleQueueFromManifest } from "../game/titleArt";
 import { optionalUltKeys, registerUltPacksFromManifest, ULT_MANIFEST_KEY, ULT_MANIFEST_URL } from "../game/ultArt";
@@ -66,6 +71,7 @@ export class BootScene extends Phaser.Scene {
     this.load.json(TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL);
     this.load.json(ULT_MANIFEST_KEY, ULT_MANIFEST_URL);
     this.load.json(ULT_BTN_MANIFEST_KEY, ULT_BTN_MANIFEST_URL);
+    this.load.json(AUDIO_MANIFEST_KEY, AUDIO_MANIFEST_URL);
     for (const f of [...STARTERS, ...BOSSES]) {
       keys.add(f.portrait);
       keys.add(f.idle);
@@ -81,7 +87,7 @@ export class BootScene extends Phaser.Scene {
         ...optionalTitleKeys(),
         ...optionalUltKeys(),
         ...optionalUltButtonKeys(),
-        FIGHT_LOOP_KEY,
+        ...optionalAudioKeys(),
         "ui-select-map",
         "ui-select-plate",
       ]);
@@ -151,12 +157,15 @@ export class BootScene extends Phaser.Scene {
     const titleQueue = titleQueueFromManifest(this.cache.json.get(TITLE_MANIFEST_KEY));
     pending.push(...titleQueue);
     pending.push(...ultButtonQueueFromManifest(this.cache.json.get(ULT_BTN_MANIFEST_KEY)));
+    const audioQueue = audioQueueFromManifest(this.cache.json.get(AUDIO_MANIFEST_KEY));
     const missing = pending.filter((p) => !this.textures.exists(p.key));
-    if (!missing.length) {
+    const missingAudio = audioQueue.filter((cue) => !this.cache.audio.exists(cue.key));
+    if (!missing.length && !missingAudio.length) {
       finish();
       return;
     }
     for (const file of missing) this.load.image(file.key, file.url);
+    for (const cue of missingAudio) this.load.audio(cue.key, cue.urls);
     this.load.once("complete", finish);
     this.load.start();
   }
