@@ -6,6 +6,7 @@ import {
   arcadeNext,
   arcadeOpponent,
   arcadePlayer,
+  arcadeRecordWin,
   arcadeStageId,
   type ArcadeProgress,
 } from "../game/arcade";
@@ -68,7 +69,7 @@ export class FightScene extends Phaser.Scene {
     applyQueryUnlocks();
     this.input.enabled = true;
     this.overlayBusy = false;
-    this.arcade = data.arcade ?? null;
+    this.arcade = data.arcade ? { ...data.arcade, defeatedIds: [...(data.arcade.defeatedIds ?? [])] } : null;
     if (this.arcade) {
       this.playerFighter = arcadePlayer(this.arcade);
       this.opponentFighter = arcadeOpponent(this.arcade);
@@ -646,12 +647,7 @@ export class FightScene extends Phaser.Scene {
       this.arcadeAdvanceTimer?.remove(false);
       this.arcadeAdvanceTimer = this.time.delayedCall(1350, () => this.advanceArcade("next_fight_button"));
     } else if (playerWon && this.arcade && !next) {
-      panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.48, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
-      this.showEndActions(panel, [
-        { label: "SUBMIT SCORE", onClick: () => void this.submit(), primary: true },
-        { label: "REMATCH", onClick: () => this.rematch() },
-        { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
-      ]);
+      this.time.delayedCall(720, () => this.toVictory());
     } else if (playerWon) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.46, `SCORE  ${this.fightScore()}`, textStyle(22)).setOrigin(0.5));
       this.showEndActions(panel, [
@@ -739,10 +735,23 @@ export class FightScene extends Phaser.Scene {
     this.onceOverlay(() => {
       if (!this.arcade) return;
       applyQueryUnlocks();
-      const next = arcadeNext(this.arcade);
-      if (!next) return;
+      const won = arcadeRecordWin(this.arcade);
+      const next = arcadeNext(won);
+      if (!next) {
+        this.toVictory(won);
+        return;
+      }
       this.restartFight({ arcade: next });
     }, cue);
+  }
+
+  private toVictory(progress?: ArcadeProgress): void {
+    const arcade = progress ?? (this.arcade ? arcadeRecordWin(this.arcade) : null);
+    if (!arcade) {
+      this.toSelect();
+      return;
+    }
+    this.onceOverlay(() => go(this, "Victory", { arcade, score: this.fightScore() }), "menu_confirm");
   }
 
   private restartFight(data: FightData): void {

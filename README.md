@@ -55,7 +55,7 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Punch / Kick | **PUNCH** / **KICK** (stick down + kick = sweep) | J/Z · K/X |
 | Ultimate | **★ ULT** gold bolt (idle while charging; ready loop when full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and Arcade continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter so splash playback and the charged gold-bolt HUD loop can be checked immediately.
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and Arcade continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter so splash playback and the charged gold-bolt HUD loop can be checked immediately. `?victory=1` (or `?victory=misty`) opens the Arcade victory collage for layout QA.
 
 ### Ported vs still stubbed
 
@@ -86,7 +86,8 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
 | **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): full staff roster (tap an unlocked slot to pick). Locked finals are greyed and not selectable. 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade and Free Play share the same roster; Free Play then taps a map dot for the stage. Scratch starters (Matt / Simon / Rich / Amanda / JB) are not selectable. |
-| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** / gold-bolt **★ ULT**. Arcade continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). |
+| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** (Pixel 3D up/down plates, ≥48px gap) / gold-bolt **★ ULT**. Arcade continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). Hit / defeat frames play when Pixel sheets exist. |
+| **VictoryScene** | After a full Arcade clear: dojo backdrop, winner standing, defeated opponents laid down (D1–D8). Submit score / rematch last / character select. |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster

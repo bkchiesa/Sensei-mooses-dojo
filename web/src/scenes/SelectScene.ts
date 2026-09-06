@@ -214,10 +214,10 @@ export class SelectScene extends Phaser.Scene {
         : this.phase === "opponent"
           ? this.selected
           : this.opponentPick;
-    this.drawBust(148, 188, left, true, "1P  ·  YOU");
+    this.drawBust(154, 196, left, true, "1P  ·  YOU");
     this.drawBust(
-      DESIGN_WIDTH - 148,
-      188,
+      DESIGN_WIDTH - 154,
+      196,
       right,
       false,
       this.phase === "player" && this.mode === "arcade" ? "CPU" : "2P  ·  CPU",
@@ -226,31 +226,32 @@ export class SelectScene extends Phaser.Scene {
 
   private drawBust(x: number, y: number, fighter: FighterDef | null | undefined, isP1: boolean, tag: string): void {
     const color = isP1 ? 0xd43c3c : 0xffd651;
-    this.add.rectangle(x, y, 200, 268, 0x141028, 0.92).setStrokeStyle(4, color);
+    // Brandon lock: +40% vs original 200×268 bust / 16–20px name.
+    this.add.rectangle(x, y, 280, 375, 0x141028, 0.92).setStrokeStyle(4, color);
     if (fighter && this.hasTex(fighter.portrait)) {
-      const img = this.add.image(x, y - 16, fighter.portrait);
-      const s = Math.min(176 / img.width, 188 / img.height);
+      const img = this.add.image(x, y - 22, fighter.portrait);
+      const s = Math.min(246 / img.width, 263 / img.height);
       img.setScale(s);
     } else if (fighter && this.hasTex(fighter.idle)) {
-      const img = this.add.image(x, y - 8, fighter.idle);
-      const s = Math.min(160 / img.width, 176 / img.height);
+      const img = this.add.image(x, y - 12, fighter.idle);
+      const s = Math.min(224 / img.width, 246 / img.height);
       img.setScale(s);
     } else {
-      this.add.rectangle(x, y - 16, 140, 168, 0x2a2438);
-      this.add.text(x, y - 16, "?", textStyle(64, "#666")).setOrigin(0.5);
+      this.add.rectangle(x, y - 22, 196, 235, 0x2a2438);
+      this.add.text(x, y - 22, "?", textStyle(80, "#666")).setOrigin(0.5);
     }
     const name = fighter?.displayName.toUpperCase() ?? "…";
     this.add
-      .text(x, y + 104, name, {
+      .text(x, y + 146, name, {
         fontFamily: FONT,
-        fontSize: name.length > 12 ? "16px" : "20px",
+        fontSize: name.length > 12 ? "22px" : "28px",
         color: isP1 ? "#ff8a7a" : GOLD,
         fontStyle: "bold",
       })
       .setOrigin(0.5);
-    this.add.text(x, y + 126, tag, textStyle(12, isP1 ? "#ffb0a4" : "#ffe7a0")).setOrigin(0.5);
+    this.add.text(x, y + 174, tag, textStyle(14, isP1 ? "#ffb0a4" : "#ffe7a0")).setOrigin(0.5);
     if (fighter) {
-      this.add.text(x, y + 144, stageById(fighter.stageId).displayName.toUpperCase(), textStyle(11, "#c8c0d4")).setOrigin(0.5);
+      this.add.text(x, y + 196, stageById(fighter.stageId).displayName.toUpperCase(), textStyle(12, "#c8c0d4")).setOrigin(0.5);
     }
   }
 
@@ -260,13 +261,16 @@ export class SelectScene extends Phaser.Scene {
       : null;
     const framed = isFramedSelectPlate(src?.width, src?.height);
     const chrome = selectMapChrome(framed);
-    const interactive = this.phase === "stage";
-    this.map = new PeninsulaMap(this, { x: DESIGN_WIDTH / 2, y: 196, w: chrome.w, h: chrome.h }, (id) => this.onMapDot(id), interactive);
+    const stagePick = this.phase === "stage";
+    const w = stagePick ? chrome.w : Math.round(chrome.w * 0.72);
+    const h = stagePick ? chrome.h : Math.round(chrome.h * 0.7);
+    const y = stagePick ? 196 : 158;
+    this.map = new PeninsulaMap(this, { x: DESIGN_WIDTH / 2, y, w, h }, (id) => this.onMapDot(id), stagePick);
   }
 
   private buildPlayerSelectLabel(): void {
     this.add
-      .text(DESIGN_WIDTH / 2, 388, "PLAYER SELECT", {
+      .text(DESIGN_WIDTH / 2, 392, "PLAYER SELECT", {
         fontFamily: FONT,
         fontSize: "26px",
         color: GOLD,
@@ -281,7 +285,7 @@ export class SelectScene extends Phaser.Scene {
         : this.phase === "opponent"
           ? "FULL ROSTER  ·  LOCKED GREYED  ·  TAP TO PICK OPPONENT"
           : "FULL ROSTER  ·  LOCKED GREYED  ·  TAP TO PICK";
-    this.add.text(DESIGN_WIDTH / 2, 412, sub, textStyle(13, "#c8c0d4")).setOrigin(0.5);
+    this.add.text(DESIGN_WIDTH / 2, 416, sub, textStyle(13, "#c8c0d4")).setOrigin(0.5);
   }
 
   private buildStageHint(): void {
@@ -306,18 +310,19 @@ export class SelectScene extends Phaser.Scene {
   private buildGrid(): void {
     const fighters = this.roster().filter((f) => !(this.phase === "opponent" && this.playerPick && f.id === this.playerPick.id));
     const columns = Math.min(8, Math.max(fighters.length, 1));
-    const slot = fighters.length > 8 ? 88 : 104;
+    // Brandon lock: +40% vs original 88 / 104 tiles.
+    const slot = fighters.length > 8 ? 123 : 146;
     const gap = 12;
     const gridW = Math.min(columns, fighters.length) * slot + Math.max(Math.min(columns, fighters.length) - 1, 0) * gap;
     const startX = (DESIGN_WIDTH - gridW) / 2 + slot / 2;
-    const startY = 478;
+    const startY = 448;
 
     fighters.forEach((fighter, index) => {
       const col = index % columns;
       const row = Math.floor(index / columns);
       const locked = !isUnlocked(fighter.id);
       const card = this.makeHead(fighter, slot, locked);
-      card.setPosition(startX + col * (slot + gap), startY + row * (slot + 14));
+      card.setPosition(startX + col * (slot + gap), startY + row * (slot + 12));
       this.cards.set(slotName(fighter), card);
     });
 
@@ -352,7 +357,11 @@ export class SelectScene extends Phaser.Scene {
       if (locked) fill.setAlpha(0.28);
       root.add(fill);
     }
-    root.add(this.add.text(0, size / 2 - 11, fighter.displayName.toUpperCase(), textStyle(11, locked ? "#7a7488" : "#f2f2f2")).setOrigin(0.5));
+    root.add(
+      this.add
+        .text(0, size / 2 - 16, fighter.displayName.toUpperCase(), textStyle(16, locked ? "#7a7488" : "#f2f2f2"))
+        .setOrigin(0.5),
+    );
     const hit = this.add.rectangle(0, 0, size + 6, size + 6, 0x000000, 0.001);
     if (!locked) {
       hit.setInteractive({ useHandCursor: true });
