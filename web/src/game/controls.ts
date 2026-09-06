@@ -1,5 +1,13 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD_NUM } from "../config";
+import {
+  ensureUltButtonAnims,
+  hasUltButtonArt,
+  idleUltKey,
+  ULT_BTN_BOLT_ANIM,
+  ULT_BTN_DISPLAY,
+  ULT_BTN_READY_ANIM,
+} from "./ultButtonArt";
 
 type ActionName = "punch" | "kick" | "ultimate";
 
@@ -43,7 +51,7 @@ export function readStickAxes(dx: number, dy: number, radius: number): StickAxes
   };
 }
 
-/** Circular thumbstick (move / crouch / jump) + punch / kick / ult. */
+/** Circular thumbstick (move / crouch / jump) + punch / kick / locked gold-bolt ULT. */
 export class VirtualControls {
   leftHeld = false;
   rightHeld = false;
@@ -74,6 +82,8 @@ export class VirtualControls {
   private readonly ring: Phaser.GameObjects.Arc;
   private readonly knob: Phaser.GameObjects.Arc;
   private readonly hint: Phaser.GameObjects.Text;
+  private readonly ultSprite?: Phaser.GameObjects.Sprite;
+  private readonly ultBolt?: Phaser.GameObjects.Sprite;
   private readonly boundDown: (p: Phaser.Input.Pointer) => void;
   private readonly boundMove: (p: Phaser.Input.Pointer) => void;
   private readonly boundUp: (p: Phaser.Input.Pointer) => void;
@@ -107,6 +117,9 @@ export class VirtualControls {
     this.addButton("punch", "PUNCH", W - 176, actionY, 40, 0xbf4033);
     this.addButton("kick", "KICK", W - 82, actionY + 8, 40, 0xcc9e26);
     this.addButton("ultimate", "★ ULT", W - 258, H - 166, 40, 0x8c33b3);
+    const ultArt = this.mountUltButton(W - 258, H - 166);
+    this.ultSprite = ultArt.sprite;
+    this.ultBolt = ultArt.bolt;
     this.setUltimateReady(false);
 
     const kb = scene.input.keyboard;
@@ -131,6 +144,34 @@ export class VirtualControls {
     scene.input.on("pointermove", this.boundMove);
     scene.input.on("pointerup", this.boundUp);
     scene.input.on("pointerupoutside", this.boundUp);
+  }
+
+  private mountUltButton(
+    x: number,
+    y: number,
+  ): { sprite?: Phaser.GameObjects.Sprite; bolt?: Phaser.GameObjects.Sprite } {
+    if (!hasUltButtonArt(this.scene)) return {};
+    const { bolt } = ensureUltButtonAnims(this.scene);
+    const idle = idleUltKey(this.scene);
+    if (!idle) return {};
+    const sprite = this.scene.add.sprite(x, y, idle);
+    sprite.setDisplaySize(ULT_BTN_DISPLAY, ULT_BTN_DISPLAY);
+    sprite.setDepth(81).setScrollFactor(0);
+    sprite.setAlpha(0.78);
+    const flash = bolt[0]
+      ? this.scene.add.sprite(x, y, bolt[0]).setVisible(false)
+      : undefined;
+    if (flash) {
+      flash.setDisplaySize(ULT_BTN_DISPLAY, ULT_BTN_DISPLAY);
+      flash.setDepth(82).setScrollFactor(0);
+    }
+    const pad = this.buttons.find((b) => b.name === "ultimate");
+    if (pad) {
+      pad.circle.setFillStyle(0x000000, 0);
+      pad.circle.setStrokeStyle(0, 0x000000, 0);
+      pad.label.setVisible(false);
+    }
+    return { sprite, bolt: flash };
   }
 
   private addButton(name: ActionName, text: string, x: number, y: number, radius: number, color: number): void {
@@ -235,17 +276,67 @@ export class VirtualControls {
   private fire(name: ActionName): void {
     if (name === "punch") this.onPunch?.();
     if (name === "kick") this.onKick?.();
-    if (name === "ultimate" && this.ultimateReady) this.onUltimate?.();
+    if (name === "ultimate" && this.ultimateReady) {
+      this.playUltBoltFlash();
+      this.onUltimate?.();
+    }
   }
 
   private press(name: ActionName, down: boolean): void {
     const b = this.buttons.find((x) => x.name === name);
     if (!b) return;
     if (name === "ultimate") {
-      b.circle.setAlpha(down ? 0.55 : this.ultimateReady ? 1 : 0.32);
-    } else {
-      b.circle.setAlpha(down ? 0.55 : 1);
+      if (this.ultSprite) {
+        const base = ULT_BTN_DISPLAY / this.ultSprite.width;
+        this.ultSprite.setScale(base * (down ? 0.92 : 1));
+      } else {
+        b.circle.setAlpha(down ? 0.55 : this.ultimateReady ? 1 : 0.32);
+      }
+      return;
     }
+    b.circle.setAlpha(down ? 0.55 : 1);
+  }
+
+  private playUltBoltFlash(): void {
+    if (!this.ultBolt) return;
+    this.ultBolt.setVisible(true);
+    this.ultBolt.setAlpha(1);
+    if (this.scene.anims.exists(ULT_BTN_BOLT_ANIM)) {
+      this.ultBolt.play(ULT_BTN_BOLT_ANIM, true);
+      this.ultBolt.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+        this.ultBolt?.setVisible(false);
+      });
+    } else {
+      this.scene.tweens.add({
+        targets: this.ultBolt,
+        alpha: 0,
+        duration: 180,
+        onComplete: () => this.ultBolt?.setVisible(false),
+      });
+    }
+  }
+
+  private syncUltArt(): void {
+    const pad = this.buttons.find((b) => b.name === "ultimate");
+    if (this.ultSprite) {
+      const idle = idleUltKey(this.scene);
+      const dim = this.enabled ? (this.ultimateReady ? 1 : 0.78) : 0.45;
+      this.ultSprite.setAlpha(dim);
+      if (this.ultimateReady && this.scene.anims.exists(ULT_BTN_READY_ANIM)) {
+        if (this.ultSprite.anims.currentAnim?.key !== ULT_BTN_READY_ANIM) {
+          this.ultSprite.play(ULT_BTN_READY_ANIM);
+          this.ultSprite.setDisplaySize(ULT_BTN_DISPLAY, ULT_BTN_DISPLAY);
+        }
+      } else {
+        this.ultSprite.stop();
+        if (idle) this.ultSprite.setTexture(idle);
+        this.ultSprite.setDisplaySize(ULT_BTN_DISPLAY, ULT_BTN_DISPLAY);
+      }
+      return;
+    }
+    if (!pad) return;
+    pad.circle.setAlpha(this.ultimateReady ? 1 : 0.32);
+    pad.circle.setStrokeStyle(2, this.ultimateReady ? GOLD_NUM : 0xffffff, this.ultimateReady ? 1 : 0.2);
   }
 
   pollKeyboard(): void {
@@ -275,15 +366,16 @@ export class VirtualControls {
     if (just(this.keys.jump) || this.stickJumpLatched) this.onJump?.();
     if (just(this.keys.punch)) this.onPunch?.();
     if (just(this.keys.kick)) this.onKick?.();
-    if (just(this.keys.ult) && this.ultimateReady) this.onUltimate?.();
+    if (just(this.keys.ult) && this.ultimateReady) {
+      this.playUltBoltFlash();
+      this.onUltimate?.();
+    }
   }
 
   setUltimateReady(ready: boolean): void {
+    if (this.ultimateReady === ready) return;
     this.ultimateReady = ready;
-    const b = this.buttons.find((x) => x.name === "ultimate");
-    if (!b) return;
-    b.circle.setAlpha(ready ? 1 : 0.32);
-    b.circle.setStrokeStyle(2, ready ? GOLD_NUM : 0xffffff, ready ? 1 : 0.2);
+    this.syncUltArt();
   }
 
   setEnabled(on: boolean): void {
@@ -302,7 +394,8 @@ export class VirtualControls {
     this.base.setAlpha(on ? 1 : 0.35);
     this.knob.setAlpha(on ? 1 : 0.35);
     this.hint.setAlpha(on ? 1 : 0.35);
-    if (!on) this.setUltimateReady(false);
+    if (!on) this.ultimateReady = false;
+    this.syncUltArt();
   }
 
   reset(): void {
@@ -311,8 +404,13 @@ export class VirtualControls {
     this.downHeld = false;
     this.pointers.clear();
     this.resetStick();
-    for (const b of this.buttons) b.circle.setAlpha(this.enabled ? 1 : 0.28);
+    for (const b of this.buttons) {
+      if (b.name === "ultimate") continue;
+      b.circle.setAlpha(this.enabled ? 1 : 0.28);
+    }
+    this.ultBolt?.setVisible(false);
     this.setUltimateReady(false);
+    this.syncUltArt();
   }
 
   setVisible(visible: boolean): void {
@@ -320,9 +418,15 @@ export class VirtualControls {
     this.ring.setVisible(visible);
     this.knob.setVisible(visible);
     this.hint.setVisible(visible);
+    this.ultSprite?.setVisible(visible);
+    if (!visible) this.ultBolt?.setVisible(false);
     for (const b of this.buttons) {
       b.circle.setVisible(visible);
-      b.label.setVisible(visible);
+      if (b.name === "ultimate" && this.ultSprite) {
+        b.label.setVisible(false);
+      } else {
+        b.label.setVisible(visible);
+      }
     }
   }
 
@@ -346,6 +450,8 @@ export class VirtualControls {
     this.ring.destroy();
     this.knob.destroy();
     this.hint.destroy();
+    this.ultSprite?.destroy();
+    this.ultBolt?.destroy();
     for (const b of this.buttons) {
       b.circle.destroy();
       b.label.destroy();

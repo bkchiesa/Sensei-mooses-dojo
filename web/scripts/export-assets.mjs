@@ -20,6 +20,8 @@ const uiSelectConcepts = path.join(root, "dojo-art/concepts/ui/select");
 const uiSelectOut = path.join(out, "ui/select");
 const uiTitleSrc = path.join(root, "dojo-art/finals/ui/title");
 const uiTitleOut = path.join(out, "ui/title");
+const uiUltSrc = path.join(root, "dojo-art/finals/ui/ult-button");
+const uiUltOut = path.join(out, "ui/ult-button");
 const audioSrc = path.join(root, "dojo-art/finals/audio");
 const audioOut = path.join(out, "audio");
 const dojoFightersSrc = path.join(root, "dojo-art/finals/fighters");
@@ -285,6 +287,46 @@ if (fs.existsSync(uiTitleOut)) {
   );
 }
 console.log(`Title UI → bg=${titleBg ?? "none"} hero=${titleHero ?? "none"} frames=${titleFrames.length}`);
+
+fs.rmSync(uiUltOut, { recursive: true, force: true });
+if (fs.existsSync(uiUltSrc)) {
+  fs.mkdirSync(uiUltOut, { recursive: true });
+  for (const file of fs.readdirSync(uiUltSrc)) {
+    if (file === "README.md" || file === "ult-button.json" || /contact/i.test(file)) continue;
+    if (file.endsWith(".png")) fs.copyFileSync(path.join(uiUltSrc, file), path.join(uiUltOut, file));
+  }
+}
+const ultPngs = fs.existsSync(uiUltOut)
+  ? fs.readdirSync(uiUltOut).filter((file) => file.endsWith(".png")).sort()
+  : [];
+const ultReady = [];
+for (let i = 0; i < 8; i += 1) {
+  const name = `ult_btn_ready_${String(i).padStart(2, "0")}.png`;
+  if (ultPngs.includes(name)) ultReady.push(name);
+}
+const ultBolt = [];
+for (let i = 0; i < 2; i += 1) {
+  const name = `ult_btn_bolt_${String(i).padStart(2, "0")}.png`;
+  if (ultPngs.includes(name)) ultBolt.push(name);
+}
+const ultIdle = ultPngs.includes("ult_btn_idle.png") ? "ult_btn_idle.png" : null;
+if (fs.existsSync(uiUltOut)) {
+  fs.writeFileSync(
+    path.join(uiUltOut, "ult-button.json"),
+    JSON.stringify(
+      {
+        idle: ultIdle,
+        ready: ultReady,
+        bolt: ultBolt,
+        files: ultPngs,
+        note: "Locked HUD filenames. Boot only preloads keys listed here.",
+      },
+      null,
+      2,
+    ),
+  );
+}
+console.log(`Ult button UI → idle=${ultIdle ?? "none"} ready=${ultReady.length} bolt=${ultBolt.length}`);
 
 fs.rmSync(audioOut, { recursive: true, force: true });
 if (fs.existsSync(audioSrc)) {

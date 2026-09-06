@@ -13,6 +13,12 @@ import { FIGHT_LOOP_KEY } from "../game/audio";
 import { applyQueryUnlocks, fighterFromQuery } from "../game/storage";
 import { optionalTitleKeys, TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL, titleQueueFromManifest } from "../game/titleArt";
 import { optionalUltKeys, registerUltPacksFromManifest, ULT_MANIFEST_KEY, ULT_MANIFEST_URL } from "../game/ultArt";
+import {
+  optionalUltButtonKeys,
+  ULT_BTN_MANIFEST_KEY,
+  ULT_BTN_MANIFEST_URL,
+  ultButtonQueueFromManifest,
+} from "../game/ultButtonArt";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -59,6 +65,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("ui-select-map", "assets/ui/select/select-map-plate-C.png");
     this.load.json(TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL);
     this.load.json(ULT_MANIFEST_KEY, ULT_MANIFEST_URL);
+    this.load.json(ULT_BTN_MANIFEST_KEY, ULT_BTN_MANIFEST_URL);
     for (const f of [...STARTERS, ...BOSSES]) {
       keys.add(f.portrait);
       keys.add(f.idle);
@@ -73,6 +80,7 @@ export class BootScene extends Phaser.Scene {
       const optional = new Set([
         ...optionalTitleKeys(),
         ...optionalUltKeys(),
+        ...optionalUltButtonKeys(),
         FIGHT_LOOP_KEY,
         "ui-select-map",
         "ui-select-plate",
@@ -142,6 +150,7 @@ export class BootScene extends Phaser.Scene {
     registerUltPacksFromManifest(this.cache.json.get(ULT_MANIFEST_KEY));
     const titleQueue = titleQueueFromManifest(this.cache.json.get(TITLE_MANIFEST_KEY));
     pending.push(...titleQueue);
+    pending.push(...ultButtonQueueFromManifest(this.cache.json.get(ULT_BTN_MANIFEST_KEY)));
     const missing = pending.filter((p) => !this.textures.exists(p.key));
     if (!missing.length) {
       finish();

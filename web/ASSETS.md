@@ -68,6 +68,16 @@ Locked 12-frame sheets in `dojo-art/finals/ultimates/<id>/` (copied to `web/publ
 
 `export-assets` writes `ultimates/index.json` listing frames that exist. Boot preloads each roster `_00`. FightScene loads the remaining splash (+ FX) for the two combatants only.
 
+## Ult button HUD (locked)
+
+Locked files in `dojo-art/finals/ui/ult-button/` (copied to `web/public/assets/ui/ult-button/`):
+
+- `ult_btn_idle.png` → calm gold bolt (charging / empty)
+- `ult_btn_ready_00.png` … `ult_btn_ready_07.png` → overcharged jitter/glow loop
+- `ult_btn_bolt_00.png` … `ult_btn_bolt_01.png` → optional activate flash overlays
+
+`export-assets` writes `ult-button.json` listing files that exist. Boot only preloads those URLs so iPad Safari does not 404 on missing frames. Fight HUD falls back to the purple ★ ULT circle if the art is absent.
+
 ## Audio hook
 
 `dojo-art/finals/audio/fight_a_loop.ogg` (or `.mp3`) plays on Select and Fight when present. Same cue for both.
