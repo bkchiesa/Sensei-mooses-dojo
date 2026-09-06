@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
-import { BOSSES, FIGHTER_ANIM_NAMES, fighterById, STARTERS } from "../data/catalog";
+import { BOSSES, defaultFighter, FIGHTER_ANIM_NAMES, fighterById, STARTERS } from "../data/catalog";
 import {
   animPackFor,
   defaultAnimFiles,
@@ -114,7 +114,7 @@ export class BootScene extends Phaser.Scene {
       try {
         const opponent = fighterById(vs);
         this.scene.start("Fight", {
-          playerId: fighterFromQuery()?.id ?? "matt",
+          playerId: fighterFromQuery()?.id ?? defaultFighter().id,
           opponentId: opponent.id,
           stageId: opponent.stageId,
         });

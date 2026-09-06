@@ -4,9 +4,10 @@ import type { ArcadeProgress } from "./arcade";
 /**
  * Progressive arcade difficulty.
  *
- * Index -1 is the Stage 1 intro dummy. Indices 0…15 follow LADDER_IDS
- * (Misty → Sensei Moose). Free Play uses the opponent’s ladder index when
- * they are a boss, otherwise a mild mid-ladder profile.
+ * Index -1 is a leftover easy dummy profile (unused when Arcade starts on a
+ * real ladder step). Indices 0…15 follow LADDER_IDS (Misty → Sensei Moose).
+ * Free Play uses the opponent’s ladder index when they are a boss, otherwise
+ * a mild mid-ladder profile.
  *
  * All curves are monotonic in `t = (index + 1) / 16` so each arcade opponent
  * is strictly harder than the last on at least one axis (usually several).

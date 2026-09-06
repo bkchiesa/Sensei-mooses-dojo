@@ -106,6 +106,7 @@ function boss(
   };
 }
 
+/** Scratch starters stay loadable for art / `?fighter=` debug. Not on Select. */
 export const STARTERS: FighterDef[] = [
   starter("matt", "Matt", rgb(0.77, 0.2, 0.15), "Rising Fang", "Leap uppercut homage to a classic dragon-punch.", "risingDragon"),
   starter("simon", "Simon", rgb(0.13, 0.27, 0.55), "Spirit Wave", "Palm-fired energy lunge, fireball-style homage.", "spiritWave"),
@@ -113,6 +114,13 @@ export const STARTERS: FighterDef[] = [
   starter("amanda", "Amanda", rgb(0.46, 0.19, 0.59), "Violet Flash", "Back-flip kick that climbs the opponent.", "flipKick"),
   starter("jb", "JB", rgb(0.77, 0.6, 0.14), "Gold Rush", "Full-sprint clothesline.", "clothesline"),
 ];
+
+/** Staff finals — greyed on Select until beaten in Arcade. */
+export const LOCKED_UNTIL_DEFEAT_IDS = ["ryan", "austin", "senseiMoose"] as const;
+
+export function isLockedUntilDefeat(id: string): boolean {
+  return (LOCKED_UNTIL_DEFEAT_IDS as readonly string[]).includes(id);
+}
 
 /** Arcade + Free Play home stages — one distinct landmark per boss. See README. */
 export const BOSSES: FighterDef[] = [
@@ -185,14 +193,17 @@ export function stageCaption(stage: StageDef): string {
   return `STAGE ${stage.number}  ·  ${stage.displayName.toUpperCase()}${mood}`;
 }
 
-export function dummyOpponent(player: FighterDef): FighterDef {
-  if (player.kind === "starter") {
-    return STARTERS.find((s) => s.id !== player.id) ?? STARTERS[4];
-  }
-  return STARTERS[4];
+export function defaultFighter(): FighterDef {
+  return BOSSES.find((b) => !isLockedUntilDefeat(b.id)) ?? BOSSES[0];
 }
 
-/** Arcade intro dummy always fights on Lions Bridge. Bosses use their home stage. */
+/** Fallback CPU when no opponent is picked — another default-playable boss, never a scratch starter. */
+export function dummyOpponent(player: FighterDef): FighterDef {
+  const pool = BOSSES.filter((b) => b.id !== player.id && !isLockedUntilDefeat(b.id));
+  return pool[0] ?? BOSSES.find((b) => b.id !== player.id) ?? BOSSES[0];
+}
+
+/** Arcade uses the opponent's home stage. `arcadeIntro` kept for older `step === null` saves. */
 export function opponentHomeStageId(opponent: FighterDef, arcadeIntro: boolean): string {
   return arcadeIntro ? "lionsBridge" : opponent.stageId;
 }
