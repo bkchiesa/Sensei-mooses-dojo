@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH } from "./config";
+import { debugHeavyHits } from "./game/storage";
 import { BootScene } from "./scenes/BootScene";
 import { FightScene } from "./scenes/FightScene";
 import { LeaderboardScene } from "./scenes/LeaderboardScene";
@@ -11,7 +12,7 @@ document.getElementById("rotate-dismiss")?.addEventListener("click", () => {
   hint?.classList.add("hidden");
 });
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: "game",
   width: DESIGN_WIDTH,
@@ -35,3 +36,7 @@ new Phaser.Game({
   },
   scene: [BootScene, TitleScene, SelectScene, FightScene, LeaderboardScene],
 });
+
+if (debugHeavyHits()) {
+  (window as Window & { __smdGame?: Phaser.Game }).__smdGame = game;
+}
