@@ -53,9 +53,9 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Move / crouch | Circular **thumbstick** (down = crouch) | A/D or arrows · S / ↓ crouch |
 | Jump | **Stick up** | W / ↑ / Space |
 | Punch / Kick | **PUNCH** / **KICK** (stick down + kick = sweep) | J/Z · K/X |
-| Ultimate | **★ ULT** (lights up when meter is full) | U / Enter |
+| Ultimate | **★ ULT** gold bolt (idle while charging; ready loop when full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and the dummy → Misty continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter (splash QA).
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and the dummy → Misty continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter so splash playback and the charged gold-bolt HUD loop can be checked immediately.
 
 ### Ported vs still stubbed
 
@@ -86,7 +86,7 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
 | **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): live **unlocked portraits only** (tap a slot to pick). 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade: starters. Free Play: unlocked bosses, then tap a map dot for the stage. Not the locked select-screen composite. |
-| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** / **★ ULT**. Arcade continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). |
+| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** / gold-bolt **★ ULT**. Arcade continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
 ## Roster

@@ -86,7 +86,7 @@ export function debugHeavyHits(): boolean {
   return new URLSearchParams(window.location.search).get("debug") === "1";
 }
 
-/** `?ult=1` — start each round with a full player ultimate meter (splash QA). */
+/** `?ult=1` — full player meter each round (splash + charged HUD QA) and a short first-action CPU hold. */
 export function debugFullUlt(): boolean {
   return new URLSearchParams(window.location.search).get("ult") === "1";
 }
