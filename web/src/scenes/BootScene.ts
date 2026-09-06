@@ -10,7 +10,7 @@ import {
   type FighterAnimName,
 } from "../game/anims";
 import { FIGHT_LOOP_KEY } from "../game/audio";
-import { applyQueryUnlocks } from "../game/storage";
+import { applyQueryUnlocks, fighterFromQuery } from "../game/storage";
 import { optionalTitleKeys, TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL, titleQueueFromManifest } from "../game/titleArt";
 import { optionalUltKeys, registerUltPacksFromManifest, ULT_MANIFEST_KEY, ULT_MANIFEST_URL } from "../game/ultArt";
 
@@ -100,7 +100,7 @@ export class BootScene extends Phaser.Scene {
       try {
         const opponent = fighterById(vs);
         this.scene.start("Fight", {
-          playerId: "matt",
+          playerId: fighterFromQuery()?.id ?? "matt",
           opponentId: opponent.id,
           stageId: opponent.stageId,
         });
