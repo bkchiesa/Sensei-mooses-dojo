@@ -126,7 +126,8 @@ export class VictoryScene extends Phaser.Scene {
 
   /**
    * Laid-down opponent. Prefers defeat/defeated frames; else idle rotated 90°
-   * and muted. TODO(Pixel): swap to real downed poses when sheets land.
+   * and muted. Landscape `defeat_00` sheets scale by the long side so they
+   * stay in the D1–D8 slot.
    */
   private drawDowned(fighter: FighterDef, x: number, y: number): void {
     const defeat = firstAnimTexture(fighter.id, "defeat");
@@ -136,7 +137,7 @@ export class VictoryScene extends Phaser.Scene {
       const img = this.add.image(x, y, key);
       img.setOrigin(0.5, 0.5);
       const target = 88;
-      const s = target / Math.max(img.height, 1);
+      const s = target / Math.max(img.width, img.height, 1);
       img.setScale(s);
       img.setDepth(10);
       if (!defeat) {

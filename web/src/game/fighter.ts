@@ -97,6 +97,13 @@ export class Fighter {
 
   private fitBody(): void {
     if (this.body.height <= 0) return;
+    // Scale-redo defeat sheets are landscape (downed). Match body length to
+    // standing height so KO does not blow up to a 420px-tall slab.
+    if (this.currentAnim === "defeat" && this.body.width > this.body.height) {
+      const w = this.bodyHeight;
+      this.body.setDisplaySize(w, (this.body.height / this.body.width) * w);
+      return;
+    }
     this.body.setDisplaySize((this.body.width / this.body.height) * this.bodyHeight, this.bodyHeight);
   }
 
