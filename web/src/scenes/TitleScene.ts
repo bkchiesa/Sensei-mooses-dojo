@@ -29,7 +29,7 @@ export class TitleScene extends Phaser.Scene {
       playTitleLoop(this);
     });
     playTitleLoop(this);
-    const welcome = () => playSfx(this, "vo_welcome");
+    const welcome = () => playSfx(this, "splash_welcome");
     if (this.sound.locked) this.sound.once("unlocked", welcome);
     else welcome();
   }
@@ -98,7 +98,7 @@ export class TitleScene extends Phaser.Scene {
       this.titleTaps += 1;
       if (this.titleTaps >= 8) {
         unlockAllBosses();
-        playSfx(this, "unlock");
+        playSfx(this, "unlock_boss");
         this.add.text(DESIGN_WIDTH / 2, tagY + 52, "ALL BOSSES UNLOCKED", textStyle(16, "#9fff9f")).setOrigin(0.5);
       }
     };

@@ -162,7 +162,7 @@ export function playBgm(
 }
 
 function stopOtherLoops(scene: Phaser.Scene, keep: string): void {
-  for (const key of [TITLE_LOOP_KEY, FIGHT_LOOP_KEY, "fight_b_loop", "fight_c_loop"]) {
+  for (const key of [TITLE_LOOP_KEY, FIGHT_LOOP_KEY, "fight_b_loop", "fight_c_loop", "select_loop"]) {
     if (key === keep) continue;
     try {
       scene.sound.get(key)?.stop();
@@ -170,6 +170,21 @@ function stopOtherLoops(scene: Phaser.Scene, keep: string): void {
       /* ignore */
     }
   }
+}
+
+const FEMALE_IDS = new Set(["amanda", "misty", "kasey"]);
+
+export type GruntAction = "punch" | "kick" | "hit" | "ko";
+
+/** Shared Tempo grunt bank: moose / female / male. */
+export function gruntKey(fighterId: string, action: GruntAction): string {
+  const flavor =
+    fighterId === "senseiMoose" || fighterId === "moose" ? "moose" : FEMALE_IDS.has(fighterId) ? "female" : "male";
+  return `grunt_${flavor}_${action}`;
+}
+
+export function playGrunt(scene: Phaser.Scene, fighterId: string, action: GruntAction, volume = 0.55): void {
+  playSfx(scene, gruntKey(fighterId, action), volume);
 }
 
 export function playSting(scene: Phaser.Scene, key: string, volume = STING_VOL): void {

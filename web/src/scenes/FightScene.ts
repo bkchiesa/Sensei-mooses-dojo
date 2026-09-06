@@ -356,10 +356,10 @@ export class FightScene extends Phaser.Scene {
 
   private cueUltReady(ready: boolean, isPlayer: boolean): void {
     if (isPlayer) {
-      if (ready && !this.playerUltReady) playSfx(this, "ult_ready");
+      if (ready && !this.playerUltReady) playSfx(this, "ult_ready_charge");
       this.playerUltReady = ready;
     } else {
-      if (ready && !this.cpuUltReady) playSfx(this, "ult_ready");
+      if (ready && !this.cpuUltReady) playSfx(this, "ult_ready_charge");
       this.cpuUltReady = ready;
     }
   }
@@ -461,10 +461,10 @@ export class FightScene extends Phaser.Scene {
       this.countdownLabel = label;
       if (beat.text === "FIGHT!") {
         playSfx(this, "fight_banner");
-        playSfx(this, "vo_fight");
-      } else {
-        playSfx(this, "countdown");
-        if (beat.text.startsWith("ROUND")) playSfx(this, "vo_round");
+        playSfx(this, "announcer_fight");
+      } else if (beat.text === "3" || beat.text === "2" || beat.text === "1") {
+        playSfx(this, `fight_countdown_${beat.text}`);
+        playSfx(this, `announcer_${beat.text}`);
       }
       this.tweens.add({
         targets: label,
@@ -590,9 +590,10 @@ export class FightScene extends Phaser.Scene {
     const boss = this.arcade ? arcadeCurrentBoss(this.arcade) : null;
     if (playerWon && boss) {
       unlockBoss(boss.id);
-      playSfx(this, "unlock");
+      playSfx(this, "unlock_boss");
     }
-    playSting(this, playerWon ? "victory" : "defeat");
+    playSfx(this, playerWon ? "announcer_you_win" : "announcer_you_lose");
+    playSting(this, playerWon ? "victory_sting" : "defeat_sting");
 
     const panel = this.add.container(0, 0).setDepth(240);
     const dimmer = this.add
@@ -633,16 +634,16 @@ export class FightScene extends Phaser.Scene {
       this.showEndActions(
         panel,
         [
-          { label: "NEXT FIGHT", onClick: () => this.advanceArcade("next_fight"), primary: true },
+          { label: "NEXT FIGHT", onClick: () => this.advanceArcade("next_fight_button"), primary: true },
           { label: "REMATCH", onClick: () => this.rematch() },
           { label: "CHARACTER SELECT", onClick: () => this.toSelect() },
         ],
-        () => this.advanceArcade("next_fight"),
+        () => this.advanceArcade("next_fight_button"),
       );
       // Native SpriteKit auto-continues after 1.35s. That timer runs on the
       // game clock — not inside a touch/click — so iPad Safari cannot drop it.
       this.arcadeAdvanceTimer?.remove(false);
-      this.arcadeAdvanceTimer = this.time.delayedCall(1350, () => this.advanceArcade("next_fight"));
+      this.arcadeAdvanceTimer = this.time.delayedCall(1350, () => this.advanceArcade("next_fight_button"));
     } else if (playerWon && this.arcade && !next) {
       panel.add(this.add.text(DESIGN_WIDTH / 2, DESIGN_HEIGHT * 0.48, "ARCADE COMPLETE", textStyle(22, GOLD)).setOrigin(0.5));
       this.showEndActions(panel, [
@@ -733,7 +734,7 @@ export class FightScene extends Phaser.Scene {
     });
   }
 
-  private advanceArcade(cue = "next_fight"): void {
+  private advanceArcade(cue = "next_fight_button"): void {
     this.onceOverlay(() => {
       if (!this.arcade) return;
       applyQueryUnlocks();

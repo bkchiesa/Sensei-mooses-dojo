@@ -33,41 +33,47 @@ const AUDIO_ALIAS = {
   punch_whoosh: "punch_miss",
   kick_whoosh: "kick_miss",
   whoosh: "punch_miss",
-  impact: "hit",
-  smash: "hit",
+  impact: "hit_light",
+  smash: "hit_heavy",
+  hit: "hit_light",
   land_thud: "land",
   ult: "ult_activate",
   ultimate: "ult_activate",
-  ultimate_ready: "ult_ready",
+  ult_ready: "ult_ready_charge",
+  ultimate_ready: "ult_ready_charge",
   ultimate_activate: "ult_activate",
   ultimate_impact: "ult_impact",
   ko_sting: "ko",
-  announce_fight: "fight_banner",
-  announce_countdown: "countdown",
+  announce_fight: "announcer_fight",
+  countdown: "fight_countdown_1",
   ui_move: "menu_move",
   ui_confirm: "menu_confirm",
   menu: "menu_confirm",
-  select: "char_select",
-  locked: "char_locked",
+  select: "character_select",
+  char_select: "character_select",
+  locked: "character_locked",
+  char_locked: "character_locked",
   win: "match_win",
   lose: "match_lose",
-  next: "next_fight",
+  next: "next_fight_button",
+  next_fight: "next_fight_button",
+  unlock: "unlock_boss",
   fight_a: "fight_a_loop",
   fight_b: "fight_b_loop",
   fight_c: "fight_c_loop",
   title: "title_attract_loop",
   title_attract: "title_attract_loop",
   title_loop: "title_attract_loop",
-  victory_sting: "victory",
-  defeat_sting: "defeat",
-  welcome: "vo_welcome",
-  announcer_round: "vo_round",
-  announcer_fight: "vo_fight",
-  announcer_ko: "vo_ko",
+  victory: "victory_sting",
+  defeat: "defeat_sting",
+  welcome: "splash_welcome",
+  vo_welcome: "splash_welcome",
+  vo_fight: "announcer_fight",
 };
 const BGM_LOOPS = new Set(["title_attract_loop", "fight_a_loop", "fight_b_loop", "fight_c_loop"]);
-const BGM_STEMS = new Set([...BGM_LOOPS, "victory", "defeat"]);
-const VO_STEMS = new Set(["vo_welcome", "vo_round", "vo_fight", "vo_ko"]);
+const BGM_STEMS = new Set([...BGM_LOOPS, "victory_sting", "defeat_sting"]);
+const SKIP_AUDIO_DIRS = new Set(["masters", "listen", "__pycache__"]);
+const SKIP_AUDIO_STEMS = new Set(["select_loop"]); // Brandon lock: play fight_a_loop, not this byte copy
 const dojoFightersSrc = path.join(root, "dojo-art/finals/fighters");
 const dojoUltsSrc = path.join(root, "dojo-art/finals/ultimates");
 const ultsOut = path.join(out, "ultimates");
@@ -373,9 +379,23 @@ if (fs.existsSync(uiUltOut)) {
 console.log(`Ult button UI → idle=${ultIdle ?? "none"} ready=${ultReady.length} bolt=${ultBolt.length}`);
 
 function kindForStem(stem) {
-  if (BGM_STEMS.has(stem) || /_loop$/.test(stem) || stem === "victory" || stem === "defeat") return "bgm";
-  if (VO_STEMS.has(stem) || stem.startsWith("vo_") || stem.startsWith("grunt_")) return "vo";
+  if (BGM_STEMS.has(stem) || /_loop$/.test(stem) || /_sting$/.test(stem)) return "bgm";
+  if (stem.startsWith("vo_") || stem.startsWith("grunt_") || stem.startsWith("announcer_") || stem === "splash_welcome") {
+    return "vo";
+  }
   return "sfx";
+}
+
+function cueStemFromPath(full, ext) {
+  const parts = full.split(path.sep);
+  const base = path.basename(full, ext);
+  const gi = parts.lastIndexOf("grunts");
+  if (gi >= 0 && parts[gi + 1]) {
+    const flavor = parts[gi + 1];
+    const action = base.replace(/^grunt_/, "");
+    return `grunt_${flavor}_${action}`;
+  }
+  return AUDIO_ALIAS[base] ?? base;
 }
 
 function collectAudioFiles(dir, into) {
@@ -383,23 +403,18 @@ function collectAudioFiles(dir, into) {
   for (const name of fs.readdirSync(dir)) {
     const full = path.join(dir, name);
     if (fs.statSync(full).isDirectory()) {
-      if (name !== "__pycache__" && !name.startsWith(".")) collectAudioFiles(full, into);
+      if (!SKIP_AUDIO_DIRS.has(name) && !name.startsWith(".")) collectAudioFiles(full, into);
       continue;
     }
     const ext = path.extname(name).toLowerCase();
     if (!AUDIO_EXTS.includes(ext)) continue;
-    const stem = path.basename(name, ext);
-    const canon = AUDIO_ALIAS[stem] ?? stem;
+    const canon = cueStemFromPath(full, ext);
+    if (SKIP_AUDIO_STEMS.has(canon) || SKIP_AUDIO_STEMS.has(path.basename(name, ext))) continue;
     const kind = kindForStem(canon);
     const rec = into.get(canon) ?? { kind, files: new Map() };
     rec.kind = kind;
     rec.files.set(ext, full);
     into.set(canon, rec);
-    if (canon !== stem) {
-      const alias = into.get(stem) ?? { kind, files: new Map() };
-      if (!alias.files.has(ext)) alias.files.set(ext, full);
-      into.set(stem, alias);
-    }
   }
 }
 

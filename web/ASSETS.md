@@ -80,16 +80,16 @@ Locked files in `dojo-art/finals/ui/ult-button/` (copied to `web/public/assets/u
 
 ## Audio
 
-`export-assets` copies Tempo’s pack from `/workspace/dojo-audio/{sfx,bgm,vo}` when present, else `dojo-art/finals/audio/`. Each stem is written under `web/public/assets/audio/<kind>/` with `.ogg` + `.mp3` (Safari). Missing mp3s are transcoded from ogg when ffmpeg is available.
+`export-assets` copies Tempo’s pack from `/workspace/dojo-audio/{sfx,bgm,vo}` when present, else `dojo-art/finals/audio/` (Tempo MERGEABLE drop). Each stem is written under `web/public/assets/audio/<kind>/` with `.ogg` + `.mp3` (Safari). Missing mp3s are transcoded from ogg when ffmpeg is available. `select_loop` is a byte copy of fight A — **not exported**; Select plays `fight_a_loop`. `masters/` and `listen/` are skipped.
 
 `assets/audio/manifest.json` lists only files that exist. Boot preloads those keys — never speculative audio URLs (iPad Safari 404s). Cue names: `dojo-art/finals/audio/INDEX.md`.
 
 iPad unlock: first title tap / any input resumes `sound.locked` and the WebAudio context, then SFX and BGM play.
 
-| Scene | BGM |
+| Scene | BGM / VO |
 | --- | --- |
-| Title / Top 10 | `title_attract_loop` |
+| Title | `title_attract_loop` + locked `splash_welcome` |
 | Select + Fight | `fight_a_loop` |
-| Match win / lose | `victory` / `defeat` stings |
+| Match win / lose | `victory_sting` / `defeat_sting` + announcer |
 
 A `manifest.json` listing copied PNG filenames is written next to the PNGs (gitignored).

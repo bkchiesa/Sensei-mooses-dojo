@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
 import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
 import { animPackFor, hasDedicatedFrames } from "./anims";
-import { playSfx } from "./audio";
+import { playGrunt, playSfx } from "./audio";
 import { readyUltFrames, splashDisplayHeight, ultDurationFor, ULT_SPLASH_FPS } from "./ultArt";
 
 export type AttackKind = "punch" | "kick" | "sweep";
@@ -220,6 +220,7 @@ export class Fighter {
     this.didConnect = false;
     this.playAnim(kind);
     playSfx(this.scene, kind === "punch" ? "punch_miss" : kind === "kick" ? "kick_miss" : "sweep");
+    if (kind === "punch" || kind === "kick") playGrunt(this.scene, this.fighter.id, kind);
     if (!hasDedicatedFrames(this.fighter.id, kind)) {
       const lift = kind === "punch" ? 8 : kind === "sweep" ? 14 : -4;
       this.scene.tweens.add({
@@ -242,9 +243,10 @@ export class Fighter {
       incoming *= 0.28;
     } else if (kind === "punch") playSfx(this.scene, "punch_hit");
     else if (kind === "kick") playSfx(this.scene, "kick_hit");
-    else if (kind === "sweep") playSfx(this.scene, "hit");
+    else if (kind === "sweep") playSfx(this.scene, "hit_light");
     else if (kind === "ult") playSfx(this.scene, "ult_impact");
-    else playSfx(this.scene, "hit");
+    else playSfx(this.scene, kind ? "hit_heavy" : "hit_light");
+    if (!this.isBlocking) playGrunt(this.scene, this.fighter.id, "hit");
     this.hp = Math.max(0, this.hp - incoming);
     this.isBlocking = false;
     this.isCrouching = false;
@@ -274,7 +276,7 @@ export class Fighter {
     if (this.hp <= 0) {
       this.isKO = true;
       playSfx(this.scene, "ko");
-      playSfx(this.scene, "vo_ko");
+      playGrunt(this.scene, this.fighter.id, "ko");
       this.scene.tweens.add({ targets: this.root, rotation: dir * 1.2, duration: 350 });
     }
   }
@@ -310,7 +312,9 @@ export class Fighter {
 
   chargeMeter(): void {
     if (this.isKO) return;
+    const before = this.ultimateMeter;
     this.ultimateMeter = Math.min(1, this.ultimateMeter + CHARGE_PER_HIT);
+    if (this.ultimateMeter > before) playSfx(this.scene, "ult_meter_tick");
   }
 
   startUltimate(towardX: number): boolean {

@@ -360,7 +360,7 @@ export class SelectScene extends Phaser.Scene {
 
   private selectFighter(fighter: FighterDef): void {
     unlockAudio(this);
-    playSfx(this, "char_select");
+    playSfx(this, "character_select");
     this.selected = fighter;
     for (const [key, node] of this.cards) {
       const on = key === slotName(fighter);
@@ -407,7 +407,7 @@ export class SelectScene extends Phaser.Scene {
 
   private advance(fighter: FighterDef): void {
     this.goTimer?.remove(false);
-    playSfx(this, "menu_confirm");
+    playSfx(this, "character_locked");
     applyQueryUnlocks();
     if (this.mode === "arcade") {
       go(this, "Fight", { arcade: arcadeStart(fighter) });
