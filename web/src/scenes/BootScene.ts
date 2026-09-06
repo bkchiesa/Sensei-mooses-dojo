@@ -141,6 +141,10 @@ export class BootScene extends Phaser.Scene {
       });
       return;
     }
+    if (params.get("select") === "arcade" || params.get("select") === "freePlay") {
+      this.scene.start("Select", { mode: params.get("select") === "freePlay" ? "freePlay" : "arcade" });
+      return;
+    }
     const arcade = params.get("arcade");
     if (arcade) {
       const player = fighterFromQuery() ?? defaultFighter();
