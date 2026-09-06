@@ -2,33 +2,66 @@
 
 **ID:** `dean`  
 **Drop:** `dojo-art-raw/newpacks/dean/`  
-**Do not touch:** `dojo-art/finals/fighters/dean/fighter_dean_idle_00.png` (locked look). This pack does not overwrite idle_00 in finals.
+**Do not touch:** locked `fighter_dean_idle_00` in finals. This pack has **no** `fighter_dean_idle_00.png`.
 
 ## Locked look
 
-Young boy (pre-adolescent, **not** adult), neat short dark hair with small faceted spikes, serious face, large dark eyes, thick eyebrows. White **CLOSED** gi. **BLACK** belt with **GOLD CALLIGRAPHY** on the hanging belt end. Face **RIGHT**. Low-poly faceted N64 / Virtua Fighter / SF2-era sprite. Barefoot. Family-friendly original — no Capcom marks.
+Young boy (pre-adolescent, **not** adult), neat short dark hair with faceted spikes, serious face, large dark eyes, thick eyebrows. White **CLOSED** gi. **BLACK** belt with **GOLD CALLIGRAPHY** on the hanging belt end. Face **RIGHT**. Low-poly faceted N64 / Virtua Fighter. Barefoot. Magenta `#FF00FF` chroma. Family-friendly original — no Capcom marks.
 
-## Pose bar (Misty clarity: windup → peak → recovery)
+Likeness reference (not a pose-bar frame): `fighter_dean_idle_lock.png`
 
-| File | Notes |
+## Pose bar (~512h except defeat)
+
+| File | Canvas |
 | --- | --- |
-| `fighter_dean_idle_01.png` … `_03.png` | Breath / weight bob. No `idle_00` in this drop. |
-| `fighter_dean_punch_00.png` … `_03.png` | Peak (`_02`) fist fully extended RIGHT |
-| `fighter_dean_kick_00.png` … `_03.png` | Peak (`_02`) kicking leg OUT |
-| `fighter_dean_jump_00.png` … `_03.png` | Peak both feet airborne |
-| `fighter_dean_block_00.png` … `_01.png` | X-guard |
-| `fighter_dean_crouch_00.png` … `_01.png` | Deep squat, full body |
-| `fighter_dean_sweep_00.png` … `_03.png` | Low leg + hand on ground |
-| `fighter_dean_hit_00.png` | Recoil |
-| `fighter_dean_defeat_00.png` | Laying KO; width ≈512; w/h ≈1.6–1.8 |
+| `fighter_dean_idle_01.png` | 341×512 |
+| `fighter_dean_idle_02.png` | 341×512 |
+| `fighter_dean_idle_03.png` | 341×512 |
+| `fighter_dean_punch_00.png` | 768×512 |
+| `fighter_dean_punch_01.png` | 768×512 |
+| `fighter_dean_punch_02.png` | 768×512 |
+| `fighter_dean_punch_03.png` | 768×512 |
+| `fighter_dean_kick_00.png` | 768×512 |
+| `fighter_dean_kick_01.png` | 768×512 |
+| `fighter_dean_kick_02.png` | 768×512 |
+| `fighter_dean_kick_03.png` | 768×512 |
+| `fighter_dean_jump_00.png` | 341×512 |
+| `fighter_dean_jump_01.png` | 341×512 |
+| `fighter_dean_jump_02.png` | 341×512 |
+| `fighter_dean_jump_03.png` | 341×512 |
+| `fighter_dean_block_00.png` | 341×512 |
+| `fighter_dean_block_01.png` | 341×512 |
+| `fighter_dean_crouch_00.png` | 768×512 |
+| `fighter_dean_crouch_01.png` | 768×512 |
+| `fighter_dean_sweep_00.png` | 768×512 |
+| `fighter_dean_sweep_01.png` | 768×512 |
+| `fighter_dean_sweep_02.png` | 768×512 |
+| `fighter_dean_sweep_03.png` | 768×512 |
+| `fighter_dean_hit_00.png` | 341×512 |
+| `fighter_dean_defeat_00.png` | 512×301 |
 
-## Ultimate — KIAI / gold calligraphy brush (12f)
+`defeat_00` is laying KO; width 512; w/h ≈ 1.70.
 
-`ult_dean_00.png` … `ult_dean_11.png` — same likeness, gold brush-stroke energy, belt calligraphy visible, ~512 tall, magenta `#FF00FF` chroma.
+## Ultimate — KIAI / gold calligraphy brush (12f @ 512h)
+
+| File | Canvas |
+| --- | --- |
+| `ult_dean_00.png` | 341×512 |
+| `ult_dean_01.png` | 341×512 |
+| `ult_dean_02.png` | 341×512 |
+| `ult_dean_03.png` | 768×512 |
+| `ult_dean_04.png` | 768×512 |
+| `ult_dean_05.png` | 768×512 |
+| `ult_dean_06.png` | 768×512 |
+| `ult_dean_07.png` | 768×512 |
+| `ult_dean_08.png` | 768×512 |
+| `ult_dean_09.png` | 341×512 |
+| `ult_dean_10.png` | 341×512 |
+| `ult_dean_11.png` | 341×512 |
 
 ## Contact
 
 - `dean_pose_contact.png`
 - `dean_ult_contact.png`
 
-All frames: solid magenta `#FF00FF`, closed gi, face right, full body, Pass-3.
+Raw pipeline only — not copied into `Assets.xcassets` or `dojo-art/finals/`.
