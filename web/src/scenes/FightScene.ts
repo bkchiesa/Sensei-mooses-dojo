@@ -16,7 +16,7 @@ import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
 import { hideMatchOverlay, showMatchOverlay } from "../game/matchOverlay";
 import { deferSceneChange, go } from "../game/nav";
-import { applyQueryUnlocks, debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
+import { applyQueryUnlocks, debugFullUlt, debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
 import { playUltFxOverlay, ultLoadQueue } from "../game/ultArt";
 import { promptName, textStyle } from "../game/ui";
 
@@ -149,6 +149,7 @@ export class FightScene extends Phaser.Scene {
     this.applyDifficulty();
     this.player.resetRound(DESIGN_WIDTH * 0.28, GROUND_Y, true);
     this.cpu.resetRound(DESIGN_WIDTH * 0.72, GROUND_Y, false);
+    this.applyDebugUlt();
 
     this.playerBar = new HealthBar(this, this.playerFighter, 48, 64, 400, true);
     const cpuTitle =
@@ -189,6 +190,10 @@ export class FightScene extends Phaser.Scene {
   private applyDifficulty(): void {
     this.cpu.incomingMul = this.difficulty.cpuDamageTaken;
     this.player.incomingMul = this.difficulty.cpuDamageDealt;
+  }
+
+  private applyDebugUlt(): void {
+    if (debugFullUlt()) this.player.ultimateMeter = 1;
   }
 
   private buildStage(): void {
@@ -533,6 +538,7 @@ export class FightScene extends Phaser.Scene {
     this.roundNumber += 1;
     this.player.resetRound(DESIGN_WIDTH * 0.28, GROUND_Y, true, { preserveMeter: true });
     this.cpu.resetRound(DESIGN_WIDTH * 0.72, GROUND_Y, false, { preserveMeter: true });
+    this.applyDebugUlt();
     this.applyDifficulty();
     this.playerBar.set(this.player.hp, this.player.maxHP);
     this.cpuBar.set(this.cpu.hp, this.cpu.maxHP);

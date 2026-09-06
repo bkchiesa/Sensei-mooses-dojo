@@ -55,7 +55,7 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Punch / Kick | **PUNCH** / **KICK** (stick down + kick = sweep) | J/Z · K/X |
 | Ultimate | **★ ULT** (lights up when meter is full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and the dummy → Misty continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage).
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and the dummy → Misty continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?ult=1` starts each round with a full player ultimate meter (splash QA).
 
 ### Ported vs still stubbed
 

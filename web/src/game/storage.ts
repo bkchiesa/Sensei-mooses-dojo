@@ -86,6 +86,11 @@ export function debugHeavyHits(): boolean {
   return new URLSearchParams(window.location.search).get("debug") === "1";
 }
 
+/** `?ult=1` — start each round with a full player ultimate meter (splash QA). */
+export function debugFullUlt(): boolean {
+  return new URLSearchParams(window.location.search).get("ult") === "1";
+}
+
 export function fighterFromQuery(): FighterDef | null {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("fighter");
