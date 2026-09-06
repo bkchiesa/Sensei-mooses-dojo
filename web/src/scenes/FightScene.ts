@@ -167,6 +167,9 @@ export class FightScene extends Phaser.Scene {
     };
     this.pad.setEnabled(false);
     this.startRoundIntro();
+    if (debugHeavyHits()) {
+      (window as unknown as { __dojoFight?: FightScene }).__dojoFight = this;
+    }
   }
 
   private applyDifficulty(): void {
@@ -708,6 +711,8 @@ export class FightScene extends Phaser.Scene {
     this.overlay?.destroy(true);
     this.overlay = undefined;
     this.input.enabled = false;
+    const debug = window as unknown as { __dojoFight?: FightScene };
+    if (debug.__dojoFight === this) delete debug.__dojoFight;
   }
 }
 
