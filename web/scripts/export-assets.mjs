@@ -133,7 +133,11 @@ function ingestPixelFrames(id, destDir) {
       path.join(dojoFightersSrc, alias, "frames"),
       path.join(fighterSheets, alias),
     ]) {
-      for (const frame of listPixelFrames(dir, alias)) latest.set(frame.destName, frame.from);
+      for (const frame of listPixelFrames(dir, alias)) {
+        // HIT/defeat live on `senseiMoose` only — never ingest a moose/ twin.
+        if (id === "senseiMoose" && alias === "moose" && /^(hit|defeat|defeated)_/.test(frame.destName)) continue;
+        latest.set(frame.destName, frame.from);
+      }
     }
   }
   for (const [destName, from] of latest) {
