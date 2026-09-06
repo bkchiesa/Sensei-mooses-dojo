@@ -2,9 +2,16 @@ import Phaser from "phaser";
 import { DESIGN_HEIGHT, DESIGN_WIDTH, FONT, GOLD } from "../config";
 import { BOSSES, defaultFighter, FIGHTER_ANIM_NAMES, fighterById, STARTERS } from "../data/catalog";
 import {
+  ACTION_BTN_MANIFEST_KEY,
+  ACTION_BTN_MANIFEST_URL,
+  actionButtonQueueFromManifest,
+  optionalActionButtonKeys,
+} from "../game/actionButtonArt";
+import {
   animPackFor,
   defaultAnimFiles,
   fighterAnimUrl,
+  isOptionalFighterAnim,
   parseAnimIndex,
   registerAnimPack,
   type FighterAnimName,
@@ -15,8 +22,10 @@ import {
   audioQueueFromManifest,
   optionalAudioKeys,
 } from "../game/audio";
+import { arcadeCompleteProgress } from "../game/arcade";
 import { applyQueryUnlocks, fighterFromQuery } from "../game/storage";
 import { optionalTitleKeys, TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL, titleQueueFromManifest } from "../game/titleArt";
+import { optionalVictoryKeys, VICTORY_MANIFEST_KEY, VICTORY_MANIFEST_URL, victoryQueueFromManifest } from "../game/victoryArt";
 import { optionalUltKeys, registerUltPacksFromManifest, ULT_MANIFEST_KEY, ULT_MANIFEST_URL } from "../game/ultArt";
 import {
   optionalUltButtonKeys,
@@ -71,6 +80,8 @@ export class BootScene extends Phaser.Scene {
     this.load.json(TITLE_MANIFEST_KEY, TITLE_MANIFEST_URL);
     this.load.json(ULT_MANIFEST_KEY, ULT_MANIFEST_URL);
     this.load.json(ULT_BTN_MANIFEST_KEY, ULT_BTN_MANIFEST_URL);
+    this.load.json(ACTION_BTN_MANIFEST_KEY, ACTION_BTN_MANIFEST_URL);
+    this.load.json(VICTORY_MANIFEST_KEY, VICTORY_MANIFEST_URL);
     this.load.json(AUDIO_MANIFEST_KEY, AUDIO_MANIFEST_URL);
     for (const f of [...STARTERS, ...BOSSES]) {
       keys.add(f.portrait);
@@ -87,6 +98,8 @@ export class BootScene extends Phaser.Scene {
         ...optionalTitleKeys(),
         ...optionalUltKeys(),
         ...optionalUltButtonKeys(),
+        ...optionalActionButtonKeys(),
+        ...optionalVictoryKeys(),
         ...optionalAudioKeys(),
         "ui-select-map",
         "ui-select-plate",
@@ -109,7 +122,24 @@ export class BootScene extends Phaser.Scene {
 
   private startAfterBoot(): void {
     applyQueryUnlocks();
-    const vs = new URLSearchParams(window.location.search).get("vs");
+    const params = new URLSearchParams(window.location.search);
+    const victory = params.get("victory");
+    if (victory) {
+      const player = fighterFromQuery() ?? (victory !== "1" ? (() => {
+        try {
+          return fighterById(victory);
+        } catch {
+          return defaultFighter();
+        }
+      })() : defaultFighter());
+      this.scene.start("Victory", {
+        arcade: arcadeCompleteProgress(player),
+        score: 999,
+        preview: true,
+      });
+      return;
+    }
+    const vs = params.get("vs");
     if (vs) {
       try {
         const opponent = fighterById(vs);
@@ -135,14 +165,19 @@ export class BootScene extends Phaser.Scene {
       const listedAnims = listed[id] ?? (id === "senseiMoose" ? listed.moose : undefined) ?? {};
       const frames: Partial<Record<FighterAnimName, string[]>> = {};
       for (const anim of FIGHTER_ANIM_NAMES) {
-        const files = listedAnims[anim]?.length ? listedAnims[anim]! : defaultAnimFiles(anim);
+        const listedFiles = listedAnims[anim];
+        const files = listedFiles?.length
+          ? listedFiles
+          : isOptionalFighterAnim(anim)
+            ? []
+            : defaultAnimFiles(anim);
         const keys: string[] = [];
         files.forEach((file, i) => {
           const key = `fanim-${id}-${anim}-${String(i).padStart(2, "0")}`;
           keys.push(key);
           pending.push({ key, url: fighterAnimUrl(id, anim, file) });
         });
-        frames[anim] = keys;
+        if (keys.length) frames[anim] = keys;
       }
       registerAnimPack({ id, frames });
     }
@@ -157,6 +192,8 @@ export class BootScene extends Phaser.Scene {
     const titleQueue = titleQueueFromManifest(this.cache.json.get(TITLE_MANIFEST_KEY));
     pending.push(...titleQueue);
     pending.push(...ultButtonQueueFromManifest(this.cache.json.get(ULT_BTN_MANIFEST_KEY)));
+    pending.push(...actionButtonQueueFromManifest(this.cache.json.get(ACTION_BTN_MANIFEST_KEY)));
+    pending.push(...victoryQueueFromManifest(this.cache.json.get(VICTORY_MANIFEST_KEY)));
     const audioQueue = audioQueueFromManifest(this.cache.json.get(AUDIO_MANIFEST_KEY));
     const missing = pending.filter((p) => !this.textures.exists(p.key));
     const missingAudio = audioQueue.filter((cue) => !this.cache.audio.exists(cue.key));

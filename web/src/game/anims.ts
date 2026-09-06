@@ -1,7 +1,7 @@
 import type { FighterAnimName } from "../data/catalog";
-import { FIGHTER_ANIM_NAMES } from "../data/catalog";
+import { DEFEAT_ANIM_ALIASES, FIGHTER_ANIM_NAMES, OPTIONAL_FIGHTER_ANIM_NAMES } from "../data/catalog";
 
-/** Pose-bar FINALS: 4 / 4 / 4 / 4 / 2 / 2 / 4. */
+/** Pose-bar FINALS: 4 / 4 / 4 / 4 / 2 / 2 / 4. Hit/defeat counts are hooks until Pixel lands sheets. */
 export const FIGHTER_ANIM_FRAME_COUNTS: Record<FighterAnimName, number> = {
   idle: 4,
   punch: 4,
@@ -10,7 +10,16 @@ export const FIGHTER_ANIM_FRAME_COUNTS: Record<FighterAnimName, number> = {
   block: 2,
   crouch: 2,
   sweep: 4,
+  // TODO(Pixel): confirm frame counts when hit / defeat sheets land.
+  hit: 2,
+  defeat: 2,
 };
+
+export const OPTIONAL_ANIM_SET = new Set<string>(OPTIONAL_FIGHTER_ANIM_NAMES);
+
+export function isOptionalFighterAnim(anim: string): boolean {
+  return OPTIONAL_ANIM_SET.has(anim) || anim === "defeated";
+}
 
 export function defaultAnimFiles(anim: FighterAnimName): string[] {
   const n = FIGHTER_ANIM_FRAME_COUNTS[anim];
@@ -48,6 +57,29 @@ export function hasDedicatedFrames(id: string, anim: FighterAnimName): boolean {
   return (packs.get(id)?.frames[anim]?.length ?? 0) > 0;
 }
 
+/** Canonical `defeat` pack, accepting Pixel `defeated` folder/files as an alias. */
+export function defeatFramesFor(id: string): string[] {
+  const pack = packs.get(id);
+  if (!pack) return [];
+  const defeat = pack.frames.defeat;
+  if (defeat?.length) return defeat;
+  return [];
+}
+
+export function hasDefeatFrames(id: string): boolean {
+  return defeatFramesFor(id).length > 0;
+}
+
+export function hasHitFrames(id: string): boolean {
+  return hasDedicatedFrames(id, "hit");
+}
+
+/** First loaded texture for an anim, or null if Pixel has not dropped frames. */
+export function firstAnimTexture(id: string, anim: FighterAnimName): string | null {
+  const frames = anim === "defeat" ? defeatFramesFor(id) : (packs.get(id)?.frames[anim] ?? []);
+  return frames[0] ?? null;
+}
+
 /** Public URL for a Pixel drop-in frame: `assets/fighters/<id>/<anim>_00.png`. */
 export function fighterAnimUrl(fighterId: string, anim: FighterAnimName, file: string): string {
   return `assets/fighters/${fighterId}/${file}`;
@@ -55,14 +87,25 @@ export function fighterAnimUrl(fighterId: string, anim: FighterAnimName, file: s
 
 export function parseAnimIndex(raw: unknown): FighterAnimIndex | null {
   if (!raw || typeof raw !== "object") return null;
-  const data = raw as Partial<FighterAnimIndex>;
+  const data = raw as Partial<FighterAnimIndex> & {
+    fighters?: Record<string, Partial<Record<string, string[]>>>;
+  };
   if (!data.fighters || typeof data.fighters !== "object") return null;
+  const fighters: FighterAnimIndex["fighters"] = {};
+  for (const [id, listed] of Object.entries(data.fighters)) {
+    const frames: Partial<Record<FighterAnimName, string[]>> = { ...(listed as Partial<Record<FighterAnimName, string[]>>) };
+    if (!frames.defeat?.length) {
+      const alias = (listed as Record<string, string[] | undefined>).defeated;
+      if (alias?.length) frames.defeat = alias;
+    }
+    fighters[id] = frames;
+  }
   return {
     convention: data.convention ?? "assets/fighters/<id>/<anim>_00.png",
     anims: (data.anims?.length ? data.anims : FIGHTER_ANIM_NAMES) as FighterAnimName[],
-    fighters: data.fighters,
+    fighters,
   };
 }
 
-export { FIGHTER_ANIM_NAMES };
+export { DEFEAT_ANIM_ALIASES, FIGHTER_ANIM_NAMES };
 export type { FighterAnimName };

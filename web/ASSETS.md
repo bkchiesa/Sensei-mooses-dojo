@@ -36,6 +36,8 @@ web/fighter-sheets/<id>/
   block_00.png
   crouch_00.png
   sweep_00.png
+  hit_00.png      (optional — Pixel incoming)
+  defeat_00.png   (optional — also accepts defeated_00.png)
 ```
 
 Number extra frames `_01`, `_02`, … Phaser (`web/src/game/anims.ts`) loads whatever `index.json` lists and falls back to a scaled idle for missing anims. Display height is `FIGHTER_HEIGHT` 420 (2×).
@@ -77,6 +79,23 @@ Locked files in `dojo-art/finals/ui/ult-button/` (copied to `web/public/assets/u
 - `ult_btn_bolt_00.png` … `ult_btn_bolt_01.png` → optional activate flash overlays
 
 `export-assets` writes `ult-button.json` listing files that exist. Boot only preloads those URLs so iPad Safari does not 404 on missing frames. Fight HUD falls back to the purple ★ ULT circle if the art is absent.
+
+## Pad buttons (punch / kick HUD)
+
+Locked files in `dojo-art/finals/ui/pad-buttons/` (copied to `web/public/assets/ui/pad-buttons/`):
+
+- `punch_up.png` / `punch_down.png` — fist plate, unpressed / pressed
+- `kick_up.png` / `kick_down.png` — kick-foot plate, unpressed / pressed
+
+`pad_buttons_contact.png` is artist-only and is **not** exported. `export-assets` writes `pad-buttons.json`. Boot only preloads listed URLs. Fight HUD falls back to scaled circles + press tint if a pair is missing. Punch and kick hitboxes keep ≥48px gap.
+
+## Victory screen
+
+Locked files in `dojo-art/finals/ui/victory/` (copied to `web/public/assets/ui/victory/`):
+
+- `victory_bg_dojo.png` → `victory_bg_dojo` (full-bleed dojo backdrop)
+
+`victory_layout_guide.png` and the README stay in `dojo-art` only — never exported or loaded. Web composites the winner (standing, guide y 120–520) and up to 8 defeated (arc y 580–700) over the plate. Per-fighter `hit` / `defeat` / `defeated` frames are optional drop-ins under `assets/fighters/<id>/`.
 
 ## Audio
 

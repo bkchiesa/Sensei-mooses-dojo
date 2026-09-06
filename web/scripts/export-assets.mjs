@@ -23,6 +23,10 @@ const uiTitleSrc = path.join(root, "dojo-art/finals/ui/title");
 const uiTitleOut = path.join(out, "ui/title");
 const uiUltSrc = path.join(root, "dojo-art/finals/ui/ult-button");
 const uiUltOut = path.join(out, "ui/ult-button");
+const uiPadSrc = path.join(root, "dojo-art/finals/ui/pad-buttons");
+const uiPadOut = path.join(out, "ui/pad-buttons");
+const uiVictorySrc = path.join(root, "dojo-art/finals/ui/victory");
+const uiVictoryOut = path.join(out, "ui/victory");
 const audioSrc = path.join(root, "dojo-art/finals/audio");
 const audioShared = "/workspace/dojo-audio";
 const audioOut = path.join(out, "audio");
@@ -79,7 +83,9 @@ const dojoUltsSrc = path.join(root, "dojo-art/finals/ultimates");
 const ultsOut = path.join(out, "ultimates");
 const mooseSheetIdle = path.join(fighterSheets, "senseiMoose", "idle_00.png");
 
-const ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"];
+const CORE_ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"];
+const OPTIONAL_ANIM_NAMES = ["hit", "defeat", "defeated"];
+const ANIM_NAMES = [...CORE_ANIM_NAMES, ...OPTIONAL_ANIM_NAMES];
 const STARTER_IDS = ["matt", "simon", "rich", "amanda", "jb"];
 const BOSS_IDS = [
   "misty",
@@ -104,8 +110,11 @@ const ROSTER_IDS = [...STARTER_IDS, ...BOSS_IDS];
 function listPixelFrames(dir, id) {
   if (!dir || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
   const frames = [];
-  const prefixed = new RegExp(`^(?:fighter|boss)_${id}_(idle|punch|kick|jump|block|crouch|sweep)_(\\d+)\\.png$`, "i");
-  const short = /^(idle|punch|kick|jump|block|crouch|sweep)_(\d+)\.png$/i;
+  const prefixed = new RegExp(
+    `^(?:fighter|boss)_${id}_(idle|punch|kick|jump|block|crouch|sweep|hit|defeat|defeated)_(\\d+)\\.png$`,
+    "i",
+  );
+  const short = /^(idle|punch|kick|jump|block|crouch|sweep|hit|defeat|defeated)_(\d+)\.png$/i;
   for (const file of fs.readdirSync(dir)) {
     if (!file.endsWith(".png") || /contact/i.test(file)) continue;
     const match = prefixed.exec(file) || short.exec(file);
@@ -220,7 +229,7 @@ const index = {
   convention: "web/public/assets/fighters/<id>/<anim>_00.png",
   anims: ANIM_NAMES,
   note: "Pixel frames from dojo-art/finals/fighters/<id>/ (fighter_<id>_<anim>_NN.png) and web/fighter-sheets/<id>/<anim>_NN.png. Missing anims stretch idle.",
-  pixelStatus: ROSTER_IDS.every((id) => ANIM_NAMES.every((anim) => (fighters[id]?.[anim]?.length ?? 0) > 0))
+  pixelStatus: ROSTER_IDS.every((id) => CORE_ANIM_NAMES.every((anim) => (fighters[id]?.[anim]?.length ?? 0) > 0))
     ? "full-roster"
     : STARTER_IDS.every((id) => (fighters[id]?.punch?.length ?? 0) > 0)
       ? "starters"
@@ -239,7 +248,7 @@ Generated. Sources, in overlay order:
 2. \`dojo-art/finals/fighters/<id>/fighter_<id>_<anim>_NN.png\`
 3. \`web/fighter-sheets/<id>/<anim>_NN.png\` (wins)
 
-Full roster (starters + bosses + Sensei Moose) ships idle/punch/kick/jump/block/crouch/sweep from fighter-sheets and dojo-art finals. Missing anims stretch idle.
+Full roster (starters + bosses + Sensei Moose) ships idle/punch/kick/jump/block/crouch/sweep from fighter-sheets and dojo-art finals. Optional hit / defeat / defeated frames copy when present. Missing anims stretch idle.
 `,
 );
 
@@ -377,6 +386,70 @@ if (fs.existsSync(uiUltOut)) {
   );
 }
 console.log(`Ult button UI → idle=${ultIdle ?? "none"} ready=${ultReady.length} bolt=${ultBolt.length}`);
+
+// Punch/kick 3D unpressed/pressed pairs (Pixel lock). Skip contact sheets.
+fs.rmSync(uiPadOut, { recursive: true, force: true });
+if (fs.existsSync(uiPadSrc)) {
+  fs.mkdirSync(uiPadOut, { recursive: true });
+  for (const file of fs.readdirSync(uiPadSrc)) {
+    if (file === "README.md" || file === "pad-buttons.json" || /contact/i.test(file)) continue;
+    if (file.endsWith(".png")) fs.copyFileSync(path.join(uiPadSrc, file), path.join(uiPadOut, file));
+  }
+}
+const padPngs = fs.existsSync(uiPadOut)
+  ? fs.readdirSync(uiPadOut).filter((file) => file.endsWith(".png")).sort()
+  : [];
+const punchUp = padPngs.includes("punch_up.png") ? "punch_up.png" : null;
+const punchDown = padPngs.includes("punch_down.png") ? "punch_down.png" : null;
+const kickUp = padPngs.includes("kick_up.png") ? "kick_up.png" : null;
+const kickDown = padPngs.includes("kick_down.png") ? "kick_down.png" : null;
+if (fs.existsSync(uiPadOut)) {
+  fs.writeFileSync(
+    path.join(uiPadOut, "pad-buttons.json"),
+    JSON.stringify(
+      {
+        punchUp,
+        punchDown,
+        kickUp,
+        kickDown,
+        files: padPngs,
+        note: "Locked punch/kick up/down plates. Boot only preloads keys listed here.",
+      },
+      null,
+      2,
+    ),
+  );
+}
+console.log(`Pad buttons UI → punch=${punchUp ?? "none"}/${punchDown ?? "none"} kick=${kickUp ?? "none"}/${kickDown ?? "none"}`);
+
+// Victory dojo plate — bg only; never copy layout_guide / README.
+fs.rmSync(uiVictoryOut, { recursive: true, force: true });
+if (fs.existsSync(uiVictorySrc)) {
+  fs.mkdirSync(uiVictoryOut, { recursive: true });
+  for (const file of fs.readdirSync(uiVictorySrc)) {
+    if (file === "README.md" || file === "victory.json" || /guide|contact/i.test(file)) continue;
+    if (file === "victory_bg_dojo.png") fs.copyFileSync(path.join(uiVictorySrc, file), path.join(uiVictoryOut, file));
+  }
+}
+const victoryPngs = fs.existsSync(uiVictoryOut)
+  ? fs.readdirSync(uiVictoryOut).filter((file) => file.endsWith(".png")).sort()
+  : [];
+const victoryBg = victoryPngs.includes("victory_bg_dojo.png") ? "victory_bg_dojo.png" : null;
+if (fs.existsSync(uiVictoryOut)) {
+  fs.writeFileSync(
+    path.join(uiVictoryOut, "victory.json"),
+    JSON.stringify(
+      {
+        bg: victoryBg,
+        files: victoryPngs,
+        note: "Victory backdrop only. Layout guide is artist-only and is not exported.",
+      },
+      null,
+      2,
+    ),
+  );
+}
+console.log(`Victory UI → bg=${victoryBg ?? "none"}`);
 
 function kindForStem(stem) {
   if (BGM_STEMS.has(stem) || /_loop$/.test(stem) || /_sting$/.test(stem)) return "bgm";

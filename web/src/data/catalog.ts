@@ -208,8 +208,12 @@ export function opponentHomeStageId(opponent: FighterDef, arcadeIntro: boolean):
   return arcadeIntro ? "lionsBridge" : opponent.stageId;
 }
 
-export const FIGHTER_ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"] as const;
+/** Core pose-bar set. `hit` / `defeat` load when Pixel drops frames; `defeated` is an alias. */
+export const CORE_FIGHTER_ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"] as const;
+export const OPTIONAL_FIGHTER_ANIM_NAMES = ["hit", "defeat"] as const;
+export const FIGHTER_ANIM_NAMES = [...CORE_FIGHTER_ANIM_NAMES, ...OPTIONAL_FIGHTER_ANIM_NAMES] as const;
 export type FighterAnimName = (typeof FIGHTER_ANIM_NAMES)[number];
+export const DEFEAT_ANIM_ALIASES = ["defeat", "defeated"] as const;
 
 export function slotName(fighter: FighterDef): string {
   return fighter.kind === "starter" ? `slot-starter-${fighter.id}` : `slot-boss-${fighter.id}`;

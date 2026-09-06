@@ -5,6 +5,7 @@ import { FightScene } from "./scenes/FightScene";
 import { LeaderboardScene } from "./scenes/LeaderboardScene";
 import { SelectScene } from "./scenes/SelectScene";
 import { TitleScene } from "./scenes/TitleScene";
+import { VictoryScene } from "./scenes/VictoryScene";
 
 const hint = document.getElementById("rotate-hint");
 document.getElementById("rotate-dismiss")?.addEventListener("click", () => {
@@ -33,7 +34,7 @@ const game = new Phaser.Game({
     pixelArt: false,
     transparent: false,
   },
-  scene: [BootScene, TitleScene, SelectScene, FightScene, LeaderboardScene],
+  scene: [BootScene, TitleScene, SelectScene, FightScene, VictoryScene, LeaderboardScene],
 });
 
 game.sound.pauseOnBlur = false;

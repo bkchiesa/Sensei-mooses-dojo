@@ -2,7 +2,7 @@ import type Phaser from "phaser";
 import { hideMatchOverlay } from "./matchOverlay";
 import { applyQueryUnlocks } from "./storage";
 
-const FLOW = ["Title", "Select", "Fight", "Leaderboard"] as const;
+const FLOW = ["Title", "Select", "Fight", "Victory", "Leaderboard"] as const;
 
 /**
  * Scene change used by Title / Select / Fight / overlay buttons.

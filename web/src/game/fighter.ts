@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
 import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
-import { animPackFor, hasDedicatedFrames } from "./anims";
+import { animPackFor, hasDedicatedFrames, hasDefeatFrames, hasHitFrames } from "./anims";
 import { playGrunt, playSfx } from "./audio";
 import { readyUltFrames, splashDisplayHeight, ultDurationFor, ULT_SPLASH_FPS } from "./ultArt";
 
@@ -256,12 +256,32 @@ export class Fighter {
     this.isUltimate = false;
     this.activeAttack = null;
     this.strike.setFillStyle(0xffffff, 0);
-    this.stopUltTween();
-    this.restoreIdlePose();
+    this.clearMotionPose();
     const dir = this.x >= fromX ? 1 : -1;
     this.vx = 220 * dir;
     this.vy = 240;
     this.onGround = false;
+    if (this.hp <= 0) {
+      this.isKO = true;
+      playSfx(this.scene, "ko");
+      playGrunt(this.scene, this.fighter.id, "ko");
+      this.playDefeatReact(dir);
+    } else {
+      this.playHitReact();
+    }
+  }
+
+  /**
+   * Hit react: play `hit` frames when Pixel has dropped them; otherwise the
+   * existing flash/tint. TODO(Pixel): per-fighter hit sheets under
+   * `assets/fighters/<id>/hit_NN.png` (or fighter-sheets overlay).
+   */
+  private playHitReact(): void {
+    if (hasHitFrames(this.fighter.id)) {
+      this.playAnim("hit", true);
+      return;
+    }
+    this.playAnim("idle", true);
     this.body.setTint(0xffffff);
     this.scene.tweens.add({
       targets: this.body,
@@ -269,16 +289,26 @@ export class Fighter {
       duration: 80,
       yoyo: true,
       onComplete: () => {
+        if (this.isKO) return;
         this.body.clearTint();
         this.body.setAlpha(1);
       },
     });
-    if (this.hp <= 0) {
-      this.isKO = true;
-      playSfx(this.scene, "ko");
-      playGrunt(this.scene, this.fighter.id, "ko");
-      this.scene.tweens.add({ targets: this.root, rotation: dir * 1.2, duration: 350 });
+  }
+
+  /**
+   * KO / round-loss pose: `defeat` (or aliased `defeated`) frames when present.
+   * Fallback: idle laid back with the existing rotation. TODO(Pixel): per-fighter
+   * defeat/defeated sheets under `assets/fighters/<id>/defeat_NN.png`.
+   */
+  private playDefeatReact(dir: number): void {
+    if (hasDefeatFrames(this.fighter.id)) {
+      this.playAnim("defeat", true);
+      return;
     }
+    this.playAnim("idle", true);
+    this.body.setTint(0xb0b0b0);
+    this.scene.tweens.add({ targets: this.root, rotation: dir * 1.2, duration: 350 });
   }
 
   attackHitbox(): Phaser.Geom.Rectangle | null {
@@ -535,7 +565,7 @@ export class Fighter {
     this.playAnim(resume);
   }
 
-  private restoreIdlePose(): void {
+  private clearMotionPose(): void {
     this.stopUltTween();
     this.splashKeys = [];
     this.splashFrame = 0;
@@ -545,6 +575,10 @@ export class Fighter {
     this.body.setAlpha(1);
     this.body.setPosition(0, 0);
     this.body.clearTint();
+  }
+
+  private restoreIdlePose(): void {
+    this.clearMotionPose();
     this.playAnim("idle", true);
   }
 
@@ -587,7 +621,13 @@ export class Fighter {
 
     if (this.isHit) {
       this.hitElapsed += dt;
-      if (this.hitElapsed > 0.28) this.isHit = false;
+      const hold = hasHitFrames(this.fighter.id) ? 0.36 : 0.28;
+      if (this.hitElapsed > hold) {
+        this.isHit = false;
+        if (!this.isKO && !this.isAttacking && !this.isUltimate) {
+          this.playAnim(this.onGround ? (this.isCrouching ? "crouch" : "idle") : "jump");
+        }
+      }
     }
 
     if (!this.onGround || this.vy !== 0) {
@@ -636,11 +676,17 @@ export class Fighter {
   private cycleAnimFrames(dt: number): void {
     const frames = animPackFor(this.fighter.id).frames[this.currentAnim];
     if (!frames || frames.length <= 1) return;
+    const oneshot = this.currentAnim === "hit" || this.currentAnim === "defeat";
     this.animElapsed += dt;
-    const fps = this.currentAnim === "idle" ? 8 : 12;
+    const fps = this.currentAnim === "idle" ? 8 : oneshot ? 10 : 12;
     if (this.animElapsed < 1 / fps) return;
     this.animElapsed = 0;
-    this.animFrame = (this.animFrame + 1) % frames.length;
+    if (oneshot) {
+      if (this.animFrame >= frames.length - 1) return;
+      this.animFrame += 1;
+    } else {
+      this.animFrame = (this.animFrame + 1) % frames.length;
+    }
     const key = frames[this.animFrame];
     if (this.scene.textures.exists(key)) {
       this.body.setTexture(key);
