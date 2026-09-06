@@ -42,6 +42,8 @@ web/fighter-sheets/<id>/
 
 Number extra frames `_01`, `_02`, … Phaser (`web/src/game/anims.ts`) loads whatever `index.json` lists and falls back to a scaled idle for missing anims. Display height is `FIGHTER_HEIGHT` 420 (2×).
 
+**Sweep −30% (Pixel 2026-09-06):** `sweep_00`…`sweep_03` for all humans + `senseiMoose` (no `moose/` twin folder). Frames stay ~512h; the figure is smaller in-canvas. Export prefers `web/fighter-sheets` overlays. Fight `fitBody` keeps the FIGHTER_HEIGHT fit so the shrink is visible — do not upscale-compensate.
+
 **Sensei Moose:** if `web/fighter-sheets/senseiMoose/idle_00.png` exists, export uses it (not `moose_title_idle`) and also writes `boss_senseiMoose_idle_00.png` so fight/select load the pose-bar idle. Remaining Moose frames are copied into `fighters/senseiMoose/` and listed in `index.json`. Magenta chroma is left as Pixel delivered it.
 
 ## PLAYER SELECT map

@@ -55,14 +55,14 @@ The workflow is `.github/workflows/deploy-pages.yml`. It runs `cd web && npm ci 
 | Punch / Kick | **PUNCH** / **KICK** (stick down + kick = sweep) | J/Z · K/X |
 | Ultimate | **★ ULT** gold bolt (idle while charging; ready loop when full) | U / Enter |
 
-Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and Arcade continue quickly. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter so splash playback and the charged gold-bolt HUD loop can be checked immediately. `?victory=1` (or `?victory=misty`) opens the Arcade victory collage for layout QA.
+Rotate to **landscape**. Eight taps on the title text unlocks every boss (debug). `?unlock=all` does the same. `?debug=1` makes your punches/kicks very heavy so you can check best-of-3 and Arcade continue quickly. `?win=1` auto-KOs the CPU after each countdown so you can walk Arcade to Victory. `?select=arcade` opens player select. `?arcade=11` (optional `&fighter=misty`) jumps Arcade to that 1-based stage — `11` is always Austin, `12` is always Sensei Moose. `?arcade=victory` opens the clear screen. `?vs=senseiMoose` jumps into a Free Play fight against that id (home stage). `?fighter=austin` (with `?vs=`) picks the player. `?ult=1` starts each round with a full player ultimate meter so splash playback and the charged gold-bolt HUD loop can be checked immediately. `?victory=1` (or `?victory=misty`) opens the Arcade victory collage for layout QA.
 
 ### Ported vs still stubbed
 
 | Ported | Still stubbed / native-only |
 | --- | --- |
 | Title, Arcade, Free Play (you → opponent → stage), Fight | Game Center (web uses this-browser Top 10) |
-| Staff roster on Select (Ryan / Austin / Moose start locked) | Alley / rooftop stages (not locked yet) |
+| Staff roster on Select (Ryan starts locked; Austin + Sensei Moose are open) | Alley / rooftop stages (not locked yet) |
 | Best of 3, countdown, Next Fight (auto-continues after a short beat) | Native SpriteKit project (kept, not the play path) |
 | Unique arcade stage per boss (all locked landmarks) | `boss_senseiMoose_*` art (falls back to title moose) |
 | Progressive arcade difficulty + 2× roster / Moose +30% | App Store / signing |
@@ -85,8 +85,8 @@ This Linux/cloud checkout cannot compile with `xcodebuild`. Structural project +
 | Scene | What happens |
 | --- | --- |
 | **TitleScene** | Animated title *Sensei Moose’s Dojo*. **Arcade**, **Free Play**, or **TOP 10**. |
-| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): full staff roster (tap an unlocked slot to pick). Locked finals are greyed and not selectable. 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade and Free Play share the same roster; Free Play then taps a map dot for the stage. Scratch starters (Matt / Simon / Rich / Amanda / JB) are not selectable. |
-| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** (Pixel 3D up/down plates, ≥48px gap) / gold-bolt **★ ULT**. Arcade continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). Hit / defeat frames play when Pixel sheets exist. |
+| **CharacterSelectScene** | SF2-homage **PLAYER SELECT** (no Capcom IP): full staff roster (tap an unlocked slot to pick). Ryan stays greyed until beaten; Austin and Sensei Moose are open. 1P/2P busts + Hampton Roads map plate C with landmark dots. Arcade and Free Play share the same roster; Free Play then taps a map dot for the stage. Scratch starters (Matt / Simon / Rich / Amanda / JB) are not selectable. |
+| **FightScene** | Best of 3, countdown, health + **round pips** + **ULT** meters, on-screen **thumbstick** (up = jump) / **PUNCH** / **KICK** (Pixel 3D up/down plates, ≥48px gap) / gold-bolt **★ ULT**. Arcade is **12 stages** (`STAGE 3/12` on the HUD and between fights); continues to the next boss after a short beat; tap **Next Fight** to skip. Landed hits fill the ultimate meter (~6 hits). Hit / defeat frames play when Pixel sheets exist. |
 | **VictoryScene** | After a full Arcade clear: dojo backdrop, winner standing, defeated opponents laid down (D1–D8). Submit score / rematch last / character select. |
 | **LeaderboardScene** | Top 10: rank, name, score. Game Center when signed in; otherwise this-device fallback. |
 
@@ -96,7 +96,7 @@ Scratch starters (`matt`, `simon`, `rich`, `amanda`, `jb`) stay in the catalog f
 
 **Default playable** (unlocked at start): Misty, Lucas, Chris, Christiano, Dakota, John K., Finley, Hudson, Michael, Kasey, Jaylen, Amiyr, Shaun.
 
-**Locked until beaten in Arcade:** Ryan (`ryan`), Austin (`austin`), Sensei Moose (`senseiMoose`).
+**Locked until beaten in Arcade:** Ryan (`ryan`). Austin and Sensei Moose are selectable in Arcade and Free Play.
 
 
 
@@ -138,15 +138,13 @@ Select shows the **full staff roster**. Scratch starters are gone. Locked finals
 
 | Rule | Detail |
 | --- | --- |
-| Default pool | All bosses except Ryan, Austin, and Sensei Moose — unlocked at start |
-| Locked | `ryan`, `austin`, `senseiMoose` — greyed until you beat that fighter in Arcade |
-| Unlock | Defeat Ryan / Austin / Moose in Arcade → persist via `localStorage` (`dojo.unlockedBossIDs`) |
+| Default pool | All bosses except Ryan — unlocked at start (Austin + Sensei Moose included) |
+| Locked | `ryan` — greyed until you beat Ryan in Arcade |
+| Unlock | Defeat Ryan in Arcade → persist via `localStorage` (`dojo.unlockedBossIDs`) |
 | Persistence | Same key as before; `?unlock=all` and eight title taps still grant every boss |
 | Art | Unlocked portraits reuse `boss_<id>_portrait` / `boss_<id>_idle_00` |
 
-Arcade order (skips the fighter you picked so you never fight yourself; no starter dummy):
-
-**Misty → Lucas → Chris → Christiano → Dakota → John K. (`johnk`) → Finley → Hudson → Michael → Kasey → Jaylen → Amiyr → Shaun → Ryan → Austin → Sensei Moose (`senseiMoose`)**
+Arcade is **12 fights**. Stages 1–10 shuffle the remaining staff (exclude your fighter and the two finales; no repeats when the pool allows). **Stage 11 is always Austin. Stage 12 is always Sensei Moose.** HUD shows `STAGE N/12`. After stage 12 the Victory scene opens.
 
 Beating a locked final writes their id into `dojo.unlockedBossIDs` and they become selectable on Select. `?fighter=` / `?vs=` still accept any catalog id (including retired starters) for playtest.
 
@@ -262,7 +260,7 @@ Arcade and Free Play share one layout in `web/src/scenes/SelectScene.ts`:
 - Center **map plate C** (`select-map-plate-C.png`) with landmark dots
 - Dots on real landmark lon/lat (`web/src/data/peninsula.ts`)
 - **PLAYER SELECT** label
-- Bottom **full staff roster** — unlocked portraits are colored and tappable. Ryan / Austin / Sensei Moose start greyed and are not selectable until beaten in Arcade. Scratch starters are not listed.
+- Bottom **full staff roster** — unlocked portraits are colored and tappable. Ryan starts greyed until beaten in Arcade. Austin and Sensei Moose are selectable. Scratch starters are not listed.
 
 Do **not** use `select-screen-C.png` as the select UI (baked-in stand-in heads). Map plate C stays as the peninsula. Title splash uses locked `title_bg_dojo` plus the `title_logo_00`–`07` glow loop (`web/src/game/titleArt.ts`). Audio: Title plays `title_attract_loop`; Select/Fight play `fight_a_loop`. SFX/BGM load from `assets/audio/manifest.json` after the first tap unlocks iPad Safari.
 

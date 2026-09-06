@@ -1,16 +1,12 @@
 import { LADDER_IDS } from "../data/catalog";
-import type { ArcadeProgress } from "./arcade";
+import { ARCADE_STAGE_COUNT, arcadeStageIndex, type ArcadeProgress } from "./arcade";
 
 /**
  * Progressive arcade difficulty.
  *
- * Index -1 is a leftover easy dummy profile (unused when Arcade starts on a
- * real ladder step). Indices 0…15 follow LADDER_IDS (Misty → Sensei Moose).
- * Free Play uses the opponent’s ladder index when they are a boss, otherwise
- * a mild mid-ladder profile.
- *
- * All curves are monotonic in `t = (index + 1) / 16` so each arcade opponent
- * is strictly harder than the last on at least one axis (usually several).
+ * Arcade uses the 12-fight run index (0…11). Free Play uses the opponent’s
+ * catalog ladder index when they are a boss, otherwise a mild mid-roster
+ * profile. Curves stay monotonic in `t`.
  */
 export interface Difficulty {
   /** Ladder index, or -1 for the intro dummy. */
@@ -42,9 +38,9 @@ const DUMMY: Difficulty = {
   jumpChance: 0.05,
 };
 
-export function difficultyForStep(index: number): Difficulty {
+export function difficultyForStep(index: number, span = LADDER_IDS.length): Difficulty {
   if (index < 0) return { ...DUMMY };
-  const t = index / Math.max(LADDER_IDS.length - 1, 1);
+  const t = index / Math.max(span - 1, 1);
   return {
     index,
     attackCooldown: lerp(0.92, 0.28, t),
@@ -58,7 +54,7 @@ export function difficultyForStep(index: number): Difficulty {
 }
 
 export function difficultyForFight(arcade: ArcadeProgress | null, opponentId: string): Difficulty {
-  if (arcade) return difficultyForStep(arcade.step === null ? -1 : arcade.step);
+  if (arcade) return difficultyForStep(arcadeStageIndex(arcade), ARCADE_STAGE_COUNT);
   const ladder = LADDER_IDS.indexOf(opponentId);
   if (ladder >= 0) return difficultyForStep(ladder);
   return difficultyForStep(2);
