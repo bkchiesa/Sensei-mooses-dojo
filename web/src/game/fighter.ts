@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
 import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
-import { animPackFor, hasDedicatedFrames, hasDefeatFrames } from "./anims";
+import { animPackFor, defeatFramesFor, hasDedicatedFrames } from "./anims";
 import { playGrunt, playSfx } from "./audio";
 import { readyUltFrames, splashDisplayHeight, ultDurationFor, ULT_SPLASH_FPS } from "./ultArt";
 
@@ -106,7 +106,7 @@ export class Fighter {
   }
 
   private poseKey(anim: FighterAnimName, frame = 0): string | null {
-    const frames = animPackFor(this.fighter.id).frames[anim];
+    const frames = anim === "defeat" ? defeatFramesFor(this.fighter.id) : animPackFor(this.fighter.id).frames[anim];
     const key = frames?.[frame];
     if (this.textureReady(key)) return key ?? null;
     if (anim === "idle" && this.textureReady(this.idleKey)) return this.idleKey;
@@ -280,7 +280,7 @@ export class Fighter {
   /**
    * Hit react: play loaded `hit` frames (Batch1–2 `hit_00`) when the texture
    * is actually in the GPU atlas. A pack listing without a live image falls
-   * back to the flash/tint so impact still reads. Defeat stays a hook.
+   * back to the flash/tint so impact still reads.
    */
   private playHitReact(): void {
     if (this.poseKey("hit", 0)) {
@@ -303,12 +303,12 @@ export class Fighter {
   }
 
   /**
-   * KO / round-loss pose: `defeat` (or aliased `defeated`) frames when present.
-   * Fallback: idle laid back with the existing rotation. TODO(Pixel): per-fighter
-   * defeat/defeated sheets under `assets/fighters/<id>/defeat_NN.png`.
+   * KO / round-loss pose: play loaded `defeat` (or aliased `defeated`) frames
+   * when the texture is live. Batch1–2 ship `defeat_00`; others keep the idle
+   * flop + rotation hook.
    */
   private playDefeatReact(dir: number): void {
-    if (hasDefeatFrames(this.fighter.id)) {
+    if (this.poseKey("defeat", 0)) {
       this.playAnim("defeat", true);
       return;
     }
@@ -687,7 +687,10 @@ export class Fighter {
   }
 
   private cycleAnimFrames(dt: number): void {
-    const frames = animPackFor(this.fighter.id).frames[this.currentAnim];
+    const frames =
+      this.currentAnim === "defeat"
+        ? defeatFramesFor(this.fighter.id)
+        : animPackFor(this.fighter.id).frames[this.currentAnim];
     if (!frames?.length) return;
     const oneshot = this.currentAnim === "hit" || this.currentAnim === "defeat";
     if (frames.length === 1) {

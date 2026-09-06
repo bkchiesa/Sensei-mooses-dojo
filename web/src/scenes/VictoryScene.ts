@@ -30,8 +30,8 @@ export interface VictoryData {
  *   - Hero standing ~y 120–520
  *   - Defeated arc D1–D8 ~y 580–700 (last 8 beaten if the run is longer)
  *
- * TODO(Pixel): per-fighter hit / defeat (or defeated) frames. Until then the
- * winner uses idle; fallen use idle rotated/muted, or the real defeat sheet.
+ * Winner uses idle. Fallen use `defeat_00` when Pixel has dropped it
+ * (Batch1–2); otherwise idle rotated/muted.
  */
 export class VictoryScene extends Phaser.Scene {
   private arcade!: ArcadeProgress;
@@ -143,8 +143,6 @@ export class VictoryScene extends Phaser.Scene {
         img.setAngle(90);
         img.setTint(0x6a6a78);
         img.setAlpha(0.82);
-      } else {
-        img.setTint(0xc8c8d0);
       }
     } else {
       const body = this.add.rectangle(x, y, 88, 28, fighter.accent, 0.45).setDepth(10);
