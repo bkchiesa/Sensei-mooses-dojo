@@ -1,8 +1,30 @@
 /** Matches GameViewController.designSize — iPhone landscape, scaled to the browser. */
 export const DESIGN_WIDTH = 1334;
 export const DESIGN_HEIGHT = 750;
-export const GROUND_FROM_BOTTOM = 132;
-export const GROUND_Y = DESIGN_HEIGHT - GROUND_FROM_BOTTOM;
+
+/**
+ * Original standing-plane inset from the screen bottom (pre-playtest).
+ * Fighters use `GROUND_Y` / `fightGroundY()`, which drop this plane halfway
+ * toward the screen bottom so feet sit on the stage plates.
+ */
+export const GROUND_FROM_BOTTOM_BASE = 132;
+
+/**
+ * Fight standing plane (feet origin). Versus and Arcade both use this.
+ *
+ * Brandon playtest: fighters sat too high vs stage backgrounds.
+ * Lower the plane by half the remaining gap to the screen bottom:
+ *   Y' = Y_floor + 0.5 * (H - Y_floor)
+ * With H = 750 and Y_floor = 618 that is 618 + 66 = 684 (66px from bottom).
+ */
+export function fightGroundY(height = DESIGN_HEIGHT, fromBottom = GROUND_FROM_BOTTOM_BASE): number {
+  const yFloor = height - fromBottom;
+  return yFloor + 0.5 * (height - yFloor);
+}
+
+/** Inset after the half-gap drop (`fightGroundY` vs screen bottom). */
+export const GROUND_FROM_BOTTOM = DESIGN_HEIGHT - fightGroundY();
+export const GROUND_Y = fightGroundY();
 
 /** Display height for human fighters. Brandon: 2× the previous 210px body. */
 export const FIGHTER_HEIGHT = 420;
