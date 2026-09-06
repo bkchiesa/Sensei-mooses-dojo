@@ -16,7 +16,8 @@ import { difficultyForFight, type Difficulty } from "../game/difficulty";
 import { Fighter, ultimateDamage } from "../game/fighter";
 import { hideMatchOverlay, showMatchOverlay } from "../game/matchOverlay";
 import { deferSceneChange, go } from "../game/nav";
-import { applyQueryUnlocks, debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
+import { applyQueryUnlocks, debugFullUlt, debugHeavyHits, submitScore, unlockBoss } from "../game/storage";
+import { playUltFxOverlay, ultLoadQueue } from "../game/ultArt";
 import { promptName, textStyle } from "../game/ui";
 
 export interface FightData {
@@ -55,6 +56,7 @@ export class FightScene extends Phaser.Scene {
   private built = false;
   private overlayBusy = false;
   private arcadeAdvanceTimer?: Phaser.Time.TimerEvent;
+  private ultFx?: Phaser.GameObjects.Sprite;
 
   constructor() {
     super("Fight");
@@ -90,18 +92,24 @@ export class FightScene extends Phaser.Scene {
     this.overlayBusy = false;
     this.arcadeAdvanceTimer?.remove(false);
     this.arcadeAdvanceTimer = undefined;
+    this.ultFx?.destroy();
+    this.ultFx = undefined;
   }
 
   create(): void {
     this.cameras.main.setBackgroundColor(0x733848);
-    const needed = this.stageKeys();
-    const missing = needed.filter((k) => !this.textures.exists(k));
+    const missing = this.fightLoadQueue();
     if (missing.length) {
       const label = this.add
         .text(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2, "Loading stage…", textStyle(24, GOLD))
         .setOrigin(0.5);
-      for (const key of missing) this.load.image(key, `assets/${key}.png`);
+      for (const file of missing) this.load.image(file.key, file.url);
       this.load.once("complete", () => {
+        for (const file of missing) {
+          if (this.textures.exists(file.key)) {
+            this.textures.get(file.key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+          }
+        }
         label.destroy();
         this.buildFight();
       });
@@ -109,6 +117,15 @@ export class FightScene extends Phaser.Scene {
     } else {
       this.buildFight();
     }
+  }
+
+  private fightLoadQueue(): { key: string; url: string }[] {
+    const queue: { key: string; url: string }[] = [];
+    for (const key of this.stageKeys()) {
+      if (!this.textures.exists(key)) queue.push({ key, url: `assets/${key}.png` });
+    }
+    queue.push(...ultLoadQueue(this, [this.playerFighter.id, this.opponentFighter.id]));
+    return queue;
   }
 
   private stageKeys(): string[] {
@@ -132,6 +149,7 @@ export class FightScene extends Phaser.Scene {
     this.applyDifficulty();
     this.player.resetRound(DESIGN_WIDTH * 0.28, GROUND_Y, true);
     this.cpu.resetRound(DESIGN_WIDTH * 0.72, GROUND_Y, false);
+    this.applyDebugUlt();
 
     this.playerBar = new HealthBar(this, this.playerFighter, 48, 64, 400, true);
     const cpuTitle =
@@ -172,6 +190,10 @@ export class FightScene extends Phaser.Scene {
   private applyDifficulty(): void {
     this.cpu.incomingMul = this.difficulty.cpuDamageTaken;
     this.player.incomingMul = this.difficulty.cpuDamageDealt;
+  }
+
+  private applyDebugUlt(): void {
+    if (debugFullUlt()) this.player.ultimateMeter = 1;
   }
 
   private buildStage(): void {
@@ -321,6 +343,12 @@ export class FightScene extends Phaser.Scene {
   private tryUltimate(attacker: Fighter, defender: Fighter): void {
     if (!attacker.startUltimate(defender.x)) return;
     this.showUltimateBanner(attacker.fighter.ultimate.name);
+    this.playUltFx(attacker.fighter.id);
+  }
+
+  private playUltFx(id: string): void {
+    this.ultFx?.destroy();
+    this.ultFx = playUltFxOverlay(this, id) ?? undefined;
   }
 
   private showUltimateBanner(name: string): void {
@@ -510,6 +538,7 @@ export class FightScene extends Phaser.Scene {
     this.roundNumber += 1;
     this.player.resetRound(DESIGN_WIDTH * 0.28, GROUND_Y, true, { preserveMeter: true });
     this.cpu.resetRound(DESIGN_WIDTH * 0.72, GROUND_Y, false, { preserveMeter: true });
+    this.applyDebugUlt();
     this.applyDifficulty();
     this.playerBar.set(this.player.hp, this.player.maxHP);
     this.cpuBar.set(this.cpu.hp, this.cpu.maxHP);
@@ -703,6 +732,8 @@ export class FightScene extends Phaser.Scene {
   shutdown(): void {
     this.arcadeAdvanceTimer?.remove(false);
     this.arcadeAdvanceTimer = undefined;
+    this.ultFx?.destroy();
+    this.ultFx = undefined;
     hideMatchOverlay();
     this.pad?.detach();
     this.overlay?.destroy(true);

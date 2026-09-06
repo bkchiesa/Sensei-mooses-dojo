@@ -23,6 +23,8 @@ const uiTitleOut = path.join(out, "ui/title");
 const audioSrc = path.join(root, "dojo-art/finals/audio");
 const audioOut = path.join(out, "audio");
 const dojoFightersSrc = path.join(root, "dojo-art/finals/fighters");
+const dojoUltsSrc = path.join(root, "dojo-art/finals/ultimates");
+const ultsOut = path.join(out, "ultimates");
 const mooseSheetIdle = path.join(fighterSheets, "senseiMoose", "idle_00.png");
 
 const ANIM_NAMES = ["idle", "punch", "kick", "jump", "block", "crouch", "sweep"];
@@ -83,9 +85,8 @@ function keep(filename) {
   if (filename.startsWith("moose_") || filename.startsWith("fighter_") || filename.startsWith("boss_")) return true;
   if (filename.startsWith("stage1_") || filename.startsWith("stage2_") || filename.startsWith("stage3_")) return true;
   if (filename.startsWith("stage_")) return true;
-  if (/^ult_.+_00\.png$/.test(filename) || filename.startsWith("ult_austin_") || filename.startsWith("ult_senseiMoose_")) {
-    return true;
-  }
+  // Catalog `_00` only — locked splash sheets overlay from dojo-art/finals/ultimates.
+  if (/^ult_[a-z0-9]+_00\.png$/i.test(filename)) return true;
   return false;
 }
 
@@ -295,13 +296,101 @@ if (fs.existsSync(audioSrc)) {
   }
 }
 
+function ingestUltimates() {
+  fs.rmSync(ultsOut, { recursive: true, force: true });
+  fs.mkdirSync(ultsOut, { recursive: true });
+  const skip = /contact|prelock|pre_splash|_key|sheet/i;
+  const listed = {};
+  let splashCount = 0;
+  let fxCount = 0;
+
+  for (const id of ROSTER_IDS) {
+    const aliases = id === "senseiMoose" ? ["moose", "senseiMoose"] : [id];
+    const destDir = path.join(ultsOut, id);
+    fs.mkdirSync(destDir, { recursive: true });
+    const frames = new Map();
+    const fx = new Map();
+
+    for (const alias of aliases) {
+      const srcDir = path.join(dojoUltsSrc, alias);
+      if (!fs.existsSync(srcDir) || !fs.statSync(srcDir).isDirectory()) continue;
+      const splashRe = new RegExp(`^ult_${alias}_(\\d+)\\.png$`, "i");
+      for (const file of fs.readdirSync(srcDir)) {
+        if (!file.endsWith(".png") || skip.test(file)) continue;
+        const match = splashRe.exec(file);
+        if (!match) continue;
+        frames.set(`ult_${id}_${match[1]}.png`, path.join(srcDir, file));
+      }
+      const fxDir = path.join(srcDir, "fx");
+      if (!fs.existsSync(fxDir) || !fs.statSync(fxDir).isDirectory()) continue;
+      const fxRe = new RegExp(`^ult_${alias}_fx_(\\d+)\\.png$`, "i");
+      for (const file of fs.readdirSync(fxDir)) {
+        if (!file.endsWith(".png") || skip.test(file)) continue;
+        const match = fxRe.exec(file);
+        if (!match) continue;
+        fx.set(`ult_${id}_fx_${match[1]}.png`, path.join(fxDir, file));
+      }
+    }
+
+    const frameFiles = [...frames.keys()].sort();
+    for (const name of frameFiles) {
+      fs.copyFileSync(frames.get(name), path.join(destDir, name));
+      splashCount += 1;
+      if (/_00\.png$/i.test(name)) {
+        const rootName = `ult_${id}_00.png`;
+        fs.copyFileSync(frames.get(name), path.join(out, rootName));
+        if (!copied.includes(rootName)) copied.push(rootName);
+      }
+    }
+
+    const fxFiles = [...fx.keys()].sort();
+    if (fxFiles.length) {
+      const fxDest = path.join(destDir, "fx");
+      fs.mkdirSync(fxDest, { recursive: true });
+      for (const name of fxFiles) {
+        fs.copyFileSync(fx.get(name), path.join(fxDest, name));
+        fxCount += 1;
+      }
+    }
+
+    listed[id] = { frames: frameFiles, fx: fxFiles };
+  }
+
+  fs.writeFileSync(
+    path.join(ultsOut, "index.json"),
+    JSON.stringify(
+      {
+        convention: "web/public/assets/ultimates/<id>/ult_<id>_NN.png",
+        note: "Locked 12f splash from dojo-art/finals/ultimates. Austin + Moose also ship fx/ overlays. Boot preloads _00; Fight loads the rest for the two combatants.",
+        fighters: listed,
+      },
+      null,
+      2,
+    ),
+  );
+  fs.writeFileSync(
+    path.join(ultsOut, "README.md"),
+    `# Ultimate splash drop-in
+
+Generated from \`dojo-art/finals/ultimates/<id>/\`.
+
+- Splash: \`ult_<id>_00.png\` … (12f @~512h when present)
+- Fullscreen FX (Austin / Sensei Moose): \`fx/ult_<id>_fx_NN.png\`
+- \`ult_<id>_00.png\` is also copied to \`web/public/assets/\` so Boot’s existing key still resolves
+`,
+  );
+  console.log(`Ultimates → ${splashCount} splash + ${fxCount} fx across ${Object.keys(listed).length} ids`);
+}
+
+ingestUltimates();
+
 copied.sort();
 fs.writeFileSync(
   path.join(out, "manifest.json"),
   JSON.stringify(
     {
       source: "SenseiMoosesDojo/Assets.xcassets",
-      note: "Exported by web/scripts/export-assets.mjs. Names match imageset PNG filenames.",
+      note: "Exported by web/scripts/export-assets.mjs. Names match imageset PNG filenames. Locked ult splash lives under ultimates/.",
       count: copied.length,
       files: copied,
       fighters: Object.keys(fighters),
