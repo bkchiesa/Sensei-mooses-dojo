@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { CHARGE_PER_HIT, FIGHTER_HEIGHT, MOOSE_HEIGHT_SCALE, ULT_DAMAGE_FRACTION } from "../config";
 import type { FighterAnimName, FighterDef, UltimateFlavor, UltimateMove } from "../data/catalog";
-import { animPackFor, hasDedicatedFrames, hasDefeatFrames, hasHitFrames } from "./anims";
+import { animPackFor, defeatFramesFor, hasDedicatedFrames } from "./anims";
 import { playGrunt, playSfx } from "./audio";
 import { readyUltFrames, splashDisplayHeight, ultDurationFor, ULT_SPLASH_FPS } from "./ultArt";
 
@@ -97,13 +97,26 @@ export class Fighter {
 
   private fitBody(): void {
     if (this.body.height <= 0) return;
+    // Scale-redo defeat sheets are landscape (downed). Match body length to
+    // standing height so KO does not blow up to a 420px-tall slab.
+    if (this.currentAnim === "defeat" && this.body.width > this.body.height) {
+      const w = this.bodyHeight;
+      this.body.setDisplaySize(w, (this.body.height / this.body.width) * w);
+      return;
+    }
     this.body.setDisplaySize((this.body.width / this.body.height) * this.bodyHeight, this.bodyHeight);
   }
 
+  private textureReady(key: string | undefined): boolean {
+    if (!key || !this.scene.textures.exists(key)) return false;
+    return this.scene.textures.get(key).getSourceImage().width > 1;
+  }
+
   private poseKey(anim: FighterAnimName, frame = 0): string | null {
-    const frames = animPackFor(this.fighter.id).frames[anim];
-    if (frames && frames[frame] && this.scene.textures.exists(frames[frame])) return frames[frame];
-    if (anim === "idle" && this.scene.textures.exists(this.idleKey)) return this.idleKey;
+    const frames = anim === "defeat" ? defeatFramesFor(this.fighter.id) : animPackFor(this.fighter.id).frames[anim];
+    const key = frames?.[frame];
+    if (this.textureReady(key)) return key ?? null;
+    if (anim === "idle" && this.textureReady(this.idleKey)) return this.idleKey;
     return null;
   }
 
@@ -272,12 +285,12 @@ export class Fighter {
   }
 
   /**
-   * Hit react: play `hit` frames when Pixel has dropped them; otherwise the
-   * existing flash/tint. TODO(Pixel): per-fighter hit sheets under
-   * `assets/fighters/<id>/hit_NN.png` (or fighter-sheets overlay).
+   * Hit react: play loaded `hit` frames (Batch1–2 `hit_00`) when the texture
+   * is actually in the GPU atlas. A pack listing without a live image falls
+   * back to the flash/tint so impact still reads.
    */
   private playHitReact(): void {
-    if (hasHitFrames(this.fighter.id)) {
+    if (this.poseKey("hit", 0)) {
       this.playAnim("hit", true);
       return;
     }
@@ -297,12 +310,12 @@ export class Fighter {
   }
 
   /**
-   * KO / round-loss pose: `defeat` (or aliased `defeated`) frames when present.
-   * Fallback: idle laid back with the existing rotation. TODO(Pixel): per-fighter
-   * defeat/defeated sheets under `assets/fighters/<id>/defeat_NN.png`.
+   * KO / round-loss pose: play loaded `defeat` (or aliased `defeated`) frames
+   * when the texture is live. Batch1–2 ship `defeat_00`; others keep the idle
+   * flop + rotation hook.
    */
   private playDefeatReact(dir: number): void {
-    if (hasDefeatFrames(this.fighter.id)) {
+    if (this.poseKey("defeat", 0)) {
       this.playAnim("defeat", true);
       return;
     }
@@ -621,7 +634,7 @@ export class Fighter {
 
     if (this.isHit) {
       this.hitElapsed += dt;
-      const hold = hasHitFrames(this.fighter.id) ? 0.36 : 0.28;
+      const hold = this.poseKey("hit", 0) && this.currentAnim === "hit" ? 0.36 : 0.28;
       if (this.hitElapsed > hold) {
         this.isHit = false;
         if (!this.isKO && !this.isAttacking && !this.isUltimate) {
@@ -656,7 +669,14 @@ export class Fighter {
     if (!this.onGround && !this.isAttacking && !this.isUltimate && !this.isHit && !this.isKO) {
       this.isCrouching = false;
       this.playAnim("jump");
-    } else if (this.onGround && this.currentAnim === "jump" && !this.isAttacking && !this.isUltimate) {
+    } else if (
+      this.onGround &&
+      this.currentAnim === "jump" &&
+      !this.isAttacking &&
+      !this.isUltimate &&
+      !this.isHit &&
+      !this.isKO
+    ) {
       this.playAnim(this.isCrouching ? "crouch" : "idle");
     } else if (
       this.onGround &&
@@ -674,9 +694,20 @@ export class Fighter {
   }
 
   private cycleAnimFrames(dt: number): void {
-    const frames = animPackFor(this.fighter.id).frames[this.currentAnim];
-    if (!frames || frames.length <= 1) return;
+    const frames =
+      this.currentAnim === "defeat"
+        ? defeatFramesFor(this.fighter.id)
+        : animPackFor(this.fighter.id).frames[this.currentAnim];
+    if (!frames?.length) return;
     const oneshot = this.currentAnim === "hit" || this.currentAnim === "defeat";
+    if (frames.length === 1) {
+      const key = frames[0];
+      if (oneshot && this.textureReady(key) && this.body.texture.key !== key) {
+        this.body.setTexture(key);
+        this.fitBody();
+      }
+      return;
+    }
     this.animElapsed += dt;
     const fps = this.currentAnim === "idle" ? 8 : oneshot ? 10 : 12;
     if (this.animElapsed < 1 / fps) return;
