@@ -22,15 +22,15 @@ Facing right, ~256px tall, transparent PNG under `/workspace/dojo-art/finals/ult
 | ID | Ultimate | Frames |
 |----|----------|--------|
 | johnk | Power Slam | 00–01 |
-| finley | Vertical Suplex | 00–01 |
+| casper | Rank Certificate | 00–11 |
 | hudson | Running Clothesline | 00–01 |
 | michael | Sharpshooter Lock | 00–01 |
-| kasey | Moonsault Splash | 00–01 |
+| shianne | Crescent Flash | 00–11 |
 
 ### Batch 3
 | ID | Ultimate | Frames |
 |----|----------|--------|
-| jaylen | Hurricane Kick | 00–01 |
+| dean | Calligraphy Kiai | 00–11 |
 | amiyr | Axe Kick Crash | 00–01 |
 | shaun | Rising Fist Upper | 00–01 |
 | ryan | Running Knee Strike | 00–01 |
@@ -55,10 +55,13 @@ Old placeholders archived in each folder as `_pre_splash_*`.
 misty Rising Heel Flash · lucas Rapid Palm Barrage · chris Diving Elbow Drop · christiano Wheel Kick Spiral · dakota Charge Spear — 12f @~512 each.
 
 ## Boss B3 splash upgrade — READY 2026-09-05 (Pixel PASS)
-jaylen Hurricane Kick · amiyr Axe Kick Crash · shaun Rising Fist Upper · ryan Running Knee Strike — 12f @~512.
+dean Calligraphy Kiai · amiyr Axe Kick Crash · shaun Rising Fist Upper · ryan Running Knee Strike — 12f @~512.
 
 ## Boss B2 splash upgrade — READY 2026-09-05 (Pixel PASS)
-johnk Power Slam · finley Vertical Suplex · hudson Running Clothesline · michael Sharpshooter Lock · kasey Moonsault Splash — 12f @~512.
+johnk Power Slam · casper Rank Certificate · hudson Running Clothesline · michael Sharpshooter Lock · shianne Crescent Flash — 12f @~512.
+
+## Roster swap splash — READY 2026-09-06
+shianne Crescent Flash · casper Rank Certificate · dean Calligraphy Kiai — 12f @~512 under `finals/ultimates/<id>/`. Retired `jaylen` / `finley` / `kasey` are unhooked.
 
 ## Austin + Moose splash + fullscreen FX — READY 2026-09-05 (Pixel PASS)
 - austin Tornado Kick Barrage: 12f @~512 + fx/ 10f @1280×800 (old → `_prelock_*`)

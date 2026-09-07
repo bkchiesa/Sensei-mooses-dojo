@@ -12,6 +12,8 @@ const arcadeSrc = fs.readFileSync(path.join(root, "src/game/arcade.ts"), "utf8")
 const catalogSrc = fs.readFileSync(path.join(root, "src/data/catalog.ts"), "utf8");
 const fightSrc = fs.readFileSync(path.join(root, "src/scenes/FightScene.ts"), "utf8");
 const bootSrc = fs.readFileSync(path.join(root, "src/scenes/BootScene.ts"), "utf8");
+const exportSrc = fs.readFileSync(path.join(root, "scripts/export-assets.mjs"), "utf8");
+const audioSrc = fs.readFileSync(path.join(root, "src/game/audio.ts"), "utf8");
 
 assert.match(catalogSrc, /LOCKED_UNTIL_DEFEAT_IDS = \["ryan"\]/);
 assert.match(arcadeSrc, /export const ARCADE_STAGE_COUNT = 12/);
@@ -25,7 +27,15 @@ assert.match(bootSrc, /arcadeAtStage/);
 
 const bossIds = [...catalogSrc.matchAll(/boss\("([a-zA-Z0-9]+)"/g)].map((m) => m[1]);
 assert.ok(bossIds.includes("austin") && bossIds.includes("senseiMoose"));
+assert.ok(bossIds.includes("shianne") && bossIds.includes("casper") && bossIds.includes("dean"));
+assert.ok(!bossIds.includes("jaylen") && !bossIds.includes("finley") && !bossIds.includes("kasey"));
 assert.ok(bossIds.length >= 14);
+assert.match(exportSrc, /"shianne"/);
+assert.match(exportSrc, /"casper"/);
+assert.match(exportSrc, /"dean"/);
+assert.match(exportSrc, /RETIRED_IDS = \["jaylen", "finley", "kasey"\]/);
+assert.match(audioSrc, /"shianne"/);
+assert.doesNotMatch(audioSrc, /"kasey"/);
 
 function shuffled(items, rng) {
   const out = [...items];
@@ -55,6 +65,16 @@ assert.equal(misty[11], "senseiMoose");
 assert.equal(new Set(misty.slice(0, 10)).size, 10);
 assert.ok(!misty.slice(0, 10).includes("misty"));
 assert.ok(!misty.slice(0, 10).includes("austin"));
+assert.ok(bossIds.filter((id) => !["austin", "senseiMoose"].includes(id)).includes("shianne"));
+assert.ok(bossIds.filter((id) => !["austin", "senseiMoose"].includes(id)).includes("casper"));
+assert.ok(bossIds.filter((id) => !["austin", "senseiMoose"].includes(id)).includes("dean"));
+
+const asShianne = build("shianne", rng);
+assert.equal(asShianne.length, 12);
+assert.equal(asShianne[10], "austin");
+assert.equal(asShianne[11], "senseiMoose");
+assert.ok(!asShianne.slice(0, 10).includes("shianne"));
+assert.ok(!asShianne.includes("jaylen") && !asShianne.includes("finley") && !asShianne.includes("kasey"));
 
 const asAustin = build("austin", rng);
 assert.equal(asAustin[10], "austin");

@@ -160,11 +160,11 @@ Each boss has a **unique** home stage from the locked landmark set (arcade 1–3
 | Christiano | Patrick Henry Mall | `stage_phmall_*` |
 | Dakota | Newport News Shipyard | `stage_shipyard_*` |
 | John K. | Hilton Elementary | `stage2_*` |
-| Finley | Mariners' Museum | `stage_mariners_*` |
+| Casper | Mariners' Museum | `stage_mariners_*` |
 | Hudson | Warwick Blvd | `stage_subwaywarwick_*` |
 | Michael | Newport News Park | `stage_nnpark_*` |
-| Kasey | James River Bridge | `stage_jrbridge_*` |
-| Jaylen | Colonial Capitol | `stage_colonial_*` |
+| Shianne | James River Bridge | `stage_jrbridge_*` |
+| Dean | Colonial Capitol | `stage_colonial_*` |
 | Amiyr | Busch Gardens | `stage_busch_*` |
 | Shaun | Hampton Waterfront | `stage_hampton_*` |
 | Ryan | Poquoson Waterfront | `stage_poquoson_*` |
@@ -190,16 +190,16 @@ Pixel finals for Stage 1 / title / starter roster / Hilton / Dojo / boss batches
 | Display | id | Portrait | Idle |
 | --- | --- | --- | --- |
 | John K. | `johnk` | `boss_johnk_portrait` | `boss_johnk_idle_00` |
-| Finley | `finley` | `boss_finley_portrait` | `boss_finley_idle_00` |
+| Casper | `casper` | `boss_casper_portrait` | `boss_casper_idle_00` |
 | Hudson | `hudson` | `boss_hudson_portrait` | `boss_hudson_idle_00` |
 | Michael | `michael` | `boss_michael_portrait` | `boss_michael_idle_00` |
-| Kasey | `kasey` | `boss_kasey_portrait` | `boss_kasey_idle_00` |
+| Shianne | `shianne` | `boss_shianne_portrait` | `boss_shianne_idle_00` |
 
 ### Boss batch 3 (art parked)
 
 | Display | id | Portrait | Idle |
 | --- | --- | --- | --- |
-| Jaylen | `jaylen` | `boss_jaylen_portrait` | `boss_jaylen_idle_00` |
+| Dean | `dean` | `boss_dean_portrait` | `boss_dean_idle_00` |
 | Amiyr | `amiyr` | `boss_amiyr_portrait` | `boss_amiyr_idle_00` |
 | Shaun | `shaun` | `boss_shaun_portrait` | `boss_shaun_idle_00` |
 | Ryan | `ryan` | `boss_ryan_portrait` | `boss_ryan_idle_00` |

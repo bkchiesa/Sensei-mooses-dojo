@@ -64,16 +64,16 @@ struct UltimateMove {
             return UltimateMove(name: "Charge Spear", summary: "Full-sprint spear tackle.", flavor: .spear, frameName: frame)
         case .boss(.johnk):
             return UltimateMove(name: "Power Slam", summary: "Sit-out power slam.", flavor: .powerbomb, frameName: frame)
-        case .boss(.finley):
-            return UltimateMove(name: "Vertical Suplex", summary: "Vertical snap-suplex.", flavor: .suplex, frameName: frame)
+        case .boss(.casper):
+            return UltimateMove(name: "Rank Certificate", summary: "Scroll-and-rank celebration surge.", flavor: .spiritWave, frameName: frame)
         case .boss(.hudson):
             return UltimateMove(name: "Running Clothesline", summary: "Full-sprint clothesline.", flavor: .clothesline, frameName: frame)
         case .boss(.michael):
             return UltimateMove(name: "Sharpshooter Lock", summary: "Figure-four style leg submission homage.", flavor: .figure4, frameName: frame)
-        case .boss(.kasey):
-            return UltimateMove(name: "Moonsault Splash", summary: "Backflip moonsault splash.", flavor: .moonsault, frameName: frame)
-        case .boss(.jaylen):
-            return UltimateMove(name: "Hurricane Kick", summary: "Spinning hurricane kick barrage.", flavor: .tornadoKick, frameName: frame)
+        case .boss(.shianne):
+            return UltimateMove(name: "Crescent Flash", summary: "Rising crescent kick flash.", flavor: .flipKick, frameName: frame)
+        case .boss(.dean):
+            return UltimateMove(name: "Calligraphy Kiai", summary: "Gold brush-script kiai burst.", flavor: .tigerUpper, frameName: frame)
         case .boss(.amiyr):
             return UltimateMove(name: "Axe Kick Crash", summary: "Overhead axe-kick crash.", flavor: .dropkick, frameName: frame)
         case .boss(.shaun):

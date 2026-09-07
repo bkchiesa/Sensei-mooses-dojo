@@ -73,12 +73,23 @@ matt · simon · rich · amanda · jb · misty — pose-bar finals.
 misty · lucas · chris · christiano · dakota
 
 ## Batch 2 bosses pose-bar COMPLETE (2026-09-05)
-johnk · finley · hudson · michael · kasey
+johnk · casper · hudson · michael · shianne
 
 ## Batch 3 bosses + Austin pose-bar COMPLETE (2026-09-05)
-jaylen · amiyr · shaun · ryan · austin — Misty pose-bar PASS; promoted to finals/fighters/<id>/. Austin ultimates untouched under finals/ultimates/austin/.
+dean · amiyr · shaun · ryan · austin — Misty pose-bar PASS; promoted to finals/fighters/<id>/. Austin ultimates untouched under finals/ultimates/austin/.
 
-### `jaylen` — `/workspace/dojo-art/finals/fighters/jaylen/`
+## Roster swap (2026-09-06)
+Playable staff now uses `shianne` / `casper` / `dean` in place of retired `jaylen` / `finley` / `kasey`. Locked finals live under `finals/fighters/<id>/` (pose-bar + hit/defeat + portrait) and short-name overlays under `web/fighter-sheets/<id>/`.
+
+### Retired `jaylen` / `finley` / `kasey`
+Unhooked from Select + Arcade. Historical sheets may still sit on disk; do not wire them back.
+
+### `shianne` · `casper` · `dean` — `/workspace/dojo-art/finals/fighters/<id>/`
+- pose-bar idle/punch/kick/jump/block/crouch/sweep + hit + defeat + portrait
+- short-name overlays: `web/fighter-sheets/<id>/`
+- 12f ults: `finals/ultimates/<id>/ult_<id>_00`…`_11`
+
+### `jaylen` — `/workspace/dojo-art/finals/fighters/jaylen/` (retired)
 - **idle**: 4 frames (fighter_jaylen_idle_00.png … _03.png) h={512}
 - **punch**: 4 frames (fighter_jaylen_punch_00.png … _03.png) h={512}
 - **kick**: 4 frames (fighter_jaylen_kick_00.png … _03.png) h={512}

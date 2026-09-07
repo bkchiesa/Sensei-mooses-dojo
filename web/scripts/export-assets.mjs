@@ -94,17 +94,18 @@ const BOSS_IDS = [
   "christiano",
   "dakota",
   "johnk",
-  "finley",
+  "casper",
   "hudson",
   "michael",
-  "kasey",
-  "jaylen",
+  "shianne",
+  "dean",
   "amiyr",
   "shaun",
   "ryan",
   "austin",
   "senseiMoose",
 ];
+const RETIRED_IDS = ["jaylen", "finley", "kasey"];
 const ROSTER_IDS = [...STARTER_IDS, ...BOSS_IDS];
 
 function listPixelFrames(dir, id) {
@@ -146,7 +147,17 @@ function ingestPixelFrames(id, destDir) {
   return latest;
 }
 
+function isRetiredAsset(filename) {
+  return RETIRED_IDS.some(
+    (id) =>
+      filename.startsWith(`boss_${id}_`) ||
+      filename.startsWith(`fighter_${id}_`) ||
+      filename.startsWith(`ult_${id}_`),
+  );
+}
+
 function keep(filename) {
+  if (isRetiredAsset(filename)) return false;
   if (filename.startsWith("moose_") || filename.startsWith("fighter_") || filename.startsWith("boss_")) return true;
   if (filename.startsWith("stage1_") || filename.startsWith("stage2_") || filename.startsWith("stage3_")) return true;
   if (filename.startsWith("stage_")) return true;
@@ -181,14 +192,32 @@ for (const dir of fs.readdirSync(catalog)) {
   }
 }
 
-const fighterIds = new Set();
+const fighterIds = new Set(ROSTER_IDS);
 for (const file of copied) {
   const starter = /^fighter_([a-z0-9]+)_idle_00\.png$/i.exec(file);
   const boss = /^boss_([a-z0-9]+)_idle_00\.png$/i.exec(file);
-  if (starter) fighterIds.add(starter[1]);
-  if (boss) fighterIds.add(boss[1]);
+  const id = starter?.[1] ?? boss?.[1];
+  if (!id || RETIRED_IDS.includes(id) || (boss && !BOSS_IDS.includes(id) && !STARTER_IDS.includes(id))) continue;
+  if (STARTER_IDS.includes(id) || BOSS_IDS.includes(id)) fighterIds.add(id);
 }
-for (const id of ROSTER_IDS) fighterIds.add(id);
+
+function ingestFinalsPortraits() {
+  for (const id of BOSS_IDS) {
+    if (id === "senseiMoose") continue;
+    const srcs = [
+      path.join(dojoFightersSrc, id, `fighter_${id}_portrait.png`),
+      path.join(dojoFightersSrc, id, `boss_${id}_portrait.png`),
+      path.join(dojoFightersSrc, id, "portrait.png"),
+      path.join(fighterSheets, id, "portrait.png"),
+    ];
+    const src = srcs.find((p) => fs.existsSync(p));
+    if (!src) continue;
+    const destName = `boss_${id}_portrait.png`;
+    fs.copyFileSync(src, path.join(out, destName));
+    if (!copied.includes(destName)) copied.push(destName);
+  }
+}
+ingestFinalsPortraits();
 
 const fighters = {};
 for (const id of [...fighterIds].sort()) {
