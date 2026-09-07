@@ -53,7 +53,7 @@ SCENE_TOKENS = {
     "Scenes/CharacterSelectScene.swift": ["CHOOSE YOUR FIGHTER", "UnlockStore.starters", "freePlay"],
     "Game/UnlockStore.swift": ["UnlockStore", "UserDefaults", "unlock"],
     "Game/ArcadeLadder.swift": ["BossID.ladder", "lionsBridge"],
-    "Game/BossRoster.swift": ["case misty", "case johnk", "case jaylen", "case senseiMoose", "boss_", "batch1", "batch2", "batch3", "ladder"],
+    "Game/BossRoster.swift": ["case misty", "case johnk", "case shianne", "case casper", "case dean", "case senseiMoose", "boss_", "batch1", "batch2", "batch3", "ladder"],
     "Game/Roster.swift": ["case matt", "case simon", "case rich", "case amanda", "case jb", "PlayableFighter"],
     "Scenes/FightScene.swift": ["masterName", "REMATCH", "VirtualControls", "submit-score", "UnlockStore.unlock", "NEXT:", "tryUltimate", "setMeter"],
     "Scenes/LeaderboardScene.swift": ["TOP 10", "LeaderboardService"],

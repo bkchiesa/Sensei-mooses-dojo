@@ -9,12 +9,12 @@ enum BossID: String, CaseIterable {
     case dakota
     // Batch 2 (likeness locked; art finals landing soon)
     case johnk
-    case finley
+    case casper
     case hudson
     case michael
-    case kasey
+    case shianne
     // Batch 3 (likeness locked)
-    case jaylen
+    case dean
     case amiyr
     case shaun
     case ryan
@@ -29,11 +29,11 @@ enum BossID: String, CaseIterable {
         case .christiano: return "Christiano"
         case .dakota: return "Dakota"
         case .johnk: return "John K."
-        case .finley: return "Finley"
+        case .casper: return "Casper"
         case .hudson: return "Hudson"
         case .michael: return "Michael"
-        case .kasey: return "Kasey"
-        case .jaylen: return "Jaylen"
+        case .shianne: return "Shianne"
+        case .dean: return "Dean"
         case .amiyr: return "Amiyr"
         case .shaun: return "Shaun"
         case .ryan: return "Ryan"
@@ -69,11 +69,11 @@ enum BossID: String, CaseIterable {
         case .christiano: return SKColor(red: 0.15, green: 0.55, blue: 0.40, alpha: 1)
         case .dakota: return SKColor(red: 0.70, green: 0.45, blue: 0.15, alpha: 1)
         case .johnk: return SKColor(red: 0.25, green: 0.25, blue: 0.45, alpha: 1)
-        case .finley: return SKColor(red: 0.45, green: 0.55, blue: 0.25, alpha: 1)
+        case .casper: return SKColor(red: 0.82, green: 0.68, blue: 0.22, alpha: 1)
         case .hudson: return SKColor(red: 0.40, green: 0.30, blue: 0.20, alpha: 1)
         case .michael: return SKColor(red: 0.30, green: 0.40, blue: 0.55, alpha: 1)
-        case .kasey: return SKColor(red: 0.65, green: 0.25, blue: 0.40, alpha: 1)
-        case .jaylen: return SKColor(red: 0.20, green: 0.55, blue: 0.55, alpha: 1)
+        case .shianne: return SKColor(red: 0.72, green: 0.22, blue: 0.48, alpha: 1)
+        case .dean: return SKColor(red: 0.15, green: 0.32, blue: 0.42, alpha: 1)
         case .amiyr: return SKColor(red: 0.50, green: 0.20, blue: 0.55, alpha: 1)
         case .shaun: return SKColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1)
         case .ryan: return SKColor(red: 0.70, green: 0.20, blue: 0.20, alpha: 1)
@@ -87,9 +87,9 @@ enum BossID: String, CaseIterable {
         switch self {
         case .misty, .lucas, .chris, .christiano, .dakota:
             return .lionsBridge
-        case .johnk, .finley, .hudson, .michael, .kasey:
+        case .johnk, .casper, .hudson, .michael, .shianne:
             return .hiltonElementary
-        case .jaylen, .amiyr, .shaun, .ryan, .austin, .senseiMoose:
+        case .dean, .amiyr, .shaun, .ryan, .austin, .senseiMoose:
             return .axsomDojo
         }
     }
@@ -98,6 +98,6 @@ enum BossID: String, CaseIterable {
     static var ladder: [BossID] { allCases }
 
     static var batch1: [BossID] { [.misty, .lucas, .chris, .christiano, .dakota] }
-    static var batch2: [BossID] { [.johnk, .finley, .hudson, .michael, .kasey] }
-    static var batch3: [BossID] { [.jaylen, .amiyr, .shaun, .ryan, .austin] }
+    static var batch2: [BossID] { [.johnk, .casper, .hudson, .michael, .shianne] }
+    static var batch3: [BossID] { [.dean, .amiyr, .shaun, .ryan, .austin] }
 }

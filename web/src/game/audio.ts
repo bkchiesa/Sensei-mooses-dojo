@@ -172,7 +172,7 @@ function stopOtherLoops(scene: Phaser.Scene, keep: string): void {
   }
 }
 
-const FEMALE_IDS = new Set(["amanda", "misty", "kasey"]);
+const FEMALE_IDS = new Set(["amanda", "misty", "shianne"]);
 
 export type GruntAction = "punch" | "kick" | "hit" | "ko";
 
